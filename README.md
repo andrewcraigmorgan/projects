@@ -15,12 +15,34 @@ A full-stack project management application built with Nuxt 4, MongoDB, and Tail
 - **Backend**: Nitro, MongoDB, Mongoose
 - **Auth**: JWT, bcrypt
 
-## Prerequisites
+## Quick Start (Docker)
+
+The easiest way to run the app:
+
+```bash
+docker-compose up
+```
+
+This starts both the app and MongoDB. Available at http://localhost:3000
+
+To run in the background:
+```bash
+docker-compose up -d
+```
+
+To stop:
+```bash
+docker-compose down
+```
+
+## Manual Setup
+
+### Prerequisites
 
 - Node.js 18+
 - MongoDB
 
-## Setup
+### Steps
 
 1. Install dependencies:
 ```bash
@@ -32,7 +54,7 @@ npm install
 cp .env.example .env
 ```
 
-3. Start MongoDB (or use Docker):
+3. Start MongoDB:
 ```bash
 docker run -d -p 27017:27017 --name mongodb mongo:latest
 ```
