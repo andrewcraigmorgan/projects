@@ -8,7 +8,8 @@
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
-    "generate:api-docs": "tsx server/utils/generateApiDocs.ts"
+    "generate:api-docs": "tsx server/utils/generateApiDocs.ts",
+    "seed:tasks": "tsx scripts/seedTasks.ts"
   },
   "dependencies": {
     "nuxt": "^4.2.2",
