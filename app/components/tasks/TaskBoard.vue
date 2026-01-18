@@ -4,15 +4,18 @@ import type { Task } from '~/composables/useTasks'
 interface Props {
   tasks: Task[]
   loading?: boolean
+  projectId?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
+  projectId: '',
 })
 
 const emit = defineEmits<{
   (e: 'select', task: Task): void
   (e: 'update-status', task: Task, status: Task['status']): void
+  (e: 'task-created'): void
 }>()
 
 const columns: { id: Task['status']; title: string; color: string }[] = [
@@ -171,6 +174,16 @@ function onDrop(event: DragEvent, status: Task['status']) {
             class="text-center py-8 text-gray-400 text-sm"
           >
             No tasks
+          </div>
+
+          <!-- Inline quick add at bottom of column -->
+          <div v-if="projectId" class="mt-2">
+            <TasksTaskQuickAdd
+              :project-id="projectId"
+              :status="column.id"
+              :placeholder="`Add to ${column.title}...`"
+              @created="emit('task-created')"
+            />
           </div>
         </div>
       </div>

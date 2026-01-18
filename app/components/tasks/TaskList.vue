@@ -5,16 +5,19 @@ interface Props {
   tasks: Task[]
   loading?: boolean
   depth?: number
+  projectId?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
   depth: 0,
+  projectId: '',
 })
 
 const emit = defineEmits<{
   (e: 'select', task: Task): void
   (e: 'load-subtasks', task: Task): void
+  (e: 'task-created'): void
 }>()
 
 const expandedTasks = ref<Set<string>>(new Set())
@@ -62,9 +65,17 @@ defineExpose({
       </svg>
     </div>
 
-    <div v-else-if="tasks.length === 0" class="text-center py-8 text-gray-500">
-      No tasks found
-    </div>
+    <template v-else-if="tasks.length === 0">
+      <!-- Inline quick add when empty -->
+      <div v-if="projectId && depth === 0">
+        <TasksTaskQuickAdd
+          :project-id="projectId"
+          placeholder="Add your first task..."
+          @created="emit('task-created')"
+        />
+      </div>
+      <p v-else class="text-center py-8 text-gray-500">No tasks found</p>
+    </template>
 
     <template v-else>
       <div v-for="task in tasks" :key="task.id">
@@ -83,6 +94,15 @@ defineExpose({
             />
           </template>
         </TaskCard>
+      </div>
+
+      <!-- Inline quick add at bottom of list -->
+      <div v-if="projectId && depth === 0" class="mt-3">
+        <TasksTaskQuickAdd
+          :project-id="projectId"
+          placeholder="Add a task..."
+          @created="emit('task-created')"
+        />
       </div>
     </template>
   </div>

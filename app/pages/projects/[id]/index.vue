@@ -31,8 +31,19 @@ const {
   getTaskWithSubtasks,
 } = useTasks(projectId)
 
-// View mode
+// View mode (persisted to localStorage)
 const viewMode = ref<'list' | 'board'>('board')
+
+onMounted(() => {
+  const saved = localStorage.getItem('taskViewMode')
+  if (saved === 'list' || saved === 'board') {
+    viewMode.value = saved
+  }
+})
+
+watch(viewMode, (value) => {
+  localStorage.setItem('taskViewMode', value)
+})
 
 // Modals
 const showCreateModal = ref(false)
@@ -147,9 +158,6 @@ onMounted(async () => {
             </button>
           </div>
 
-          <UiButton @click="showCreateModal = true">
-            New Task
-          </UiButton>
         </div>
       </template>
     </LayoutHeader>
@@ -160,8 +168,10 @@ onMounted(async () => {
         v-if="viewMode === 'board'"
         :tasks="tasks"
         :loading="tasksLoading"
+        :project-id="projectId"
         @select="selectedTask = $event"
         @update-status="handleUpdateStatus"
+        @task-created="loadTasks"
       />
 
       <!-- List View -->
@@ -169,8 +179,10 @@ onMounted(async () => {
         v-else
         :tasks="tasks"
         :loading="tasksLoading"
+        :project-id="projectId"
         @select="selectedTask = $event"
         @load-subtasks="handleLoadSubtasks"
+        @task-created="loadTasks"
       />
     </div>
 
