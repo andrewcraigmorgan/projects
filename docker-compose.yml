@@ -4,8 +4,8 @@ services:
     ports:
       - "3000:3000"
     environment:
-      - MONGODB_URI=mongodb://mongo:27017/projects
-      - JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
+      - NUXT_MONGODB_URI=mongodb://mongo:27017/projects
+      - NUXT_JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       - NUXT_PUBLIC_APP_URL=http://localhost:3000
     depends_on:
       mongo:
