@@ -20,6 +20,7 @@ const project = ref<{
 } | null>(null)
 
 const projectLoading = ref(true)
+const projectError = ref(false)
 
 // Tasks
 const {
@@ -54,6 +55,7 @@ const saving = ref(false)
 // Fetch project
 async function loadProject() {
   projectLoading.value = true
+  projectError.value = false
   try {
     const response = await fetchApi<{
       success: boolean
@@ -62,7 +64,11 @@ async function loadProject() {
 
     if (response.success) {
       project.value = response.data.project
+    } else {
+      projectError.value = true
     }
+  } catch {
+    projectError.value = true
   } finally {
     projectLoading.value = false
   }
@@ -126,7 +132,7 @@ onMounted(async () => {
 
 <template>
   <div>
-    <LayoutHeader>
+    <LayoutHeader back-link="/projects">
       <template #title>
         <div v-if="projectLoading" class="h-8 w-48 bg-gray-200 dark:bg-gray-700 animate-pulse" />
         <div v-else>
@@ -163,9 +169,17 @@ onMounted(async () => {
     </LayoutHeader>
 
     <div class="p-6">
+      <!-- Error state -->
+      <div v-if="projectError" class="text-center py-12">
+        <p class="text-gray-500 dark:text-gray-400 mb-4">Project not found</p>
+        <NuxtLink to="/projects" class="text-primary-600 dark:text-primary-400 hover:underline">
+          Back to Projects
+        </NuxtLink>
+      </div>
+
       <!-- Board View -->
       <TasksTaskBoard
-        v-if="viewMode === 'board'"
+        v-else-if="viewMode === 'board'"
         :tasks="tasks"
         :loading="tasksLoading"
         :project-id="projectId"

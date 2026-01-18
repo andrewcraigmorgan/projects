@@ -27,20 +27,14 @@ function isActive(href: string) {
 
     <!-- Organization Selector -->
     <div class="px-4 mb-4">
-      <select
+      <UiSearchSelect
         v-if="orgStore.organizations.length > 0"
-        :value="orgStore.currentOrganization?.id"
-        class="w-full bg-gray-800 text-white text-sm px-3 py-2 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
-        @change="orgStore.setCurrentOrganization(orgStore.organizations.find(o => o.id === ($event.target as HTMLSelectElement).value)!)"
-      >
-        <option
-          v-for="org in orgStore.organizations"
-          :key="org.id"
-          :value="org.id"
-        >
-          {{ org.name }}
-        </option>
-      </select>
+        :model-value="orgStore.currentOrganization?.id"
+        :options="orgStore.organizations.map(o => ({ id: o.id, label: o.name }))"
+        placeholder="Select organization..."
+        search-placeholder="Search organizations..."
+        @update:model-value="orgStore.setCurrentOrganization(orgStore.organizations.find(o => o.id === $event)!)"
+      />
     </div>
 
     <!-- Navigation -->
