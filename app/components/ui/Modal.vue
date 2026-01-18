@@ -45,17 +45,17 @@ function handleBackdropClick(event: MouseEvent) {
           >
             <div
               v-if="open"
-              class="w-full max-w-md transform overflow-hidden rounded-xl bg-white shadow-xl transition-all"
+              class="w-full max-w-md transform overflow-hidden bg-white dark:bg-gray-800 shadow-xl transition-all"
             >
-              <div v-if="title" class="border-b px-6 py-4">
-                <h3 class="text-lg font-semibold text-gray-900">
+              <div v-if="title" class="border-b border-gray-200 dark:border-gray-700 px-6 py-4">
+                <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   {{ title }}
                 </h3>
               </div>
               <div class="px-6 py-4">
                 <slot />
               </div>
-              <div v-if="$slots.footer" class="border-t px-6 py-4 bg-gray-50">
+              <div v-if="$slots.footer" class="border-t border-gray-200 dark:border-gray-700 px-6 py-4 bg-gray-50 dark:bg-gray-900">
                 <slot name="footer" />
               </div>
             </div>

@@ -128,12 +128,12 @@ onMounted(async () => {
   <div>
     <LayoutHeader>
       <template #title>
-        <div v-if="projectLoading" class="h-8 w-48 bg-gray-200 animate-pulse rounded" />
+        <div v-if="projectLoading" class="h-8 w-48 bg-gray-200 dark:bg-gray-700 animate-pulse" />
         <div v-else>
-          <h1 class="text-2xl font-semibold text-gray-900">
+          <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">
             {{ project?.name }}
           </h1>
-          <p v-if="project?.description" class="text-sm text-gray-500 mt-1">
+          <p v-if="project?.description" class="text-sm text-gray-500 dark:text-gray-400 mt-1">
             {{ project.description }}
           </p>
         </div>
@@ -141,17 +141,17 @@ onMounted(async () => {
       <template #actions>
         <div class="flex items-center gap-3">
           <!-- View toggle -->
-          <div class="flex rounded-lg border border-gray-200 overflow-hidden">
+          <div class="flex border border-gray-200 dark:border-gray-700 overflow-hidden">
             <button
               class="px-3 py-1.5 text-sm font-medium transition-colors"
-              :class="viewMode === 'list' ? 'bg-primary-50 text-primary-700' : 'bg-white text-gray-600 hover:bg-gray-50'"
+              :class="viewMode === 'list' ? 'bg-primary-50 text-primary-700 dark:bg-primary-900 dark:text-primary-300' : 'bg-white text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'"
               @click="viewMode = 'list'"
             >
               List
             </button>
             <button
               class="px-3 py-1.5 text-sm font-medium transition-colors"
-              :class="viewMode === 'board' ? 'bg-primary-50 text-primary-700' : 'bg-white text-gray-600 hover:bg-gray-50'"
+              :class="viewMode === 'board' ? 'bg-primary-50 text-primary-700 dark:bg-primary-900 dark:text-primary-300' : 'bg-white text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'"
               @click="viewMode = 'board'"
             >
               Board
@@ -208,31 +208,31 @@ onMounted(async () => {
     >
       <div v-if="selectedTask" class="space-y-4">
         <div>
-          <label class="text-sm font-medium text-gray-500">Status</label>
-          <p class="capitalize">{{ selectedTask.status.replace('_', ' ') }}</p>
+          <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Status</label>
+          <p class="capitalize text-gray-900 dark:text-gray-100">{{ selectedTask.status.replace('_', ' ') }}</p>
         </div>
 
         <div>
-          <label class="text-sm font-medium text-gray-500">Priority</label>
-          <p class="capitalize">{{ selectedTask.priority }}</p>
+          <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Priority</label>
+          <p class="capitalize text-gray-900 dark:text-gray-100">{{ selectedTask.priority }}</p>
         </div>
 
         <div v-if="selectedTask.description">
-          <label class="text-sm font-medium text-gray-500">Description</label>
-          <p class="text-gray-700 whitespace-pre-wrap">{{ selectedTask.description }}</p>
+          <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Description</label>
+          <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ selectedTask.description }}</p>
         </div>
 
         <div v-if="selectedTask.dueDate">
-          <label class="text-sm font-medium text-gray-500">Due Date</label>
-          <p>{{ new Date(selectedTask.dueDate).toLocaleDateString() }}</p>
+          <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Due Date</label>
+          <p class="text-gray-900 dark:text-gray-100">{{ new Date(selectedTask.dueDate).toLocaleDateString() }}</p>
         </div>
 
         <div v-if="selectedTask.assignee">
-          <label class="text-sm font-medium text-gray-500">Assignee</label>
-          <p>{{ selectedTask.assignee.name }}</p>
+          <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Assignee</label>
+          <p class="text-gray-900 dark:text-gray-100">{{ selectedTask.assignee.name }}</p>
         </div>
 
-        <div class="pt-4 border-t">
+        <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
           <UiButton
             variant="secondary"
             @click="openCreateSubtask(selectedTask!); selectedTask = null"

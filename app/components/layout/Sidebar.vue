@@ -30,7 +30,7 @@ function isActive(href: string) {
       <select
         v-if="orgStore.organizations.length > 0"
         :value="orgStore.currentOrganization?.id"
-        class="w-full rounded-lg bg-gray-800 text-white text-sm px-3 py-2 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
+        class="w-full bg-gray-800 text-white text-sm px-3 py-2 border border-gray-700 focus:outline-none focus:ring-2 focus:ring-primary-500"
         @change="orgStore.setCurrentOrganization(orgStore.organizations.find(o => o.id === ($event.target as HTMLSelectElement).value)!)"
       >
         <option
@@ -53,7 +53,7 @@ function isActive(href: string) {
           isActive(item.href)
             ? 'bg-gray-800 text-white'
             : 'text-gray-300 hover:bg-gray-800 hover:text-white',
-          'group flex items-center px-3 py-2 text-sm font-medium rounded-lg transition-colors',
+          'group flex items-center px-3 py-2 text-sm font-medium transition-colors',
         ]"
       >
         <svg

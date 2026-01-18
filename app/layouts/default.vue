@@ -29,7 +29,7 @@ watch(
 </script>
 
 <template>
-  <div class="flex h-screen bg-gray-50">
+  <div class="flex h-screen bg-gray-50 dark:bg-gray-900">
     <LayoutSidebar />
     <main class="flex-1 overflow-auto">
       <slot />

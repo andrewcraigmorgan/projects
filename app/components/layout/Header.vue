@@ -7,10 +7,10 @@ defineProps<Props>()
 </script>
 
 <template>
-  <header class="bg-white border-b border-gray-200">
+  <header class="bg-white dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700">
     <div class="flex items-center justify-between px-6 py-4">
       <div>
-        <h1 v-if="title" class="text-2xl font-semibold text-gray-900">
+        <h1 v-if="title" class="text-2xl font-semibold text-gray-900 dark:text-gray-100">
           {{ title }}
         </h1>
         <slot name="title" />

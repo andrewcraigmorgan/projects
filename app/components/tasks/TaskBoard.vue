@@ -84,17 +84,17 @@ function onDrop(event: DragEvent, status: Task['status']) {
     >
       <!-- Column Header -->
       <div class="flex items-center gap-2 mb-3">
-        <div class="h-3 w-3 rounded-full" :class="column.color" />
-        <h3 class="font-medium text-gray-900">{{ column.title }}</h3>
-        <span class="text-sm text-gray-500">
+        <div class="h-3 w-3" :class="column.color" />
+        <h3 class="font-medium text-gray-900 dark:text-gray-100">{{ column.title }}</h3>
+        <span class="text-sm text-gray-500 dark:text-gray-400">
           {{ tasksByStatus[column.id].length }}
         </span>
       </div>
 
       <!-- Column Content -->
       <div
-        class="bg-gray-100 rounded-lg p-2 min-h-[200px] transition-colors"
-        :class="{ 'bg-primary-50 ring-2 ring-primary-300': dragOverColumn === column.id }"
+        class="bg-gray-100 dark:bg-gray-800 p-2 min-h-[200px] transition-colors"
+        :class="{ 'bg-primary-50 dark:bg-primary-900/30 ring-2 ring-primary-300': dragOverColumn === column.id }"
         @dragover="onDragOver($event, column.id)"
         @dragleave="onDragLeave"
         @drop="onDrop($event, column.id)"
@@ -126,23 +126,23 @@ function onDrop(event: DragEvent, status: Task['status']) {
             v-for="task in tasksByStatus[column.id]"
             :key="task.id"
             draggable="true"
-            class="bg-white rounded-lg border border-gray-200 p-3 cursor-pointer hover:shadow-sm transition-all"
+            class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 p-3 cursor-pointer hover:shadow-sm transition-all"
             :class="{ 'opacity-50': draggedTask?.id === task.id }"
             @dragstart="onDragStart($event, task)"
             @click="emit('select', task)"
           >
-            <h4 class="text-sm font-medium text-gray-900 mb-1">
+            <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
               {{ task.title }}
             </h4>
 
             <div class="flex items-center gap-2">
               <span
-                class="inline-flex items-center px-1.5 py-0.5 rounded text-xs font-medium"
+                class="inline-flex items-center px-1.5 py-0.5 text-xs font-medium"
                 :class="{
-                  'bg-gray-100 text-gray-600': task.priority === 'low',
-                  'bg-blue-100 text-blue-600': task.priority === 'medium',
-                  'bg-orange-100 text-orange-600': task.priority === 'high',
-                  'bg-red-100 text-red-600': task.priority === 'urgent',
+                  'bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-300': task.priority === 'low',
+                  'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300': task.priority === 'medium',
+                  'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300': task.priority === 'high',
+                  'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300': task.priority === 'urgent',
                 }"
               >
                 {{ task.priority }}
@@ -150,7 +150,7 @@ function onDrop(event: DragEvent, status: Task['status']) {
 
               <span
                 v-if="task.subtaskCount > 0"
-                class="text-xs text-gray-500"
+                class="text-xs text-gray-500 dark:text-gray-400"
               >
                 {{ task.subtaskCount }} subtask{{ task.subtaskCount !== 1 ? 's' : '' }}
               </span>
@@ -161,17 +161,17 @@ function onDrop(event: DragEvent, status: Task['status']) {
               class="mt-2 flex items-center gap-1"
             >
               <div
-                class="h-5 w-5 rounded-full bg-primary-100 flex items-center justify-center text-xs font-medium text-primary-700"
+                class="h-5 w-5 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-xs font-medium text-primary-700 dark:text-primary-300"
               >
                 {{ task.assignee.name[0]?.toUpperCase() }}
               </div>
-              <span class="text-xs text-gray-500">{{ task.assignee.name }}</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">{{ task.assignee.name }}</span>
             </div>
           </div>
 
           <div
             v-if="tasksByStatus[column.id].length === 0"
-            class="text-center py-8 text-gray-400 text-sm"
+            class="text-center py-8 text-gray-400 dark:text-gray-500 text-sm"
           >
             No tasks
           </div>
