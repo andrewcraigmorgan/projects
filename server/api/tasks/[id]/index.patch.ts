@@ -6,8 +6,8 @@ import { requireOrganizationMember } from '../../../utils/tenant'
 const updateTaskSchema = z.object({
   title: z.string().min(1).max(500).optional(),
   description: z.string().max(10000).optional(),
-  status: z.enum(['todo', 'in_progress', 'review', 'done']).optional(),
-  priority: z.enum(['low', 'medium', 'high', 'urgent']).optional(),
+  status: z.enum(['todo', 'awaiting_approval', 'open', 'in_review', 'done']).optional(),
+  priority: z.enum(['low', 'medium', 'high']).nullable().optional(),
   assignee: z.string().nullable().optional(),
   dueDate: z.string().datetime().nullable().optional(),
   order: z.number().min(0).optional(),

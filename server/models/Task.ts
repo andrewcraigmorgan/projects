@@ -27,6 +27,7 @@ const TaskSchema = new Schema<TaskDocument>(
       type: String,
       enum: ['todo', 'awaiting_approval', 'open', 'in_review', 'done'],
       default: 'todo',
+      required: true,
     },
     priority: {
       type: String,
