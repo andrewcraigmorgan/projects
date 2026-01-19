@@ -37,33 +37,86 @@ const {
 // View mode (from URL param, then localStorage, then default to 'list')
 const viewMode = ref<'list' | 'board'>('list')
 
-// Filters (synced with URL)
-const statusFilter = ref<string>('')
-const priorityFilter = ref<string>('')
+// Filters (synced with URL) - now arrays for multi-select
+const statusFilter = ref<string[]>([])
+const priorityFilter = ref<string[]>([])
+const dueDateFrom = ref<string>('')
+const dueDateTo = ref<string>('')
 
 const statusOptions = [
-  { value: '', label: 'All Statuses' },
-  { value: 'todo', label: 'To Do' },
-  { value: 'awaiting_approval', label: 'Awaiting' },
-  { value: 'open', label: 'Open' },
-  { value: 'in_review', label: 'In Review' },
-  { value: 'done', label: 'Done' },
+  { value: 'todo', label: 'To Do', color: 'bg-gray-400' },
+  { value: 'awaiting_approval', label: 'Awaiting', color: 'bg-yellow-400' },
+  { value: 'open', label: 'Open', color: 'bg-blue-400' },
+  { value: 'in_review', label: 'In Review', color: 'bg-purple-400' },
+  { value: 'done', label: 'Done', color: 'bg-green-500' },
 ]
 
 const priorityOptions = [
-  { value: '', label: 'All Priorities' },
-  { value: 'high', label: 'High' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'low', label: 'Low' },
+  { value: 'high', label: 'High', color: 'bg-orange-400' },
+  { value: 'medium', label: 'Medium', color: 'bg-blue-400' },
+  { value: 'low', label: 'Low', color: 'bg-gray-400' },
 ]
 
-// Computed: any filters active
-const hasActiveFilters = computed(() => statusFilter.value || priorityFilter.value)
+// Default "All Open" status filter (excludes 'done')
+const defaultOpenStatuses = ['todo', 'awaiting_approval', 'open', 'in_review']
 
-// Clear all filters
+// Preset views
+const presets = [
+  { name: 'All Open', statuses: defaultOpenStatuses, priorities: [], dueDateFrom: '', dueDateTo: '' },
+  { name: 'All Tasks', statuses: [], priorities: [], dueDateFrom: '', dueDateTo: '' },
+  { name: 'High Priority', statuses: defaultOpenStatuses, priorities: ['high'], dueDateFrom: '', dueDateTo: '' },
+  { name: 'Done', statuses: ['done'], priorities: [], dueDateFrom: '', dueDateTo: '' },
+]
+
+// Current preset name (for display)
+const currentPreset = computed(() => {
+  for (const preset of presets) {
+    const statusMatch = arraysEqual(statusFilter.value.slice().sort(), preset.statuses.slice().sort())
+    const priorityMatch = arraysEqual(priorityFilter.value.slice().sort(), preset.priorities.slice().sort())
+    const dateFromMatch = dueDateFrom.value === preset.dueDateFrom
+    const dateToMatch = dueDateTo.value === preset.dueDateTo
+    if (statusMatch && priorityMatch && dateFromMatch && dateToMatch) {
+      return preset.name
+    }
+  }
+  return 'Custom'
+})
+
+function arraysEqual(a: string[], b: string[]): boolean {
+  if (a.length !== b.length) {
+    return false
+  }
+  for (let i = 0; i < a.length; i++) {
+    if (a[i] !== b[i]) {
+      return false
+    }
+  }
+  return true
+}
+
+function applyPreset(preset: typeof presets[0]) {
+  statusFilter.value = [...preset.statuses]
+  priorityFilter.value = [...preset.priorities]
+  dueDateFrom.value = preset.dueDateFrom
+  dueDateTo.value = preset.dueDateTo
+}
+
+// Computed: any filters different from "All Open" default
+const hasActiveFilters = computed(() => {
+  const isDefault = arraysEqual(statusFilter.value.slice().sort(), defaultOpenStatuses.slice().sort())
+  const hasNoOtherFilters = priorityFilter.value.length === 0 && !dueDateFrom.value && !dueDateTo.value
+  if (isDefault && hasNoOtherFilters) {
+    return false
+  }
+  return true
+})
+
+// Clear all filters (reset to "All Open")
 function clearFilters() {
-  statusFilter.value = ''
-  priorityFilter.value = ''
+  statusFilter.value = [...defaultOpenStatuses]
+  priorityFilter.value = []
+  dueDateFrom.value = ''
+  dueDateTo.value = ''
 }
 
 onMounted(() => {
@@ -71,6 +124,8 @@ onMounted(() => {
   const urlView = route.query.view as string
   const urlStatus = route.query.status as string
   const urlPriority = route.query.priority as string
+  const urlDueDateFrom = route.query.dueDateFrom as string
+  const urlDueDateTo = route.query.dueDateTo as string
 
   if (urlView === 'list' || urlView === 'board') {
     viewMode.value = urlView
@@ -82,12 +137,34 @@ onMounted(() => {
     }
   }
 
-  // Initialize filters from URL
-  if (urlStatus && statusOptions.some(o => o.value === urlStatus)) {
-    statusFilter.value = urlStatus
+  // Initialize filters from URL (comma-separated values)
+  let hasUrlFilters = false
+  if (urlStatus) {
+    const statuses = urlStatus.split(',').filter(s => statusOptions.some(o => o.value === s))
+    if (statuses.length > 0) {
+      statusFilter.value = statuses
+      hasUrlFilters = true
+    }
   }
-  if (urlPriority && priorityOptions.some(o => o.value === urlPriority)) {
-    priorityFilter.value = urlPriority
+  if (urlPriority) {
+    const priorities = urlPriority.split(',').filter(p => priorityOptions.some(o => o.value === p))
+    if (priorities.length > 0) {
+      priorityFilter.value = priorities
+      hasUrlFilters = true
+    }
+  }
+  if (urlDueDateFrom) {
+    dueDateFrom.value = urlDueDateFrom
+    hasUrlFilters = true
+  }
+  if (urlDueDateTo) {
+    dueDateTo.value = urlDueDateTo
+    hasUrlFilters = true
+  }
+
+  // Apply default "All Open" preset if no URL filters specified
+  if (!hasUrlFilters) {
+    statusFilter.value = [...defaultOpenStatuses]
   }
 })
 
@@ -97,16 +174,18 @@ watch(viewMode, (value) => {
 })
 
 // Update URL when filters change
-watch([statusFilter, priorityFilter], () => {
+watch([statusFilter, priorityFilter, dueDateFrom, dueDateTo], () => {
   updateUrlParams()
   loadTasks()
-})
+}, { deep: true })
 
 function updateUrlParams() {
   const query: Record<string, string> = {}
   if (viewMode.value !== 'list') query.view = viewMode.value
-  if (statusFilter.value) query.status = statusFilter.value
-  if (priorityFilter.value) query.priority = priorityFilter.value
+  if (statusFilter.value.length > 0) query.status = statusFilter.value.join(',')
+  if (priorityFilter.value.length > 0) query.priority = priorityFilter.value.join(',')
+  if (dueDateFrom.value) query.dueDateFrom = dueDateFrom.value
+  if (dueDateTo.value) query.dueDateTo = dueDateTo.value
 
   router.replace({ query })
 }
@@ -147,8 +226,10 @@ async function loadProject() {
 async function loadTasks() {
   await fetchTasks({
     rootOnly: true,
-    status: statusFilter.value || undefined,
-    priority: priorityFilter.value || undefined,
+    status: statusFilter.value.length > 0 ? statusFilter.value : undefined,
+    priority: priorityFilter.value.length > 0 ? priorityFilter.value : undefined,
+    dueDateFrom: dueDateFrom.value || undefined,
+    dueDateTo: dueDateTo.value || undefined,
   })
 }
 
@@ -248,30 +329,61 @@ onMounted(async () => {
 
           <!-- Filters -->
           <div class="flex items-center gap-2">
+            <!-- Preset selector -->
             <select
+              :value="currentPreset"
+              class="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none font-medium"
+              @change="(e: Event) => {
+                const preset = presets.find(p => p.name === (e.target as HTMLSelectElement).value)
+                if (preset) {
+                  applyPreset(preset)
+                }
+              }"
+            >
+              <option v-for="preset in presets" :key="preset.name" :value="preset.name">
+                {{ preset.name }}
+              </option>
+              <option v-if="currentPreset === 'Custom'" value="Custom">Custom</option>
+            </select>
+
+            <div class="h-4 w-px bg-gray-300 dark:bg-gray-600" />
+
+            <UiFilterDropdown
               v-model="statusFilter"
-              class="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none"
-            >
-              <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">
-                {{ opt.label }}
-              </option>
-            </select>
-            <select
+              :options="statusOptions"
+              label="Status"
+              placeholder="Status"
+            />
+            <UiFilterDropdown
               v-model="priorityFilter"
-              class="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none"
-            >
-              <option v-for="opt in priorityOptions" :key="opt.value" :value="opt.value">
-                {{ opt.label }}
-              </option>
-            </select>
+              :options="priorityOptions"
+              label="Priority"
+              placeholder="Priority"
+            />
+            <!-- Date range -->
+            <div class="flex items-center gap-1">
+              <input
+                v-model="dueDateFrom"
+                type="date"
+                class="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none"
+                title="Due date from"
+              />
+              <span class="text-gray-400">-</span>
+              <input
+                v-model="dueDateTo"
+                type="date"
+                class="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none"
+                title="Due date to"
+              />
+            </div>
             <button
               v-if="hasActiveFilters"
               class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              title="Clear filters"
+              title="Reset to All Open"
               @click="clearFilters"
             >
               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
               </svg>
             </button>
           </div>

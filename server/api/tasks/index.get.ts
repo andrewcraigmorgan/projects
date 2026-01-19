@@ -3,10 +3,26 @@ import { Task } from '../../models/Task'
 import { Project } from '../../models/Project'
 import { requireOrganizationMember } from '../../utils/tenant'
 
+const validStatuses = ['todo', 'awaiting_approval', 'open', 'in_review', 'done'] as const
+const validPriorities = ['low', 'medium', 'high'] as const
+
 const querySchema = z.object({
   projectId: z.string(),
-  status: z.enum(['todo', 'awaiting_approval', 'open', 'in_review', 'done']).optional(),
-  priority: z.enum(['low', 'medium', 'high']).optional(),
+  // Accept comma-separated status values for multi-select
+  status: z.string().optional().transform((val) => {
+    if (!val) return undefined
+    const statuses = val.split(',').filter(s => validStatuses.includes(s as typeof validStatuses[number]))
+    return statuses.length > 0 ? statuses : undefined
+  }),
+  // Accept comma-separated priority values for multi-select
+  priority: z.string().optional().transform((val) => {
+    if (!val) return undefined
+    const priorities = val.split(',').filter(p => validPriorities.includes(p as typeof validPriorities[number]))
+    return priorities.length > 0 ? priorities : undefined
+  }),
+  // Date range filters for due date
+  dueDateFrom: z.string().optional(),
+  dueDateTo: z.string().optional(),
   parentTask: z.string().optional(),
   rootOnly: z.coerce.boolean().default(false),
   page: z.coerce.number().min(1).default(1),
@@ -37,7 +53,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const { projectId, status, priority, parentTask, rootOnly, page, limit } = result.data
+  const { projectId, status, priority, dueDateFrom, dueDateTo, parentTask, rootOnly, page, limit } = result.data
 
   // Verify project access
   const project = await Project.findById(projectId)
@@ -54,12 +70,26 @@ export default defineEventHandler(async (event) => {
   // Build query
   const filter: Record<string, unknown> = { project: projectId }
 
-  if (status) {
-    filter.status = status
+  if (status && status.length > 0) {
+    filter.status = status.length === 1 ? status[0] : { $in: status }
   }
 
-  if (priority) {
-    filter.priority = priority
+  if (priority && priority.length > 0) {
+    filter.priority = priority.length === 1 ? priority[0] : { $in: priority }
+  }
+
+  // Date range filter for due date
+  if (dueDateFrom || dueDateTo) {
+    filter.dueDate = {}
+    if (dueDateFrom) {
+      (filter.dueDate as Record<string, Date>).$gte = new Date(dueDateFrom)
+    }
+    if (dueDateTo) {
+      // Add one day to include the end date fully
+      const endDate = new Date(dueDateTo)
+      endDate.setDate(endDate.getDate() + 1)
+      ;(filter.dueDate as Record<string, Date>).$lt = endDate
+    }
   }
 
   if (parentTask) {

@@ -31,8 +31,10 @@ export function useTasks(projectId: Ref<string>) {
   const error = ref<string | null>(null)
 
   async function fetchTasks(options: {
-    status?: string
-    priority?: string
+    status?: string | string[]
+    priority?: string | string[]
+    dueDateFrom?: string
+    dueDateTo?: string
     parentTask?: string
     rootOnly?: boolean
   } = {}) {
@@ -41,8 +43,16 @@ export function useTasks(projectId: Ref<string>) {
 
     try {
       let url = `/api/tasks?projectId=${projectId.value}`
-      if (options.status) url += `&status=${options.status}`
-      if (options.priority) url += `&priority=${options.priority}`
+      if (options.status) {
+        const statusStr = Array.isArray(options.status) ? options.status.join(',') : options.status
+        if (statusStr) url += `&status=${statusStr}`
+      }
+      if (options.priority) {
+        const priorityStr = Array.isArray(options.priority) ? options.priority.join(',') : options.priority
+        if (priorityStr) url += `&priority=${priorityStr}`
+      }
+      if (options.dueDateFrom) url += `&dueDateFrom=${options.dueDateFrom}`
+      if (options.dueDateTo) url += `&dueDateTo=${options.dueDateTo}`
       if (options.parentTask) url += `&parentTask=${options.parentTask}`
       if (options.rootOnly) url += `&rootOnly=true`
 
