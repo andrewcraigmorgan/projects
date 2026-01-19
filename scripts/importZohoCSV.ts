@@ -15,13 +15,30 @@ const __dirname = path.dirname(__filename)
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/projects'
 
-// Command line arg for unmapped user handling: --create-users, --skip-users
+// Command line args
 const args = process.argv.slice(2)
 const AUTO_CREATE_USERS = args.includes('--create-users')
 const AUTO_SKIP_USERS = args.includes('--skip-users')
 
+// Get project name from --project="Name" or --project "Name"
+function getProjectNameArg(): string | null {
+  for (let i = 0; i < args.length; i++) {
+    const arg = args[i]
+    if (arg.startsWith('--project=')) {
+      return arg.slice('--project='.length).replace(/^["']|["']$/g, '')
+    }
+    if (arg === '--project' && args[i + 1]) {
+      return args[i + 1].replace(/^["']|["']$/g, '')
+    }
+  }
+  return null
+}
+
+const PROJECT_NAME_ARG = getProjectNameArg()
+
 // Parse CSV line handling quoted values
-function parseCSVLine(line: string): string[] {
+// preserveFirstColumn: don't trim the first column (to preserve leading spaces for subtask detection)
+function parseCSVLine(line: string, preserveFirstColumn = false): string[] {
   const result: string[] = []
   let current = ''
   let inQuotes = false
@@ -31,12 +48,18 @@ function parseCSVLine(line: string): string[] {
     if (char === '"') {
       inQuotes = !inQuotes
     } else if (char === ',' && !inQuotes) {
-      result.push(current.trim())
+      // Don't trim the first column if preserveFirstColumn is true
+      if (preserveFirstColumn && result.length === 0) {
+        result.push(current)
+      } else {
+        result.push(current.trim())
+      }
       current = ''
     } else {
       current += char
     }
   }
+  // Last column gets trimmed
   result.push(current.trim())
   return result
 }
@@ -147,6 +170,8 @@ function mapPriority(zohoPriority: string): string | undefined {
 
 interface CSVTask {
   title: string
+  rawTitle: string // Original title with leading spaces
+  indentLevel: number // Number of leading spaces (indicates subtask depth)
   priority: string
   owner: string
   status: string
@@ -158,6 +183,12 @@ interface CSVTask {
   milestoneName: string
   predecessors: string
   successors: string
+}
+
+// Count leading spaces in a string to determine indent level
+function getIndentLevel(str: string): number {
+  const match = str.match(/^(\s*)/)
+  return match ? match[1].length : 0
 }
 
 // Prompt user for input
@@ -229,11 +260,17 @@ async function importCSV() {
   // Parse data rows
   const tasks: CSVTask[] = []
   for (let i = 1; i < lines.length; i++) {
-    const values = parseCSVLine(lines[i])
+    // preserveFirstColumn=true to keep leading spaces for subtask detection
+    const values = parseCSVLine(lines[i], true)
     if (values.length < 2) continue
 
+    const rawTitle = values[colIdx.title] || ''
+    const indentLevel = getIndentLevel(rawTitle)
+
     tasks.push({
-      title: values[colIdx.title] || '',
+      title: rawTitle.trim(),
+      rawTitle,
+      indentLevel,
       priority: values[colIdx.priority] || '',
       owner: values[colIdx.owner] || '',
       status: values[colIdx.status] || '',
@@ -247,6 +284,11 @@ async function importCSV() {
       successors: values[colIdx.successors] || '',
     })
   }
+
+  // Count tasks with indentation (subtasks)
+  const subtaskCount = tasks.filter(t => t.indentLevel > 0).length
+  console.log(`  - Root tasks: ${tasks.length - subtaskCount}`)
+  console.log(`  - Subtasks (indented): ${subtaskCount}`)
 
   console.log(`\nParsed ${tasks.length} tasks from CSV`)
 
@@ -391,8 +433,19 @@ async function importCSV() {
     }
   }
 
+  // Get project name from CLI arg or prompt
+  let projectName = PROJECT_NAME_ARG
+  if (!projectName) {
+    projectName = await prompt('\nEnter project name to import into: ')
+    if (!projectName || !projectName.trim()) {
+      console.error('Project name is required')
+      await mongoose.disconnect()
+      process.exit(1)
+    }
+    projectName = projectName.trim()
+  }
+
   // Create a single project for all tasks (or find existing)
-  const projectName = 'Peachy'
   let project = await Project.findOne({
     organization: organization._id,
     name: projectName,
@@ -488,11 +541,19 @@ async function importCSV() {
     return null
   }
 
-  // Create tasks
+  // Create tasks with parent-child relationship tracking
   let tasksCreated = 0
   let tasksSkipped = 0
+  let subtasksLinked = 0
 
   console.log('\nImporting tasks...')
+
+  // Track the most recent task at each indent level for parent linking
+  // Key = indent level, Value = { csvTask, mongoTask }
+  const taskStack: Map<number, { csvTask: CSVTask; mongoTask: any }> = new Map()
+
+  // Map CSV task title to MongoDB task for linking
+  const titleToTask = new Map<string, any>()
 
   for (const csvTask of tasks) {
     if (!csvTask.title) {
@@ -507,6 +568,9 @@ async function importCSV() {
     })
 
     if (existingTask) {
+      // Still add to maps for subtask linking
+      taskStack.set(csvTask.indentLevel, { csvTask, mongoTask: existingTask })
+      titleToTask.set(csvTask.title, existingTask)
       tasksSkipped++
       continue
     }
@@ -533,9 +597,22 @@ async function importCSV() {
       }
     }
 
+    // Find parent task if this is a subtask (indented)
+    let parentTask = null
+    if (csvTask.indentLevel > 0) {
+      // Look for the most recent task at a lower indent level
+      for (let level = csvTask.indentLevel - 1; level >= 0; level--) {
+        const parent = taskStack.get(level)
+        if (parent) {
+          parentTask = parent.mongoTask
+          break
+        }
+      }
+    }
+
     taskNumber++
 
-    await Task.create({
+    const newTask = await Task.create({
       project: project._id,
       taskNumber,
       title: csvTask.title,
@@ -547,10 +624,25 @@ async function importCSV() {
       assignee: assignee?._id || null,
       milestone: milestone?._id || null,
       tags: tagIds.length > 0 ? tagIds : undefined,
+      parentTask: parentTask?._id || null,
       createdBy: user._id,
     })
 
+    // Track this task for potential child tasks
+    taskStack.set(csvTask.indentLevel, { csvTask, mongoTask: newTask })
+    titleToTask.set(csvTask.title, newTask)
+
+    // Clear any higher indent levels (they can't be parents anymore)
+    for (const [level] of taskStack) {
+      if (level > csvTask.indentLevel) {
+        taskStack.delete(level)
+      }
+    }
+
     tasksCreated++
+    if (parentTask) {
+      subtasksLinked++
+    }
 
     if (tasksCreated % 50 === 0) {
       console.log(`  Progress: ${tasksCreated} tasks created...`)
@@ -561,6 +653,7 @@ async function importCSV() {
   console.log(`IMPORT COMPLETE!`)
   console.log(`========================================`)
   console.log(`  Tasks created: ${tasksCreated}`)
+  console.log(`  Subtasks linked: ${subtasksLinked}`)
   console.log(`  Tasks skipped (duplicates): ${tasksSkipped}`)
   console.log(`  Milestones created: ${milestonesCreated}`)
   console.log(`  Tags created: ${tagsCreated}`)
