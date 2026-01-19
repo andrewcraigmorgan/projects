@@ -178,7 +178,8 @@ ${data.taskDescription ? `\nDescription:\n${data.taskDescription}\n` : ''}${chan
 View task: ${data.taskUrl}
 
 ---
-Reply to this email to add a comment to the task.
+💬 REPLY TO THIS EMAIL to add a comment directly to this task.
+Your reply will be visible to everyone following this task. No login required.
 `
 
   // HTML version
@@ -262,7 +263,8 @@ Reply to this email to add a comment to the task.
     </div>
 
     <div class="footer">
-      <p>Reply to this email to add a comment to the task.</p>
+      <p><strong>💬 Reply to this email</strong> to add a comment directly to this task.</p>
+      <p style="margin-top: 5px;">Your reply will be visible to everyone following this task. No login required.</p>
     </div>
   </div>
 </body>
