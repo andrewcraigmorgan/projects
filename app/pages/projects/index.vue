@@ -14,6 +14,14 @@ const newProjectName = ref('')
 const newProjectDescription = ref('')
 const creating = ref(false)
 
+// Redirect to last project if available
+onMounted(() => {
+  const lastProjectId = localStorage.getItem('lastProjectId')
+  if (lastProjectId) {
+    navigateTo(`/projects/${lastProjectId}`)
+  }
+})
+
 // Fetch projects when org changes
 watch(
   () => orgStore.currentOrganization,

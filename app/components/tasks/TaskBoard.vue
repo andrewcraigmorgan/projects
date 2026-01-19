@@ -33,10 +33,9 @@ const tasksByStatus = computed(() => {
     done: [],
   }
 
+  // Tasks are already filtered to root only by the API, no need to check parentTask
   for (const task of props.tasks) {
-    if (!task.parentTask) {
-      grouped[task.status].push(task)
-    }
+    grouped[task.status].push(task)
   }
 
   return grouped

@@ -123,6 +123,21 @@ async function handleLoadSubtasks(task: Task) {
   }
 }
 
+// Set page title
+useHead({
+  title: computed(() => project.value?.name ? `${project.value.name} - Projects` : 'Projects'),
+})
+
+// Remember last visited project
+watch(
+  () => project.value,
+  (p) => {
+    if (p && import.meta.client) {
+      localStorage.setItem('lastProjectId', projectId.value)
+    }
+  }
+)
+
 // Initial load
 onMounted(async () => {
   await loadProject()
