@@ -25,6 +25,7 @@ const columns: { id: Task['status']; title: string; color: string }[] = [
   { id: 'awaiting_approval', title: 'Awaiting Approval', color: 'bg-yellow-400' },
   { id: 'open', title: 'Open', color: 'bg-blue-400' },
   { id: 'in_review', title: 'In Review', color: 'bg-purple-400' },
+  { id: 'done', title: 'Done', color: 'bg-green-500' },
 ]
 
 const tasksByStatus = computed(() => {
@@ -33,11 +34,14 @@ const tasksByStatus = computed(() => {
     awaiting_approval: [],
     open: [],
     in_review: [],
+    done: [],
   }
 
   // Tasks are already filtered to root only by the API, no need to check parentTask
   for (const task of props.tasks) {
-    grouped[task.status].push(task)
+    if (grouped[task.status]) {
+      grouped[task.status].push(task)
+    }
   }
 
   return grouped

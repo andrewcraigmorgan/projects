@@ -31,7 +31,6 @@ async function handleSubmit() {
     const response = await createTask({
       title: trimmedTitle,
       status: props.status,
-      priority: 'medium',
     })
 
     if (response.success) {
