@@ -1,10 +1,10 @@
 import { z } from 'zod'
-import { Project } from '~/server/models/Project'
-import { Task } from '~/server/models/Task'
-import { User } from '~/server/models/User'
-import { Organization } from '~/server/models/Organization'
-import { Milestone } from '~/server/models/Milestone'
-import { Tag } from '~/server/models/Tag'
+import { Project } from '../../models/Project'
+import { Task } from '../../models/Task'
+import { User } from '../../models/User'
+import { Organization } from '../../models/Organization'
+import { Milestone } from '../../models/Milestone'
+import { Tag } from '../../models/Tag'
 
 const importSchema = z.object({
   organizationId: z.string(),
