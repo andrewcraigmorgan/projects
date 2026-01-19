@@ -7,6 +7,7 @@ definePageMeta({
 })
 
 const route = useRoute()
+const router = useRouter()
 const { fetchApi } = useApi()
 
 const projectId = computed(() => route.params.id as string)
@@ -14,6 +15,7 @@ const projectId = computed(() => route.params.id as string)
 // Project data
 const project = ref<{
   id: string
+  code: string
   name: string
   description: string
   status: string
@@ -48,9 +50,13 @@ watch(viewMode, (value) => {
 
 // Modals
 const showCreateModal = ref(false)
-const selectedTask = ref<Task | null>(null)
 const parentTaskForCreate = ref<Task | null>(null)
 const saving = ref(false)
+
+// Navigate to task detail page
+function navigateToTask(task: Task) {
+  router.push(`/projects/${projectId.value}/tasks/${task.id}?from=${viewMode.value}`)
+}
 
 // Fetch project
 async function loadProject() {
@@ -105,12 +111,6 @@ async function handleUpdateStatus(task: Task, status: Task['status']) {
   await loadTasks()
 }
 
-// Handle subtask creation
-function openCreateSubtask(parentTask: Task) {
-  parentTaskForCreate.value = parentTask
-  showCreateModal.value = true
-}
-
 // Load subtasks for expanded task
 async function handleLoadSubtasks(task: Task) {
   const fullTask = await getTaskWithSubtasks(task.id)
@@ -128,18 +128,11 @@ useHead({
   title: computed(() => project.value?.name ? `${project.value.name} - Projects` : 'Projects'),
 })
 
-// Remember last visited project
-watch(
-  () => project.value,
-  (p) => {
-    if (p && import.meta.client) {
-      localStorage.setItem('lastProjectId', projectId.value)
-    }
-  }
-)
-
 // Initial load
 onMounted(async () => {
+  // Remember last visited project immediately
+  localStorage.setItem('lastProjectId', projectId.value)
+
   await loadProject()
   await loadTasks()
 })
@@ -161,6 +154,14 @@ onMounted(async () => {
       </template>
       <template #actions>
         <div class="flex items-center gap-3">
+          <!-- Milestones link -->
+          <NuxtLink
+            :to="`/projects/${projectId}/milestones`"
+            class="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
+          >
+            Milestones
+          </NuxtLink>
+
           <!-- View toggle -->
           <div class="flex border border-gray-200 dark:border-gray-700 overflow-hidden">
             <button
@@ -198,7 +199,8 @@ onMounted(async () => {
         :tasks="tasks"
         :loading="tasksLoading"
         :project-id="projectId"
-        @select="selectedTask = $event"
+        :project-code="project?.code"
+        @select="navigateToTask"
         @update-status="handleUpdateStatus"
         @task-created="loadTasks"
       />
@@ -209,7 +211,8 @@ onMounted(async () => {
         :tasks="tasks"
         :loading="tasksLoading"
         :project-id="projectId"
-        @select="selectedTask = $event"
+        :project-code="project?.code"
+        @select="navigateToTask"
         @load-subtasks="handleLoadSubtasks"
         @task-created="loadTasks"
       />
@@ -227,49 +230,6 @@ onMounted(async () => {
         @submit="handleCreateTask"
         @cancel="showCreateModal = false; parentTaskForCreate = null"
       />
-    </UiModal>
-
-    <!-- Task Detail Modal -->
-    <UiModal
-      :open="!!selectedTask"
-      :title="selectedTask?.title"
-      @close="selectedTask = null"
-    >
-      <div v-if="selectedTask" class="space-y-4">
-        <div>
-          <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Status</label>
-          <p class="capitalize text-gray-900 dark:text-gray-100">{{ selectedTask.status.replace('_', ' ') }}</p>
-        </div>
-
-        <div>
-          <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Priority</label>
-          <p class="capitalize text-gray-900 dark:text-gray-100">{{ selectedTask.priority }}</p>
-        </div>
-
-        <div v-if="selectedTask.description">
-          <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Description</label>
-          <p class="text-gray-700 dark:text-gray-300 whitespace-pre-wrap">{{ selectedTask.description }}</p>
-        </div>
-
-        <div v-if="selectedTask.dueDate">
-          <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Due Date</label>
-          <p class="text-gray-900 dark:text-gray-100">{{ new Date(selectedTask.dueDate).toLocaleDateString() }}</p>
-        </div>
-
-        <div v-if="selectedTask.assignee">
-          <label class="text-sm font-medium text-gray-500 dark:text-gray-400">Assignee</label>
-          <p class="text-gray-900 dark:text-gray-100">{{ selectedTask.assignee.name }}</p>
-        </div>
-
-        <div class="pt-4 border-t border-gray-200 dark:border-gray-700">
-          <UiButton
-            variant="secondary"
-            @click="openCreateSubtask(selectedTask!); selectedTask = null"
-          >
-            Add Subtask
-          </UiButton>
-        </div>
-      </div>
     </UiModal>
   </div>
 </template>

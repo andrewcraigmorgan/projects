@@ -5,11 +5,13 @@ interface Props {
   tasks: Task[]
   loading?: boolean
   projectId?: string
+  projectCode?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
   projectId: '',
+  projectCode: '',
 })
 
 const emit = defineEmits<{
@@ -20,17 +22,17 @@ const emit = defineEmits<{
 
 const columns: { id: Task['status']; title: string; color: string }[] = [
   { id: 'todo', title: 'To Do', color: 'bg-gray-400' },
-  { id: 'in_progress', title: 'In Progress', color: 'bg-blue-400' },
-  { id: 'review', title: 'Review', color: 'bg-yellow-400' },
-  { id: 'done', title: 'Done', color: 'bg-green-400' },
+  { id: 'awaiting_approval', title: 'Awaiting Approval', color: 'bg-yellow-400' },
+  { id: 'open', title: 'Open', color: 'bg-blue-400' },
+  { id: 'in_review', title: 'In Review', color: 'bg-purple-400' },
 ]
 
 const tasksByStatus = computed(() => {
   const grouped: Record<Task['status'], Task[]> = {
     todo: [],
-    in_progress: [],
-    review: [],
-    done: [],
+    awaiting_approval: [],
+    open: [],
+    in_review: [],
   }
 
   // Tasks are already filtered to root only by the API, no need to check parentTask
@@ -130,21 +132,32 @@ function onDrop(event: DragEvent, status: Task['status']) {
             @dragstart="onDragStart($event, task)"
             @click="emit('select', task)"
           >
+            <div class="flex items-center gap-2 mb-1">
+              <span class="text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-600 px-1">
+                {{ projectCode || task.id.slice(0, 3).toUpperCase() }}-T{{ task.taskNumber ?? 0 }}
+              </span>
+            </div>
             <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
               {{ task.title }}
             </h4>
 
             <div class="flex items-center gap-2">
               <span
+                v-if="task.priority"
                 class="inline-flex items-center px-1.5 py-0.5 text-xs font-medium"
                 :class="{
                   'bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-300': task.priority === 'low',
                   'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300': task.priority === 'medium',
                   'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300': task.priority === 'high',
-                  'bg-red-100 text-red-600 dark:bg-red-900 dark:text-red-300': task.priority === 'urgent',
                 }"
               >
                 {{ task.priority }}
+              </span>
+              <span
+                v-else
+                class="inline-flex items-center px-1.5 py-0.5 text-xs text-gray-400 dark:text-gray-500"
+              >
+                No priority
               </span>
 
               <span

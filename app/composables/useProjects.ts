@@ -1,13 +1,15 @@
 import { useApi } from './useApi'
 import { useOrganizationStore } from '~/stores/organization'
 
-interface Project {
+export interface Project {
   id: string
+  code: string
   name: string
   description: string
   status: 'active' | 'archived' | 'completed'
   owner: { id: string; name: string; email: string; avatar?: string }
   memberCount: number
+  taskCount: number
   createdAt: string
   updatedAt: string
 }

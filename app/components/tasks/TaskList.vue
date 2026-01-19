@@ -6,12 +6,14 @@ interface Props {
   loading?: boolean
   depth?: number
   projectId?: string
+  projectCode?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
   depth: 0,
   projectId: '',
+  projectCode: '',
 })
 
 const emit = defineEmits<{
@@ -79,9 +81,10 @@ defineExpose({
 
     <template v-else>
       <div v-for="task in tasks" :key="task.id">
-        <TaskCard
+        <TasksTaskCard
           :task="{ ...task, subtasks: loadedSubtasks.get(task.id) }"
           :depth="depth"
+          :project-code="projectCode"
           @click="emit('select', $event)"
           @toggle-expand="toggleExpand"
         >
@@ -89,11 +92,12 @@ defineExpose({
             <TaskList
               :tasks="subtasks"
               :depth="depth + 1"
+              :project-code="projectCode"
               @select="emit('select', $event)"
               @load-subtasks="emit('load-subtasks', $event)"
             />
           </template>
-        </TaskCard>
+        </TasksTaskCard>
       </div>
 
       <!-- Inline quick add at bottom of list -->

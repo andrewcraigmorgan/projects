@@ -2,12 +2,17 @@ import { useApi } from './useApi'
 
 export interface Task {
   id: string
+  taskNumber: number
   title: string
   description: string
-  status: 'todo' | 'in_progress' | 'review' | 'done'
-  priority: 'low' | 'medium' | 'high' | 'urgent'
-  assignee?: { id: string; name: string; email: string; avatar?: string }
+  status: 'todo' | 'awaiting_approval' | 'open' | 'in_review'
+  priority?: 'low' | 'medium' | 'high'
+  assignee?: { id: string; name: string; email: string; avatar?: string; role?: 'team' | 'client' }
   dueDate?: string
+  estimatedHours?: number
+  isExternal?: boolean
+  milestone?: { id: string; name: string }
+  tags?: { id: string; name: string; color: string }[]
   parentTask?: string
   depth: number
   order: number
