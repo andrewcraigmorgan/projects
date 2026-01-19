@@ -52,9 +52,17 @@ async function handleCreate() {
   <div>
     <LayoutHeader title="Projects">
       <template #actions>
-        <UiButton @click="showCreateModal = true">
-          New Project
-        </UiButton>
+        <div class="flex items-center gap-3">
+          <NuxtLink
+            to="/projects/import"
+            class="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
+          >
+            Import
+          </NuxtLink>
+          <UiButton @click="showCreateModal = true">
+            New Project
+          </UiButton>
+        </div>
       </template>
     </LayoutHeader>
 
@@ -93,10 +101,18 @@ async function handleCreate() {
           </svg>
         </div>
         <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">No projects yet</h3>
-        <p class="text-gray-500 dark:text-gray-400 mb-4">Create your first project to get started.</p>
-        <UiButton @click="showCreateModal = true">
-          Create Project
-        </UiButton>
+        <p class="text-gray-500 dark:text-gray-400 mb-4">Create your first project or import from another tool.</p>
+        <div class="flex items-center justify-center gap-3">
+          <UiButton @click="showCreateModal = true">
+            Create Project
+          </UiButton>
+          <NuxtLink
+            to="/projects/import"
+            class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
+          >
+            Import from Zoho
+          </NuxtLink>
+        </div>
       </div>
 
       <!-- Projects grid -->
