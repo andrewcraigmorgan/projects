@@ -54,7 +54,7 @@ async function handleCreate() {
       <template #actions>
         <div class="flex items-center gap-3">
           <NuxtLink
-            to="/projects/import"
+            to="/settings/import"
             class="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
           >
             Import
@@ -107,7 +107,7 @@ async function handleCreate() {
             Create Project
           </UiButton>
           <NuxtLink
-            to="/projects/import"
+            to="/settings/import"
             class="px-4 py-2 border border-gray-300 dark:border-gray-600 text-gray-700 dark:text-gray-300 hover:bg-gray-50 dark:hover:bg-gray-800 transition-colors"
           >
             Import from Zoho

@@ -97,6 +97,25 @@ function closeKeyModal() {
         </dl>
       </div>
 
+      <!-- Import Data Section -->
+      <div class="border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Import Data</h3>
+
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
+          Import tasks and projects from other tools like Zoho Projects via CSV export.
+        </p>
+
+        <NuxtLink
+          to="/settings/import"
+          class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white hover:bg-primary-700 transition-colors"
+        >
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-8l-4-4m0 0L8 8m4-4v12" />
+          </svg>
+          Import from CSV
+        </NuxtLink>
+      </div>
+
       <!-- API Keys Section -->
       <div class="border border-gray-200 dark:border-gray-700 p-6">
         <div class="flex items-center justify-between mb-4">
