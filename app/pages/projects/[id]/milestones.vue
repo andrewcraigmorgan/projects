@@ -141,35 +141,25 @@ onMounted(async () => {
       </div>
 
       <!-- Loading state -->
-      <div v-else-if="milestonesLoading" class="space-y-4">
-        <div v-for="i in 3" :key="i" class="h-40 bg-gray-200 dark:bg-gray-700 animate-pulse" />
-      </div>
+      <UiLoadingSpinner v-else-if="milestonesLoading" />
 
       <!-- Empty state -->
-      <div v-else-if="milestones.length === 0" class="text-center py-12">
-        <svg
-          class="mx-auto h-12 w-12 text-gray-400"
-          fill="none"
-          viewBox="0 0 24 24"
-          stroke="currentColor"
-        >
-          <path
-            stroke-linecap="round"
-            stroke-linejoin="round"
-            stroke-width="2"
-            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4"
-          />
-        </svg>
-        <h3 class="mt-2 text-sm font-medium text-gray-900 dark:text-gray-100">No milestones</h3>
-        <p class="mt-1 text-sm text-gray-500 dark:text-gray-400">
-          Get started by creating a new milestone.
-        </p>
-        <div class="mt-6">
+      <UiEmptyState
+        v-else-if="milestones.length === 0"
+        title="No milestones"
+        description="Get started by creating a new milestone."
+      >
+        <template #icon>
+          <svg class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+          </svg>
+        </template>
+        <template #actions>
           <UiButton @click="showCreateModal = true">
             New Milestone
           </UiButton>
-        </div>
-      </div>
+        </template>
+      </UiEmptyState>
 
       <!-- Milestones list -->
       <div v-else class="space-y-4">

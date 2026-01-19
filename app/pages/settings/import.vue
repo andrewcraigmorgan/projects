@@ -62,31 +62,20 @@ const importResults = ref<{
   tags: { created: number; errors: string[] }
 } | null>(null)
 
+// Step indicator
+const stepLabels = ['Upload', 'Map Fields', 'Preview', 'Complete']
+const stepMap = { upload: 0, mapping: 1, preview: 2, importing: 2, complete: 3 }
+const currentStepIndex = computed(() => stepMap[step.value])
+
 // File handlers
-function handleProjectsFile(event: Event) {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (file) {
-    projectsFile.value = file
-    parseCSV(file, 'projects')
-  }
+function handleProjectsFile(file: File) {
+  projectsFile.value = file
+  parseCSV(file, 'projects')
 }
 
-function handleTasksFile(event: Event) {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (file) {
-    tasksFile.value = file
-    parseCSV(file, 'tasks')
-  }
-}
-
-function handleMilestonesFile(event: Event) {
-  const target = event.target as HTMLInputElement
-  const file = target.files?.[0]
-  if (file) {
-    milestonesFile.value = file
-  }
+function handleTasksFile(file: File) {
+  tasksFile.value = file
+  parseCSV(file, 'tasks')
 }
 
 // CSV parsing
@@ -410,31 +399,11 @@ useHead({
 
     <div class="p-6 max-w-4xl mx-auto">
       <!-- Progress steps -->
-      <div class="mb-8">
-        <div class="flex items-center justify-between">
-          <div
-            v-for="(s, idx) in ['upload', 'mapping', 'preview', 'complete']"
-            :key="s"
-            class="flex items-center"
-          >
-            <div
-              class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium"
-              :class="step === s || ['upload', 'mapping', 'preview', 'complete'].indexOf(step) > idx
-                ? 'bg-primary-600 text-white'
-                : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'"
-            >
-              {{ idx + 1 }}
-            </div>
-            <span
-              class="ml-2 text-sm"
-              :class="step === s ? 'text-gray-900 dark:text-gray-100 font-medium' : 'text-gray-500 dark:text-gray-400'"
-            >
-              {{ s === 'upload' ? 'Upload' : s === 'mapping' ? 'Map Fields' : s === 'preview' ? 'Preview' : 'Complete' }}
-            </span>
-            <div v-if="idx < 3" class="w-12 h-0.5 mx-4 bg-gray-200 dark:bg-gray-700" />
-          </div>
-        </div>
-      </div>
+      <UiStepIndicator
+        :steps="stepLabels"
+        :current-step="currentStepIndex"
+        class="mb-8"
+      />
 
       <!-- Error message -->
       <div v-if="error" class="mb-6 p-4 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800 text-red-700 dark:text-red-300">
@@ -442,311 +411,54 @@ useHead({
       </div>
 
       <!-- Step 1: Upload -->
-      <div v-if="step === 'upload'" class="space-y-6">
-        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6">
-          <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-            Upload CSV Files
-          </h2>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-            Export your data from Zoho Projects as CSV files and upload them here. At minimum, upload a tasks file.
-          </p>
-
-          <div class="space-y-4">
-            <!-- Tasks file (required) -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Tasks CSV <span class="text-red-500">*</span>
-              </label>
-              <input
-                type="file"
-                accept=".csv"
-                class="block w-full text-sm text-gray-500 dark:text-gray-400
-                  file:mr-4 file:py-2 file:px-4
-                  file:border-0
-                  file:text-sm file:font-medium
-                  file:bg-primary-50 file:text-primary-700
-                  dark:file:bg-primary-900 dark:file:text-primary-300
-                  hover:file:bg-primary-100 dark:hover:file:bg-primary-800
-                  file:cursor-pointer"
-                @change="handleTasksFile"
-              />
-              <p v-if="tasksFile" class="mt-1 text-sm text-green-600 dark:text-green-400">
-                {{ parsedTasks.length }} tasks found
-              </p>
-            </div>
-
-            <!-- Projects file (optional) -->
-            <div>
-              <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-                Projects CSV <span class="text-gray-400">(optional)</span>
-              </label>
-              <input
-                type="file"
-                accept=".csv"
-                class="block w-full text-sm text-gray-500 dark:text-gray-400
-                  file:mr-4 file:py-2 file:px-4
-                  file:border-0
-                  file:text-sm file:font-medium
-                  file:bg-gray-100 file:text-gray-700
-                  dark:file:bg-gray-700 dark:file:text-gray-300
-                  hover:file:bg-gray-200 dark:hover:file:bg-gray-600
-                  file:cursor-pointer"
-                @change="handleProjectsFile"
-              />
-              <p v-if="projectsFile" class="mt-1 text-sm text-green-600 dark:text-green-400">
-                {{ parsedProjects.length }} projects found
-              </p>
-              <p class="mt-1 text-xs text-gray-400">
-                If not provided, projects will be created from task data
-              </p>
-            </div>
-          </div>
-
-          <div class="mt-6 flex justify-end">
-            <button
-              class="px-4 py-2 bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50 disabled:cursor-not-allowed"
-              :disabled="!tasksFile"
-              @click="proceedToMapping"
-            >
-              Continue to Field Mapping
-            </button>
-          </div>
-        </div>
-
-        <!-- Zoho export instructions -->
-        <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-6">
-          <h3 class="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">
-            How to export from Zoho Projects
-          </h3>
-          <ol class="text-sm text-blue-700 dark:text-blue-400 space-y-1 list-decimal list-inside">
-            <li>Go to your Zoho Projects portal</li>
-            <li>Navigate to the project you want to export</li>
-            <li>Click on Tasks &gt; More Options &gt; Export to CSV</li>
-            <li>For projects, go to Projects &gt; Export</li>
-            <li>Upload the exported CSV files above</li>
-          </ol>
-        </div>
-      </div>
+      <ImportUploadStep
+        v-if="step === 'upload'"
+        :tasks-file="tasksFile"
+        :projects-file="projectsFile"
+        :parsed-tasks-count="parsedTasks.length"
+        :parsed-projects-count="parsedProjects.length"
+        @tasks-file="handleTasksFile"
+        @projects-file="handleProjectsFile"
+        @continue="proceedToMapping"
+      />
 
       <!-- Step 2: Field Mapping -->
-      <div v-if="step === 'mapping'" class="space-y-6">
-        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6">
-          <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-            Map CSV Columns to Fields
-          </h2>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-            Match the columns from your CSV files to the corresponding fields in our system.
-          </p>
-
-          <!-- Task field mappings -->
-          <div class="mb-8">
-            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4">Task Fields</h3>
-            <div class="grid grid-cols-2 gap-4">
-              <div v-for="field in systemTaskFields" :key="field.key">
-                <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">
-                  {{ field.label }}
-                  <span v-if="field.required" class="text-red-500">*</span>
-                </label>
-                <select
-                  v-model="taskColumnMap[field.key]"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                >
-                  <option value="">-- Select column --</option>
-                  <option v-for="col in taskColumns" :key="col" :value="col">
-                    {{ col }}
-                  </option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <!-- Project field mappings (if file uploaded) -->
-          <div v-if="projectsFile" class="mb-8">
-            <h3 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-4">Project Fields</h3>
-            <div class="grid grid-cols-2 gap-4">
-              <div v-for="field in systemProjectFields" :key="field.key">
-                <label class="block text-sm text-gray-700 dark:text-gray-300 mb-1">
-                  {{ field.label }}
-                  <span v-if="field.required" class="text-red-500">*</span>
-                </label>
-                <select
-                  v-model="projectColumnMap[field.key]"
-                  class="w-full px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100"
-                >
-                  <option value="">-- Select column --</option>
-                  <option v-for="col in projectColumns" :key="col" :value="col">
-                    {{ col }}
-                  </option>
-                </select>
-              </div>
-            </div>
-          </div>
-
-          <div class="flex justify-between">
-            <button
-              class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-              @click="step = 'upload'"
-            >
-              Back
-            </button>
-            <button
-              class="px-4 py-2 bg-primary-600 text-white hover:bg-primary-700"
-              @click="proceedToPreview"
-            >
-              Preview Import
-            </button>
-          </div>
-        </div>
-      </div>
+      <ImportMappingStep
+        v-if="step === 'mapping'"
+        :task-columns="taskColumns"
+        :project-columns="projectColumns"
+        :task-column-map="taskColumnMap"
+        :project-column-map="projectColumnMap"
+        :system-task-fields="systemTaskFields"
+        :system-project-fields="systemProjectFields"
+        :has-projects-file="!!projectsFile"
+        @update:task-column-map="taskColumnMap = $event"
+        @update:project-column-map="projectColumnMap = $event"
+        @back="step = 'upload'"
+        @continue="proceedToPreview"
+      />
 
       <!-- Step 3: Preview -->
-      <div v-if="step === 'preview'" class="space-y-6">
-        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6">
-          <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">
-            Preview Import
-          </h2>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-            Review how your data will be imported. Showing first 10 tasks.
-          </p>
-
-          <div class="overflow-x-auto">
-            <table class="min-w-full divide-y divide-gray-200 dark:divide-gray-700">
-              <thead class="bg-gray-50 dark:bg-gray-900">
-                <tr>
-                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Title</th>
-                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Project</th>
-                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Status</th>
-                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Priority</th>
-                  <th class="px-4 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">Due Date</th>
-                </tr>
-              </thead>
-              <tbody class="divide-y divide-gray-200 dark:divide-gray-700">
-                <tr v-for="(task, idx) in previewTasks" :key="idx">
-                  <td class="px-4 py-2 text-sm text-gray-900 dark:text-gray-100">{{ task.title }}</td>
-                  <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">{{ task.project }}</td>
-                  <td class="px-4 py-2 text-sm">
-                    <span class="px-2 py-0.5 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300">
-                      {{ task.status }}
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm">
-                    <span
-                      class="px-2 py-0.5 text-xs font-medium"
-                      :class="{
-                        'bg-gray-100 text-gray-600': task.priority === 'low',
-                        'bg-blue-100 text-blue-600': task.priority === 'medium',
-                        'bg-orange-100 text-orange-600': task.priority === 'high',
-                        'bg-red-100 text-red-600': task.priority === 'urgent',
-                      }"
-                    >
-                      {{ task.priority }}
-                    </span>
-                  </td>
-                  <td class="px-4 py-2 text-sm text-gray-600 dark:text-gray-400">{{ task.dueDate || '-' }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-
-          <div class="mt-4 p-4 bg-gray-50 dark:bg-gray-900 text-sm text-gray-600 dark:text-gray-400">
-            <strong>Summary:</strong>
-            {{ parsedTasks.length }} tasks
-            <span v-if="parsedProjects.length">, {{ parsedProjects.length }} projects</span>
-            will be imported into <strong>{{ orgStore.currentOrganization?.name }}</strong>
-          </div>
-
-          <div class="mt-6 flex justify-between">
-            <button
-              class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-              @click="step = 'mapping'"
-            >
-              Back
-            </button>
-            <button
-              class="px-4 py-2 bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50"
-              :disabled="importing"
-              @click="startImport"
-            >
-              {{ importing ? 'Importing...' : 'Start Import' }}
-            </button>
-          </div>
-        </div>
-      </div>
+      <ImportPreviewStep
+        v-if="step === 'preview'"
+        :preview-tasks="previewTasks"
+        :total-tasks="parsedTasks.length"
+        :total-projects="parsedProjects.length"
+        :organization-name="orgStore.currentOrganization?.name || ''"
+        :importing="importing"
+        @back="step = 'mapping'"
+        @import="startImport"
+      />
 
       <!-- Step 4: Importing -->
-      <div v-if="step === 'importing'" class="space-y-6">
-        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 text-center">
-          <svg
-            class="animate-spin h-12 w-12 mx-auto text-primary-600 mb-4"
-            fill="none"
-            viewBox="0 0 24 24"
-          >
-            <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
-            <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
-          </svg>
-          <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-            Importing your data...
-          </h2>
-          <p class="text-sm text-gray-500 dark:text-gray-400 mt-2">
-            This may take a few moments. Please don't close this page.
-          </p>
-        </div>
-      </div>
+      <ImportProgressStep v-if="step === 'importing'" />
 
       <!-- Step 5: Complete -->
-      <div v-if="step === 'complete'" class="space-y-6">
-        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6">
-          <div class="text-center mb-6">
-            <svg class="h-16 w-16 mx-auto text-green-500 mb-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m6 2a9 9 0 11-18 0 9 9 0 0118 0z" />
-            </svg>
-            <h2 class="text-lg font-medium text-gray-900 dark:text-gray-100">
-              Import Complete!
-            </h2>
-          </div>
-
-          <div v-if="importResults" class="space-y-4">
-            <div class="p-4 bg-green-50 dark:bg-green-900/20 border border-green-200 dark:border-green-800">
-              <p class="text-green-700 dark:text-green-300">
-                <strong>{{ importResults.projects.created }}</strong> projects created
-              </p>
-              <p class="text-green-700 dark:text-green-300">
-                <strong>{{ importResults.tasks.created }}</strong> tasks created
-              </p>
-              <p v-if="importResults.milestones?.created" class="text-green-700 dark:text-green-300">
-                <strong>{{ importResults.milestones.created }}</strong> milestones created
-              </p>
-              <p v-if="importResults.tags?.created" class="text-green-700 dark:text-green-300">
-                <strong>{{ importResults.tags.created }}</strong> tags created
-              </p>
-            </div>
-
-            <div v-if="importResults.projects.errors.length || importResults.tasks.errors.length || importResults.milestones?.errors?.length || importResults.tags?.errors?.length" class="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
-              <p class="text-yellow-700 dark:text-yellow-300 font-medium mb-2">Some items had issues:</p>
-              <ul class="text-sm text-yellow-600 dark:text-yellow-400 list-disc list-inside">
-                <li v-for="(err, idx) in [...importResults.projects.errors, ...importResults.tasks.errors, ...(importResults.milestones?.errors || []), ...(importResults.tags?.errors || [])].slice(0, 10)" :key="idx">
-                  {{ err }}
-                </li>
-              </ul>
-            </div>
-          </div>
-
-          <div class="mt-6 flex justify-center gap-4">
-            <button
-              class="px-4 py-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
-              @click="resetImport"
-            >
-              Import More
-            </button>
-            <NuxtLink
-              to="/projects"
-              class="px-4 py-2 bg-primary-600 text-white hover:bg-primary-700"
-            >
-              View Projects
-            </NuxtLink>
-          </div>
-        </div>
-      </div>
+      <ImportCompleteStep
+        v-if="step === 'complete'"
+        :results="importResults"
+        @reset="resetImport"
+      />
     </div>
   </div>
 </template>

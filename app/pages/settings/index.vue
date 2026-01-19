@@ -55,28 +55,23 @@ function closeKeyModal() {
   <div>
     <LayoutHeader title="Settings" />
 
-    <div class="p-6 max-w-3xl">
+    <div class="p-6 max-w-3xl space-y-6">
       <!-- Profile Section -->
-      <div class="border border-gray-200 dark:border-gray-700 p-6 mb-6">
-        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Profile</h3>
-
+      <UiCard title="Profile">
         <div class="flex items-center gap-4">
-          <div
-            class="h-16 w-16 rounded-full bg-primary-600 flex items-center justify-center text-white text-xl font-medium"
-          >
-            {{ authStore.user?.name?.[0]?.toUpperCase() || '?' }}
-          </div>
+          <UiAvatar
+            :name="authStore.user?.name || ''"
+            size="lg"
+          />
           <div>
             <p class="font-medium text-gray-900 dark:text-gray-100">{{ authStore.user?.name }}</p>
             <p class="text-sm text-gray-500 dark:text-gray-400">{{ authStore.user?.email }}</p>
           </div>
         </div>
-      </div>
+      </UiCard>
 
       <!-- Organization Section -->
-      <div v-if="orgStore.currentOrganization" class="border border-gray-200 dark:border-gray-700 p-6 mb-6">
-        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Organization</h3>
-
+      <UiCard v-if="orgStore.currentOrganization" title="Organization">
         <dl class="space-y-3">
           <div>
             <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Name</dt>
@@ -95,16 +90,13 @@ function closeKeyModal() {
             <dd class="text-gray-900 dark:text-gray-100">{{ orgStore.currentOrganization.memberCount }}</dd>
           </div>
         </dl>
-      </div>
+      </UiCard>
 
       <!-- Import Data Section -->
-      <div class="border border-gray-200 dark:border-gray-700 p-6 mb-6">
-        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Import Data</h3>
-
+      <UiCard title="Import Data">
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
           Import tasks and projects from other tools like Zoho Projects via CSV export.
         </p>
-
         <NuxtLink
           to="/settings/import"
           class="inline-flex items-center gap-2 px-4 py-2 bg-primary-600 text-white hover:bg-primary-700 transition-colors"
@@ -114,16 +106,15 @@ function closeKeyModal() {
           </svg>
           Import from CSV
         </NuxtLink>
-      </div>
+      </UiCard>
 
       <!-- API Keys Section -->
-      <div class="border border-gray-200 dark:border-gray-700 p-6">
-        <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">API Keys</h3>
+      <UiCard title="API Keys">
+        <template #actions>
           <UiButton size="sm" @click="showCreateKeyModal = true">
             Create Key
           </UiButton>
-        </div>
+        </template>
 
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
           Use API keys to authenticate with the Projects API. Keys have the same permissions as your account.
@@ -149,7 +140,7 @@ function closeKeyModal() {
           No API keys created yet.
         </p>
 
-        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
+        <template #footer>
           <a
             href="/docs"
             target="_blank"
@@ -157,8 +148,8 @@ function closeKeyModal() {
           >
             View API Documentation
           </a>
-        </div>
-      </div>
+        </template>
+      </UiCard>
     </div>
 
     <!-- Create API Key Modal -->

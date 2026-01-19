@@ -263,14 +263,13 @@ onMounted(async () => {
       </div>
 
       <!-- Loading state -->
-      <div v-else-if="loading" class="space-y-4">
-        <div class="h-20 bg-gray-200 dark:bg-gray-700 animate-pulse" />
-        <div class="h-40 bg-gray-200 dark:bg-gray-700 animate-pulse" />
+      <div v-else-if="loading" class="flex justify-center py-12">
+        <UiLoadingSpinner size="lg" />
       </div>
 
       <!-- Task detail -->
       <div v-else-if="task" class="max-w-4xl">
-        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6">
+        <UiCard>
           <!-- Status and Priority row -->
           <div class="flex flex-wrap gap-6 mb-6">
             <!-- Status -->
@@ -323,14 +322,11 @@ onMounted(async () => {
                 Assignee
               </label>
               <div class="flex items-center gap-2 px-3 py-2">
-                <div
-                  class="h-6 w-6 flex items-center justify-center text-xs font-medium"
-                  :class="task.assignee.role === 'client'
-                    ? 'bg-orange-100 dark:bg-orange-900 text-orange-700 dark:text-orange-300'
-                    : 'bg-primary-100 dark:bg-primary-900 text-primary-700 dark:text-primary-300'"
-                >
-                  {{ task.assignee.name[0]?.toUpperCase() }}
-                </div>
+                <UiAvatar
+                  :name="task.assignee.name"
+                  :role="task.assignee.role"
+                  size="sm"
+                />
                 <span class="text-gray-900 dark:text-gray-100">{{ task.assignee.name }}</span>
                 <span
                   v-if="task.assignee.role"
@@ -483,7 +479,7 @@ onMounted(async () => {
               </div>
             </div>
           </div>
-        </div>
+        </UiCard>
       </div>
     </div>
   </div>

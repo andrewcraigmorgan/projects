@@ -10,7 +10,7 @@ interface Props {
   results: ImportResults | null
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'reset'): void
@@ -25,8 +25,6 @@ const allErrors = computed(() => {
     ...(props.results.tags?.errors || []),
   ].slice(0, 10)
 })
-
-const props = defineProps<Props>()
 </script>
 
 <template>

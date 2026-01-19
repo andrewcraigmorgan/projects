@@ -15,7 +15,7 @@ interface Props {
   hasProjectsFile: boolean
 }
 
-defineProps<Props>()
+const props = defineProps<Props>()
 
 const emit = defineEmits<{
   (e: 'update:taskColumnMap', value: Record<string, string>): void
@@ -31,8 +31,6 @@ function updateTaskMapping(field: string, value: string) {
 function updateProjectMapping(field: string, value: string) {
   emit('update:projectColumnMap', { ...props.projectColumnMap, [field]: value })
 }
-
-const props = defineProps<Props>()
 </script>
 
 <template>

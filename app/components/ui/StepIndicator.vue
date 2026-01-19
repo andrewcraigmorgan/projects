@@ -5,15 +5,29 @@ interface Step {
 }
 
 interface Props {
-  steps: Step[]
-  currentStep: string
+  steps: (Step | string)[]
+  currentStep?: string
+  currentStepIndex?: number
 }
 
 const props = defineProps<Props>()
 
-const currentIndex = computed(() =>
-  props.steps.findIndex(s => s.id === props.currentStep)
+// Normalize steps to always have label
+const normalizedSteps = computed(() =>
+  props.steps.map((s, idx) =>
+    typeof s === 'string' ? { id: String(idx), label: s } : s
+  )
 )
+
+const currentIndex = computed(() => {
+  if (props.currentStepIndex !== undefined) {
+    return props.currentStepIndex
+  }
+  if (props.currentStep) {
+    return normalizedSteps.value.findIndex(s => s.id === props.currentStep)
+  }
+  return 0
+})
 
 function isCompleted(index: number): boolean {
   return currentIndex.value > index
@@ -27,7 +41,7 @@ function isCurrent(index: number): boolean {
 <template>
   <div class="flex items-center justify-between">
     <div
-      v-for="(step, idx) in steps"
+      v-for="(step, idx) in normalizedSteps"
       :key="step.id"
       class="flex items-center"
     >
@@ -49,7 +63,7 @@ function isCurrent(index: number): boolean {
         {{ step.label }}
       </span>
       <div
-        v-if="idx < steps.length - 1"
+        v-if="idx < normalizedSteps.length - 1"
         class="w-12 h-0.5 mx-4"
         :class="isCompleted(idx) ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700'"
       />
