@@ -1,0 +1,393 @@
+<script setup lang="ts">
+import type { Task } from '~/composables/useTasks'
+
+interface Column {
+  id: string
+  label: string
+  width?: string
+}
+
+interface Props {
+  tasks: Task[]
+  loading?: boolean
+  projectId?: string
+  projectCode?: string
+}
+
+const props = withDefaults(defineProps<Props>(), {
+  loading: false,
+  projectId: '',
+  projectCode: '',
+})
+
+const emit = defineEmits<{
+  (e: 'select', task: Task): void
+  (e: 'task-created'): void
+  (e: 'update-status', task: Task, status: Task['status']): void
+}>()
+
+const availableColumns: Column[] = [
+  { id: 'title', label: 'Title', width: 'flex-1' },
+  { id: 'status', label: 'Status', width: 'w-28' },
+  { id: 'priority', label: 'Priority', width: 'w-24' },
+  { id: 'assignee', label: 'Assignee', width: 'w-32' },
+  { id: 'dueDate', label: 'Due Date', width: 'w-28' },
+  { id: 'subtaskCount', label: 'Subtasks', width: 'w-20' },
+  { id: 'createdAt', label: 'Created', width: 'w-28' },
+  { id: 'updatedAt', label: 'Updated', width: 'w-28' },
+]
+
+const defaultVisibleColumns = ['title', 'status', 'priority', 'assignee', 'dueDate']
+
+// Column visibility state
+const visibleColumnIds = ref<string[]>(defaultVisibleColumns)
+
+// Load from localStorage on mount
+onMounted(() => {
+  const saved = localStorage.getItem('taskTableColumns')
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved)
+      if (Array.isArray(parsed) && parsed.every(id => typeof id === 'string')) {
+        // Ensure title is always visible
+        if (!parsed.includes('title')) {
+          parsed.unshift('title')
+        }
+        visibleColumnIds.value = parsed
+      }
+    } catch {
+      // Use default if parsing fails
+    }
+  }
+})
+
+// Save to localStorage when changed
+watch(visibleColumnIds, (value) => {
+  localStorage.setItem('taskTableColumns', JSON.stringify(value))
+}, { deep: true })
+
+// Computed visible columns
+const visibleColumns = computed(() => {
+  return availableColumns.filter(col => visibleColumnIds.value.includes(col.id))
+})
+
+// Column config dropdown state
+const showColumnConfig = ref(false)
+const configButtonRef = ref<HTMLButtonElement | null>(null)
+
+function toggleColumn(columnId: string) {
+  // Title cannot be toggled off
+  if (columnId === 'title') return
+
+  const index = visibleColumnIds.value.indexOf(columnId)
+  if (index === -1) {
+    visibleColumnIds.value.push(columnId)
+  } else {
+    visibleColumnIds.value.splice(index, 1)
+  }
+}
+
+// Close dropdown when clicking outside
+function handleClickOutside(event: MouseEvent) {
+  if (configButtonRef.value && !configButtonRef.value.contains(event.target as Node)) {
+    const dropdown = document.getElementById('column-config-dropdown')
+    if (dropdown && !dropdown.contains(event.target as Node)) {
+      showColumnConfig.value = false
+    }
+  }
+}
+
+onMounted(() => {
+  document.addEventListener('click', handleClickOutside)
+})
+
+onUnmounted(() => {
+  document.removeEventListener('click', handleClickOutside)
+})
+
+// Status display
+const statusOptions = [
+  { value: 'todo', label: 'To Do', color: 'bg-gray-400' },
+  { value: 'awaiting_approval', label: 'Awaiting', color: 'bg-yellow-400' },
+  { value: 'open', label: 'Open', color: 'bg-blue-400' },
+  { value: 'in_review', label: 'In Review', color: 'bg-purple-400' },
+  { value: 'done', label: 'Done', color: 'bg-green-500' },
+]
+
+const statusLabels: Record<string, string> = {
+  todo: 'To Do',
+  awaiting_approval: 'Awaiting',
+  open: 'Open',
+  in_review: 'In Review',
+  done: 'Done',
+}
+
+// Handle status change
+function onStatusChange(task: Task, value: string) {
+  emit('update-status', task, value as Task['status'])
+}
+
+// Priority display
+const priorityLabels: Record<string, string> = {
+  low: 'Low',
+  medium: 'Medium',
+  high: 'High',
+}
+
+const priorityColors: Record<string, string> = {
+  low: 'text-gray-600 dark:text-gray-400',
+  medium: 'text-blue-600 dark:text-blue-400',
+  high: 'text-orange-600 dark:text-orange-400',
+}
+
+// Format date
+function formatDate(dateStr: string | undefined): string {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+// Get short task ID
+function getShortId(task: Task): string {
+  const prefix = props.projectCode || task.id.slice(0, 3).toUpperCase()
+  const taskNum = task.taskNumber ?? 0
+  return `${prefix}-T${taskNum}`
+}
+
+// Get cell value
+function getCellValue(task: Task, columnId: string): string {
+  switch (columnId) {
+    case 'title':
+      return task.title
+    case 'status':
+      return statusLabels[task.status] || task.status
+    case 'priority':
+      return task.priority ? priorityLabels[task.priority] : '-'
+    case 'assignee':
+      return task.assignee?.name || '-'
+    case 'dueDate':
+      return formatDate(task.dueDate)
+    case 'subtaskCount':
+      return task.subtaskCount > 0 ? String(task.subtaskCount) : '-'
+    case 'createdAt':
+      return formatDate(task.createdAt)
+    case 'updatedAt':
+      return formatDate(task.updatedAt)
+    default:
+      return ''
+  }
+}
+</script>
+
+<template>
+  <div class="overflow-x-auto">
+    <!-- Loading state -->
+    <div v-if="loading" class="text-center py-8">
+      <svg
+        class="animate-spin h-8 w-8 mx-auto text-primary-600"
+        fill="none"
+        viewBox="0 0 24 24"
+      >
+        <circle
+          class="opacity-25"
+          cx="12"
+          cy="12"
+          r="10"
+          stroke="currentColor"
+          stroke-width="4"
+        />
+        <path
+          class="opacity-75"
+          fill="currentColor"
+          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+        />
+      </svg>
+    </div>
+
+    <!-- Table -->
+    <table v-else class="w-full min-w-full border-collapse">
+      <!-- Header -->
+      <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900">
+        <tr class="border-b border-gray-200 dark:border-gray-700">
+          <!-- ID column (always visible) -->
+          <th class="w-24 px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            ID
+          </th>
+          <!-- Dynamic columns -->
+          <th
+            v-for="column in visibleColumns"
+            :key="column.id"
+            class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
+            :class="column.width"
+          >
+            {{ column.label }}
+          </th>
+          <!-- Config column -->
+          <th class="w-10 px-2 py-2 text-right relative">
+            <button
+              ref="configButtonRef"
+              class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+              title="Configure columns"
+              @click.stop="showColumnConfig = !showColumnConfig"
+            >
+              <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+              </svg>
+            </button>
+            <!-- Dropdown -->
+            <div
+              v-if="showColumnConfig"
+              id="column-config-dropdown"
+              class="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-20"
+            >
+              <div class="py-1">
+                <label
+                  v-for="column in availableColumns"
+                  :key="column.id"
+                  class="flex items-center px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                  :class="{ 'opacity-50 cursor-not-allowed': column.id === 'title' }"
+                >
+                  <input
+                    type="checkbox"
+                    :checked="visibleColumnIds.includes(column.id)"
+                    :disabled="column.id === 'title'"
+                    class="h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 focus:ring-primary-500"
+                    @change="toggleColumn(column.id)"
+                  />
+                  <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ column.label }}</span>
+                </label>
+              </div>
+            </div>
+          </th>
+        </tr>
+      </thead>
+
+      <!-- Body -->
+      <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
+        <template v-if="tasks.length === 0">
+          <tr v-if="!projectId">
+            <td :colspan="visibleColumns.length + 2" class="px-3 py-8 text-center text-gray-500 dark:text-gray-400">
+              No tasks found
+            </td>
+          </tr>
+        </template>
+
+        <template v-else>
+          <tr
+            v-for="task in tasks"
+            :key="task.id"
+            class="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+            @click="emit('select', task)"
+          >
+            <!-- ID column -->
+            <td class="px-3 py-2 whitespace-nowrap">
+              <span class="text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5">
+                {{ getShortId(task) }}
+              </span>
+            </td>
+            <!-- Dynamic columns -->
+            <td
+              v-for="column in visibleColumns"
+              :key="column.id"
+              class="px-3 py-2 whitespace-nowrap"
+              :class="column.width"
+            >
+              <!-- Title column -->
+              <template v-if="column.id === 'title'">
+                <div class="flex items-center gap-2">
+                  <span
+                    v-if="task.isExternal"
+                    class="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
+                  >
+                    Ext
+                  </span>
+                  <span class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate max-w-md">
+                    {{ task.title }}
+                  </span>
+                </div>
+              </template>
+
+              <!-- Status column -->
+              <template v-else-if="column.id === 'status'">
+                <UiDropdown
+                  :model-value="task.status"
+                  :options="statusOptions"
+                  show-dot
+                  @click.stop
+                  @update:model-value="onStatusChange(task, $event)"
+                />
+              </template>
+
+              <!-- Priority column -->
+              <template v-else-if="column.id === 'priority'">
+                <span
+                  v-if="task.priority"
+                  class="text-xs font-medium"
+                  :class="priorityColors[task.priority]"
+                >
+                  {{ getCellValue(task, 'priority') }}
+                </span>
+                <span v-else class="text-xs text-gray-400 dark:text-gray-500">-</span>
+              </template>
+
+              <!-- Assignee column -->
+              <template v-else-if="column.id === 'assignee'">
+                <div v-if="task.assignee" class="flex items-center gap-1.5">
+                  <div
+                    v-if="task.assignee.avatar"
+                    class="w-5 h-5 rounded-full bg-cover bg-center"
+                    :style="{ backgroundImage: `url(${task.assignee.avatar})` }"
+                  />
+                  <div
+                    v-else
+                    class="w-5 h-5 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300"
+                  >
+                    {{ task.assignee.name.charAt(0) }}
+                  </div>
+                  <span
+                    class="text-xs truncate"
+                    :class="task.assignee.role === 'client' ? 'text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'"
+                  >
+                    {{ task.assignee.name }}
+                  </span>
+                </div>
+                <span v-else class="text-xs text-gray-400 dark:text-gray-500">-</span>
+              </template>
+
+              <!-- Subtask count column -->
+              <template v-else-if="column.id === 'subtaskCount'">
+                <span
+                  v-if="task.subtaskCount > 0"
+                  class="text-xs text-gray-600 dark:text-gray-400"
+                >
+                  {{ task.subtaskCount }}
+                </span>
+                <span v-else class="text-xs text-gray-400 dark:text-gray-500">-</span>
+              </template>
+
+              <!-- Default text columns (dates, etc) -->
+              <template v-else>
+                <span class="text-xs text-gray-600 dark:text-gray-400">
+                  {{ getCellValue(task, column.id) }}
+                </span>
+              </template>
+            </td>
+            <!-- Empty config column -->
+            <td class="w-10 px-2 py-2" />
+          </tr>
+        </template>
+
+        <!-- Quick add row -->
+        <tr v-if="projectId">
+          <td :colspan="visibleColumns.length + 2" class="px-0 py-0">
+            <TasksTaskQuickAdd
+              :project-id="projectId"
+              placeholder="Add a task..."
+              @created="emit('task-created')"
+            />
+          </td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</template>

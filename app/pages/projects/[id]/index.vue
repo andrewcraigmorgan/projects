@@ -205,15 +205,15 @@ onMounted(async () => {
         @task-created="loadTasks"
       />
 
-      <!-- List View -->
-      <TasksTaskList
+      <!-- List View (Table) -->
+      <TasksTaskTable
         v-else
         :tasks="tasks"
         :loading="tasksLoading"
         :project-id="projectId"
         :project-code="project?.code"
         @select="navigateToTask"
-        @load-subtasks="handleLoadSubtasks"
+        @update-status="handleUpdateStatus"
         @task-created="loadTasks"
       />
     </div>

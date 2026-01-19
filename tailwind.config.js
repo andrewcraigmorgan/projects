@@ -8,6 +8,7 @@ export default {
     './app/plugins/**/*.{js,ts}',
     './app/app.vue',
     './app/error.vue',
+    './stories/**/*.{js,ts,vue}',
   ],
   theme: {
     extend: {

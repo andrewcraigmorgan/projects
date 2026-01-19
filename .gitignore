@@ -23,3 +23,13 @@ logs
 .env.*
 !.env.example
 task_export_*.csv
+
+*storybook.log
+storybook-static
+debug-storybook.log
+
+# Playwright
+/test-results/
+/playwright-report/
+/blob-report/
+/playwright/.cache/
