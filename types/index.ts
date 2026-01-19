@@ -78,6 +78,32 @@ export interface ITask {
   updatedAt: Date
 }
 
+// Comment types
+export type CommentSource = 'app' | 'email'
+
+export interface IComment {
+  _id: Types.ObjectId
+  task: Types.ObjectId
+  author?: Types.ObjectId
+  authorEmail?: string
+  authorName?: string
+  content: string
+  source: CommentSource
+  emailMessageId?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Task Subscription types
+export interface ITaskSubscription {
+  _id: Types.ObjectId
+  task: Types.ObjectId
+  user: Types.ObjectId
+  subscribedAt: Date
+  createdAt: Date
+  updatedAt: Date
+}
+
 // API Response types
 export interface ApiResponse<T = unknown> {
   success: boolean

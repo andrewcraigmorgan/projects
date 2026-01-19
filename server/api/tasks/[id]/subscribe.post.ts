@@ -1,0 +1,83 @@
+import { TaskSubscription } from '../../../models/TaskSubscription'
+import { Task } from '../../../models/Task'
+import { Project } from '../../../models/Project'
+import { requireOrganizationMember } from '../../../utils/tenant'
+
+/**
+ * @group Task Subscriptions
+ * @description Subscribe to receive updates for a task
+ * @authenticated
+ * @urlParam id string required Task ID
+ * @response 201 { "success": true, "data": { "subscribed": true } }
+ * @response 200 { "success": true, "data": { "subscribed": true, "alreadySubscribed": true } }
+ */
+export default defineEventHandler(async (event) => {
+  const auth = event.context.auth
+  if (!auth) {
+    throw createError({
+      statusCode: 401,
+      statusMessage: 'Unauthorized',
+    })
+  }
+
+  const taskId = getRouterParam(event, 'id')
+  if (!taskId) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Bad Request',
+      message: 'Task ID is required',
+    })
+  }
+
+  // Verify task exists
+  const task = await Task.findById(taskId)
+  if (!task) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Not Found',
+      message: 'Task not found',
+    })
+  }
+
+  // Verify project access
+  const project = await Project.findById(task.project)
+  if (!project) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Not Found',
+      message: 'Project not found',
+    })
+  }
+
+  await requireOrganizationMember(event, project.organization.toString())
+
+  // Check if already subscribed
+  const existingSubscription = await TaskSubscription.findOne({
+    task: taskId,
+    user: auth.userId,
+  })
+
+  if (existingSubscription) {
+    return {
+      success: true,
+      data: {
+        subscribed: true,
+        alreadySubscribed: true,
+      },
+    }
+  }
+
+  // Create subscription
+  await TaskSubscription.create({
+    task: taskId,
+    user: auth.userId,
+  })
+
+  setResponseStatus(event, 201)
+  return {
+    success: true,
+    data: {
+      subscribed: true,
+    },
+  }
+})

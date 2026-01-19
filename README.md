@@ -8,6 +8,9 @@ A full-stack project management application built with Nuxt 4, MongoDB, and Tail
 - **Organizations** - Multi-tenant with owner/admin/member roles
 - **Projects** - Create and manage projects within organizations
 - **Tasks** - Hierarchical task management with statuses, priorities, and assignees
+- **Comments** - Add comments to tasks via the app or email replies
+- **Email Notifications** - Get notified of task updates with email reply support
+- **Task Subscriptions** - Subscribe to tasks to receive update notifications
 
 ## Tech Stack
 
@@ -102,6 +105,16 @@ On first startup (when no users exist), a default admin user is created:
 - `DELETE /api/tasks/:id` - Delete task
 - `POST /api/tasks/:id/move` - Move task (reorder/reparent)
 
+### Comments
+- `GET /api/tasks/:id/comments` - List comments on a task
+- `POST /api/tasks/:id/comments` - Add a comment to a task
+
+### Task Subscriptions
+- `GET /api/tasks/:id/subscription` - Check if subscribed to a task
+- `POST /api/tasks/:id/subscribe` - Subscribe to task updates
+- `DELETE /api/tasks/:id/subscribe` - Unsubscribe from task updates
+- `GET /api/tasks/:id/subscribers` - List task subscribers
+
 ## Environment Variables
 
 | Variable | Description | Default |
@@ -113,14 +126,61 @@ On first startup (when no users exist), a default admin user is created:
 | `GOOGLE_CLIENT_SECRET` | Google OAuth secret | - |
 | `GITHUB_CLIENT_ID` | GitHub OAuth client ID | - |
 | `GITHUB_CLIENT_SECRET` | GitHub OAuth secret | - |
+| `SMTP_FROM_EMAIL` | From address for outbound emails | `tasks@localhost` |
+| `SMTP_FROM_NAME` | From name for outbound emails | `Project Tasks` |
+| `INBOUND_SMTP_PORT` | Port for inbound SMTP server | `2525` |
+| `INBOUND_EMAIL_DOMAIN` | Domain for reply-to addresses | `reply.localhost` |
+| `EMAIL_TOKEN_SECRET` | Secret for signing reply tokens | - |
+| `EMAIL_TOKEN_EXPIRY_DAYS` | Reply token expiry in days | `30` |
+| `USE_MAILPIT` | Use Mailpit for email testing | `false` |
+| `MAILPIT_SMTP_PORT` | Mailpit SMTP port | `1025` |
 
 ## Scripts
 
 ```bash
-npm run dev       # Start development server
-npm run build     # Build for production
-npm run preview   # Preview production build
+npm run dev          # Start development server
+npm run build        # Build for production
+npm run preview      # Preview production build
+npm run smtp:server  # Start inbound SMTP server for email replies
 ```
+
+## Email Reply-to-Comment System
+
+The app supports email notifications with reply functionality. When users receive task update emails, they can reply directly to add comments without signing in.
+
+### How it works
+
+1. **Task updates trigger notifications** - When a task is updated (status change, new comment, etc.), subscribed users receive an email
+2. **Reply-to addresses include a secure token** - Format: `reply+{token}@{domain}`
+3. **Replies are processed by the SMTP server** - Run `npm run smtp:server` to start the inbound server
+4. **Email content becomes a comment** - Signatures and quoted text are automatically stripped
+
+### Token Security
+
+- Tokens are HMAC-SHA256 signed to prevent forgery
+- Include recipient email hash for validation
+- Configurable expiry (default: 30 days)
+
+### Development Setup
+
+For local testing, use [Mailpit](https://github.com/axllent/mailpit):
+
+```bash
+# Start Mailpit
+docker run -d -p 1025:1025 -p 8025:8025 axllent/mailpit
+
+# Set in .env
+USE_MAILPIT=true
+
+# View emails at http://localhost:8025
+```
+
+### Production Setup
+
+1. Configure MX records to point to your inbound SMTP server
+2. Set `EMAIL_TOKEN_SECRET` to a secure random string
+3. Set `INBOUND_EMAIL_DOMAIN` to your reply domain
+4. Run the SMTP server as a background service
 
 ## License
 
