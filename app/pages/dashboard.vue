@@ -9,11 +9,14 @@ definePageMeta({
 const authStore = useAuthStore()
 const orgStore = useOrganizationStore()
 
-// Redirect to last project if available
+// Redirect to last project if available (only if it looks like a valid MongoDB ObjectId)
 onMounted(() => {
   const lastProjectId = localStorage.getItem('lastProjectId')
-  if (lastProjectId) {
+  if (lastProjectId && /^[0-9a-fA-F]{24}$/.test(lastProjectId)) {
     navigateTo(`/projects/${lastProjectId}`)
+  } else if (lastProjectId) {
+    // Clear invalid project ID
+    localStorage.removeItem('lastProjectId')
   }
 })
 

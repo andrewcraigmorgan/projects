@@ -130,11 +130,16 @@ useHead({
 
 // Initial load
 onMounted(async () => {
-  // Remember last visited project immediately
-  localStorage.setItem('lastProjectId', projectId.value)
-
   await loadProject()
-  await loadTasks()
+
+  // Only remember project if it loaded successfully
+  if (!projectError.value && project.value) {
+    localStorage.setItem('lastProjectId', projectId.value)
+    await loadTasks()
+  } else {
+    // Clear invalid project from localStorage
+    localStorage.removeItem('lastProjectId')
+  }
 })
 </script>
 
