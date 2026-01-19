@@ -79,13 +79,13 @@ async function handleCreate() {
         v-else-if="projects.length === 0"
         class="text-center py-12"
       >
-        <div class="h-16 w-16 bg-gray-100 rounded-full flex items-center justify-center mx-auto mb-4">
+        <div class="h-16 w-16 bg-gray-100 dark:bg-gray-800 flex items-center justify-center mx-auto mb-4">
           <svg class="h-8 w-8 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
           </svg>
         </div>
-        <h3 class="text-lg font-medium text-gray-900 mb-1">No projects yet</h3>
-        <p class="text-gray-500 mb-4">Create your first project to get started.</p>
+        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-1">No projects yet</h3>
+        <p class="text-gray-500 dark:text-gray-400 mb-4">Create your first project to get started.</p>
         <UiButton @click="showCreateModal = true">
           Create Project
         </UiButton>
@@ -97,28 +97,28 @@ async function handleCreate() {
           v-for="project in projects"
           :key="project.id"
           :to="`/projects/${project.id}`"
-          class="bg-white rounded-lg border border-gray-200 p-5 hover:border-gray-300 hover:shadow-sm transition-all"
+          class="border border-gray-200 dark:border-gray-700 p-5 hover:border-gray-300 dark:hover:border-gray-600 transition-all"
         >
           <div class="flex items-start justify-between">
             <div>
-              <h3 class="font-medium text-gray-900">{{ project.name }}</h3>
-              <p v-if="project.description" class="mt-1 text-sm text-gray-500 line-clamp-2">
+              <h3 class="font-medium text-gray-900 dark:text-gray-100">{{ project.name }}</h3>
+              <p v-if="project.description" class="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
                 {{ project.description }}
               </p>
             </div>
             <span
-              class="px-2 py-1 text-xs font-medium rounded-full"
+              class="px-2 py-1 text-xs font-medium"
               :class="{
-                'bg-green-100 text-green-700': project.status === 'active',
-                'bg-gray-100 text-gray-700': project.status === 'archived',
-                'bg-blue-100 text-blue-700': project.status === 'completed',
+                'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300': project.status === 'active',
+                'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300': project.status === 'archived',
+                'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300': project.status === 'completed',
               }"
             >
               {{ project.status }}
             </span>
           </div>
 
-          <div class="mt-4 flex items-center justify-between text-sm text-gray-500">
+          <div class="mt-4 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
             <span>{{ project.memberCount }} member{{ project.memberCount !== 1 ? 's' : '' }}</span>
             <span>Updated {{ new Date(project.updatedAt).toLocaleDateString() }}</span>
           </div>
@@ -142,13 +142,13 @@ async function handleCreate() {
           />
 
           <div>
-            <label class="block text-sm font-medium text-gray-700 mb-1">
+            <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
               Description
             </label>
             <textarea
               v-model="newProjectDescription"
               rows="3"
-              class="block w-full rounded-lg border border-gray-300 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:border-primary-500 focus:ring-primary-500"
+              class="block w-full border border-gray-300 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:border-primary-500 focus:ring-primary-500"
               placeholder="Project description (optional)"
             />
           </div>

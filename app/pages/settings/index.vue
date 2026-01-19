@@ -57,8 +57,8 @@ function closeKeyModal() {
 
     <div class="p-6 max-w-3xl">
       <!-- Profile Section -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">Profile</h3>
+      <div class="border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Profile</h3>
 
         <div class="flex items-center gap-4">
           <div
@@ -67,46 +67,46 @@ function closeKeyModal() {
             {{ authStore.user?.name?.[0]?.toUpperCase() || '?' }}
           </div>
           <div>
-            <p class="font-medium text-gray-900">{{ authStore.user?.name }}</p>
-            <p class="text-sm text-gray-500">{{ authStore.user?.email }}</p>
+            <p class="font-medium text-gray-900 dark:text-gray-100">{{ authStore.user?.name }}</p>
+            <p class="text-sm text-gray-500 dark:text-gray-400">{{ authStore.user?.email }}</p>
           </div>
         </div>
       </div>
 
       <!-- Organization Section -->
-      <div v-if="orgStore.currentOrganization" class="bg-white rounded-lg border border-gray-200 p-6 mb-6">
-        <h3 class="text-lg font-medium text-gray-900 mb-4">Organization</h3>
+      <div v-if="orgStore.currentOrganization" class="border border-gray-200 dark:border-gray-700 p-6 mb-6">
+        <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100 mb-4">Organization</h3>
 
         <dl class="space-y-3">
           <div>
-            <dt class="text-sm font-medium text-gray-500">Name</dt>
-            <dd class="text-gray-900">{{ orgStore.currentOrganization.name }}</dd>
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Name</dt>
+            <dd class="text-gray-900 dark:text-gray-100">{{ orgStore.currentOrganization.name }}</dd>
           </div>
           <div>
-            <dt class="text-sm font-medium text-gray-500">Slug</dt>
-            <dd class="text-gray-900">{{ orgStore.currentOrganization.slug }}</dd>
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Slug</dt>
+            <dd class="text-gray-900 dark:text-gray-100">{{ orgStore.currentOrganization.slug }}</dd>
           </div>
           <div>
-            <dt class="text-sm font-medium text-gray-500">Your Role</dt>
-            <dd class="text-gray-900 capitalize">{{ orgStore.currentOrganization.myRole }}</dd>
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Your Role</dt>
+            <dd class="text-gray-900 dark:text-gray-100 capitalize">{{ orgStore.currentOrganization.myRole }}</dd>
           </div>
           <div>
-            <dt class="text-sm font-medium text-gray-500">Members</dt>
-            <dd class="text-gray-900">{{ orgStore.currentOrganization.memberCount }}</dd>
+            <dt class="text-sm font-medium text-gray-500 dark:text-gray-400">Members</dt>
+            <dd class="text-gray-900 dark:text-gray-100">{{ orgStore.currentOrganization.memberCount }}</dd>
           </div>
         </dl>
       </div>
 
       <!-- API Keys Section -->
-      <div class="bg-white rounded-lg border border-gray-200 p-6">
+      <div class="border border-gray-200 dark:border-gray-700 p-6">
         <div class="flex items-center justify-between mb-4">
-          <h3 class="text-lg font-medium text-gray-900">API Keys</h3>
+          <h3 class="text-lg font-medium text-gray-900 dark:text-gray-100">API Keys</h3>
           <UiButton size="sm" @click="showCreateKeyModal = true">
             Create Key
           </UiButton>
         </div>
 
-        <p class="text-sm text-gray-500 mb-4">
+        <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
           Use API keys to authenticate with the Projects API. Keys have the same permissions as your account.
         </p>
 
@@ -114,11 +114,11 @@ function closeKeyModal() {
           <div
             v-for="key in apiKeys"
             :key="key.key"
-            class="flex items-center justify-between py-2 px-3 bg-gray-50 rounded-lg"
+            class="flex items-center justify-between py-2 px-3 bg-gray-100 dark:bg-gray-800"
           >
             <div>
-              <p class="font-medium text-gray-900">{{ key.name }}</p>
-              <p class="text-sm text-gray-500 font-mono">{{ key.key }}</p>
+              <p class="font-medium text-gray-900 dark:text-gray-100">{{ key.name }}</p>
+              <p class="text-sm text-gray-500 dark:text-gray-400 font-mono">{{ key.key }}</p>
             </div>
             <span class="text-xs text-gray-400">
               Created {{ new Date(key.createdAt).toLocaleDateString() }}
@@ -126,15 +126,15 @@ function closeKeyModal() {
           </div>
         </div>
 
-        <p v-else class="text-sm text-gray-500 italic">
+        <p v-else class="text-sm text-gray-500 dark:text-gray-400 italic">
           No API keys created yet.
         </p>
 
-        <div class="mt-4 pt-4 border-t">
+        <div class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
           <a
             href="/docs"
             target="_blank"
-            class="text-sm text-primary-600 hover:text-primary-500"
+            class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-500"
           >
             View API Documentation
           </a>
@@ -149,11 +149,11 @@ function closeKeyModal() {
       @close="closeKeyModal"
     >
       <div v-if="newlyCreatedKey">
-        <div class="bg-green-50 border border-green-200 rounded-lg p-4 mb-4">
-          <p class="text-sm text-green-800 mb-2">
+        <div class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 p-4 mb-4">
+          <p class="text-sm text-green-800 dark:text-green-300 mb-2">
             Your API key has been created. Copy it now - you won't be able to see it again!
           </p>
-          <code class="block p-2 bg-white border rounded text-sm font-mono break-all">
+          <code class="block p-2 bg-white dark:bg-gray-900 border dark:border-gray-700 text-sm font-mono break-all text-gray-900 dark:text-gray-100">
             {{ newlyCreatedKey }}
           </code>
         </div>
