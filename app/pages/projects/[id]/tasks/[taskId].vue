@@ -57,6 +57,7 @@ const statusOptions = [
   { value: 'awaiting_approval', label: 'Awaiting Approval' },
   { value: 'open', label: 'Open' },
   { value: 'in_review', label: 'In Review' },
+  { value: 'done', label: 'Done' },
 ]
 
 // Priority options
@@ -458,6 +459,7 @@ onMounted(async () => {
                       'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300': subtask.status === 'awaiting_approval',
                       'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300': subtask.status === 'open',
                       'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300': subtask.status === 'in_review',
+                      'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300': subtask.status === 'done',
                     }"
                   >
                     {{ statusOptions.find(s => s.value === subtask.status)?.label }}
