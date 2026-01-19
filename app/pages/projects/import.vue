@@ -45,16 +45,21 @@ const systemTaskFields = [
   { key: 'status', label: 'Status', required: false },
   { key: 'priority', label: 'Priority', required: false },
   { key: 'dueDate', label: 'Due Date', required: false },
-  { key: 'assignee', label: 'Assignee Email', required: false },
+  { key: 'assignee', label: 'Assignee (Name or Email)', required: false },
   { key: 'projectName', label: 'Project Name', required: true },
   { key: 'parentTask', label: 'Parent Task', required: false },
-  { key: 'taskList', label: 'Task List/Milestone', required: false },
+  { key: 'milestone', label: 'Milestone', required: false },
+  { key: 'tags', label: 'Tags', required: false },
+  { key: 'workHours', label: 'Work/Estimated Hours', required: false },
+  { key: 'percentComplete', label: '% Complete', required: false },
 ]
 
 // Import results
 const importResults = ref<{
   projects: { created: number; errors: string[] }
   tasks: { created: number; errors: string[] }
+  milestones: { created: number; errors: string[] }
+  tags: { created: number; errors: string[] }
 } | null>(null)
 
 // File handlers
@@ -149,7 +154,7 @@ function autoMapColumns(headers: string[], columnMap: Ref<Record<string, string>
     // Project mappings
     name: ['Project Name', 'Name', 'Title', 'project_name'],
     description: ['Description', 'Details', 'project_description'],
-    status: ['Status', 'State', 'project_status'],
+    status: ['Status', 'State', 'project_status', 'Custom Status'],
     // Task mappings
     title: ['Task Name', 'Name', 'Title', 'Subject', 'task_name'],
     priority: ['Priority', 'task_priority'],
@@ -157,7 +162,10 @@ function autoMapColumns(headers: string[], columnMap: Ref<Record<string, string>
     assignee: ['Assignee', 'Assigned To', 'Owner', 'assignee_email', 'owner_email'],
     projectName: ['Project Name', 'Project', 'project_name'],
     parentTask: ['Parent Task', 'Parent', 'parent_task'],
-    taskList: ['Task List', 'Tasklist', 'Milestone', 'task_list', 'milestone_name'],
+    milestone: ['Milestone Name', 'Milestone', 'Task List', 'Tasklist', 'task_list', 'milestone_name'],
+    tags: ['Tags', 'Labels', 'Categories'],
+    workHours: ['Work hours', 'Work Hours', 'Estimated Hours', 'Hours', 'Duration', 'work_hours', 'estimated_hours'],
+    percentComplete: ['% Completed', '% Complete', 'Percent Complete', 'Progress', 'percent_complete', 'completion'],
   }
 
   headers.forEach(header => {
@@ -208,32 +216,99 @@ const previewTasks = computed(() => {
 
 function mapStatus(zohoStatus: string): string {
   if (!zohoStatus) return 'todo'
-  const statusLower = zohoStatus.toLowerCase()
+  const statusLower = zohoStatus.toLowerCase().trim()
+
+  // Exact matches first
+  if (statusLower === 'closed' || statusLower === 'complete' || statusLower === 'completed' || statusLower === 'done') {
+    return 'done'
+  }
+  if (statusLower === 'to do' || statusLower === 'todo' || statusLower === 'backlog') {
+    return 'todo'
+  }
+  if (statusLower === 'open') {
+    return 'open'
+  }
+  if (statusLower === 'in review' || statusLower === 'in_review') {
+    return 'in_review'
+  }
+  if (statusLower === 'awaiting approval' || statusLower === 'awaiting_approval' || statusLower === 'pending') {
+    return 'awaiting_approval'
+  }
+
+  // Fuzzy matches
   if (statusLower.includes('complete') || statusLower.includes('done') || statusLower.includes('closed')) {
     return 'done'
   }
-  if (statusLower.includes('progress') || statusLower.includes('active') || statusLower.includes('open')) {
-    return 'in_progress'
+  if (statusLower.includes('progress') || statusLower.includes('active')) {
+    return 'open'
   }
-  if (statusLower.includes('review') || statusLower.includes('pending')) {
-    return 'review'
+  if (statusLower.includes('review')) {
+    return 'in_review'
   }
+  if (statusLower.includes('approval') || statusLower.includes('pending') || statusLower.includes('await')) {
+    return 'awaiting_approval'
+  }
+
   return 'todo'
 }
 
-function mapPriority(zohoPriority: string): string {
-  if (!zohoPriority) return 'medium'
-  const priorityLower = zohoPriority.toLowerCase()
-  if (priorityLower.includes('high') || priorityLower.includes('critical')) {
+function mapPriority(zohoPriority: string): string | null {
+  if (!zohoPriority) return null
+  const priorityLower = zohoPriority.toLowerCase().trim()
+
+  // "None" means no priority set
+  if (priorityLower === 'none' || priorityLower === '') {
+    return null
+  }
+  if (priorityLower.includes('high') || priorityLower.includes('critical') || priorityLower.includes('urgent')) {
     return 'high'
   }
-  if (priorityLower.includes('low') || priorityLower.includes('none')) {
+  if (priorityLower.includes('low')) {
     return 'low'
   }
-  if (priorityLower.includes('urgent')) {
-    return 'urgent'
+  if (priorityLower.includes('medium') || priorityLower.includes('normal')) {
+    return 'medium'
   }
-  return 'medium'
+  return null
+}
+
+function parseWorkHours(workHours: string): number | null {
+  if (!workHours || workHours.trim() === '') return null
+
+  // Handle HH:MM format (e.g., "05:00", "15:30")
+  const colonMatch = workHours.match(/^(\d+):(\d+)$/)
+  if (colonMatch) {
+    const hours = parseInt(colonMatch[1], 10)
+    const minutes = parseInt(colonMatch[2], 10)
+    return hours + (minutes / 60)
+  }
+
+  // Handle decimal format (e.g., "5.5", "10")
+  const num = parseFloat(workHours)
+  if (!isNaN(num)) {
+    return num
+  }
+
+  return null
+}
+
+function parseTags(tagsStr: string): string[] {
+  if (!tagsStr || tagsStr.trim() === '') return []
+
+  // Handle quoted tags like: "Change request", "Design Needed"
+  const tags: string[] = []
+  const regex = /"([^"]+)"/g
+  let match
+  while ((match = regex.exec(tagsStr)) !== null) {
+    tags.push(match[1].trim())
+  }
+
+  // If no quoted tags found, try comma-separated
+  if (tags.length === 0) {
+    return tagsStr.split(',').map(t => t.trim()).filter(t => t)
+  }
+
+  return tags
 }
 
 async function startImport() {
@@ -254,10 +329,13 @@ async function startImport() {
       status: mapStatus(row[taskColumnMap.value.status]),
       priority: mapPriority(row[taskColumnMap.value.priority]),
       dueDate: row[taskColumnMap.value.dueDate] || null,
-      assigneeEmail: row[taskColumnMap.value.assignee] || null,
+      assigneeName: row[taskColumnMap.value.assignee] || null,
       projectName: row[taskColumnMap.value.projectName] || '',
       parentTaskTitle: row[taskColumnMap.value.parentTask] || null,
-      taskList: row[taskColumnMap.value.taskList] || null,
+      milestoneName: row[taskColumnMap.value.milestone] || null,
+      tags: parseTags(row[taskColumnMap.value.tags] || ''),
+      estimatedHours: parseWorkHours(row[taskColumnMap.value.workHours] || ''),
+      percentComplete: parseInt(row[taskColumnMap.value.percentComplete], 10) || null,
     }))
 
     // Transform projects data (if provided)
@@ -635,12 +713,18 @@ useHead({
               <p class="text-green-700 dark:text-green-300">
                 <strong>{{ importResults.tasks.created }}</strong> tasks created
               </p>
+              <p v-if="importResults.milestones?.created" class="text-green-700 dark:text-green-300">
+                <strong>{{ importResults.milestones.created }}</strong> milestones created
+              </p>
+              <p v-if="importResults.tags?.created" class="text-green-700 dark:text-green-300">
+                <strong>{{ importResults.tags.created }}</strong> tags created
+              </p>
             </div>
 
-            <div v-if="importResults.projects.errors.length || importResults.tasks.errors.length" class="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
+            <div v-if="importResults.projects.errors.length || importResults.tasks.errors.length || importResults.milestones?.errors?.length || importResults.tags?.errors?.length" class="p-4 bg-yellow-50 dark:bg-yellow-900/20 border border-yellow-200 dark:border-yellow-800">
               <p class="text-yellow-700 dark:text-yellow-300 font-medium mb-2">Some items had issues:</p>
               <ul class="text-sm text-yellow-600 dark:text-yellow-400 list-disc list-inside">
-                <li v-for="(err, idx) in [...importResults.projects.errors, ...importResults.tasks.errors].slice(0, 10)" :key="idx">
+                <li v-for="(err, idx) in [...importResults.projects.errors, ...importResults.tasks.errors, ...(importResults.milestones?.errors || []), ...(importResults.tags?.errors || [])].slice(0, 10)" :key="idx">
                   {{ err }}
                 </li>
               </ul>

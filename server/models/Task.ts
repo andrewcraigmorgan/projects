@@ -10,6 +10,10 @@ const TaskSchema = new Schema<TaskDocument>(
       ref: 'Project',
       required: true,
     },
+    taskNumber: {
+      type: Number,
+      default: 0,
+    },
     title: {
       type: String,
       required: true,
@@ -21,13 +25,12 @@ const TaskSchema = new Schema<TaskDocument>(
     },
     status: {
       type: String,
-      enum: ['todo', 'in_progress', 'review', 'done'],
+      enum: ['todo', 'awaiting_approval', 'open', 'in_review', 'done'],
       default: 'todo',
     },
     priority: {
       type: String,
-      enum: ['low', 'medium', 'high', 'urgent'],
-      default: 'medium',
+      enum: ['low', 'medium', 'high'],
     },
     assignee: {
       type: Schema.Types.ObjectId,
@@ -36,6 +39,23 @@ const TaskSchema = new Schema<TaskDocument>(
     dueDate: {
       type: Date,
     },
+    estimatedHours: {
+      type: Number,
+    },
+    isExternal: {
+      type: Boolean,
+      default: false,
+    },
+    milestone: {
+      type: Schema.Types.ObjectId,
+      ref: 'Milestone',
+    },
+    tags: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'Tag',
+      },
+    ],
     parentTask: {
       type: Schema.Types.ObjectId,
       ref: 'Task',

@@ -91,6 +91,7 @@ const statusOptions = [
   { value: 'awaiting_approval', label: 'Awaiting Approval', color: 'bg-yellow-400' },
   { value: 'open', label: 'Open', color: 'bg-blue-400' },
   { value: 'in_review', label: 'In Review', color: 'bg-purple-400' },
+  { value: 'done', label: 'Done', color: 'bg-green-500' },
 ] as const
 
 const statusColors: Record<string, string> = {
@@ -98,6 +99,7 @@ const statusColors: Record<string, string> = {
   awaiting_approval: 'bg-yellow-400',
   open: 'bg-blue-400',
   in_review: 'bg-purple-400',
+  done: 'bg-green-500',
 }
 
 function onStatusChange(event: Event) {
@@ -292,6 +294,18 @@ function onMilestoneChange(event: Event) {
             >
               {{ task.subtaskCount }} subtask{{ task.subtaskCount !== 1 ? 's' : '' }}
             </span>
+
+            <!-- Tags -->
+            <template v-if="task.tags?.length">
+              <span
+                v-for="tag in task.tags"
+                :key="tag.id"
+                class="inline-flex items-center px-1.5 py-0.5 text-xs font-medium text-white"
+                :style="{ backgroundColor: tag.color }"
+              >
+                {{ tag.name }}
+              </span>
+            </template>
           </div>
         </div>
 

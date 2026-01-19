@@ -5,7 +5,7 @@ export interface Task {
   taskNumber: number
   title: string
   description: string
-  status: 'todo' | 'awaiting_approval' | 'open' | 'in_review'
+  status: 'todo' | 'awaiting_approval' | 'open' | 'in_review' | 'done'
   priority?: 'low' | 'medium' | 'high'
   assignee?: { id: string; name: string; email: string; avatar?: string; role?: 'team' | 'client' }
   dueDate?: string
