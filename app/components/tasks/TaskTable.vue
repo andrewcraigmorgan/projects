@@ -24,6 +24,8 @@ const emit = defineEmits<{
   (e: 'select', task: Task): void
   (e: 'task-created'): void
   (e: 'update-status', task: Task, status: Task['status']): void
+  (e: 'update-priority', task: Task, priority: Task['priority']): void
+  (e: 'update-due-date', task: Task, dueDate: string | null): void
 }>()
 
 const availableColumns: Column[] = [
@@ -127,6 +129,25 @@ function onStatusChange(task: Task, value: string) {
   emit('update-status', task, value as Task['status'])
 }
 
+// Handle priority change
+function onPriorityChange(task: Task, value: string) {
+  emit('update-priority', task, value as Task['priority'])
+}
+
+// Handle due date change
+function onDueDateChange(task: Task, event: Event) {
+  const input = event.target as HTMLInputElement
+  const value = input.value || null
+  emit('update-due-date', task, value)
+}
+
+// Priority options for dropdown
+const priorityOptions = [
+  { value: 'low', label: 'Low', color: 'bg-gray-400' },
+  { value: 'medium', label: 'Medium', color: 'bg-blue-400' },
+  { value: 'high', label: 'High', color: 'bg-orange-400' },
+]
+
 // Priority display
 const priorityLabels: Record<string, string> = {
   low: 'Low',
@@ -145,6 +166,18 @@ function formatDate(dateStr: string | undefined): string {
   if (!dateStr) return '-'
   const date = new Date(dateStr)
   return date.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+}
+
+// Format date with time
+function formatDateTime(dateStr: string | undefined): string {
+  if (!dateStr) return '-'
+  const date = new Date(dateStr)
+  return date.toLocaleDateString('en-US', {
+    month: 'short',
+    day: 'numeric',
+    hour: 'numeric',
+    minute: '2-digit'
+  })
 }
 
 // Get short task ID
@@ -170,9 +203,9 @@ function getCellValue(task: Task, columnId: string): string {
     case 'subtaskCount':
       return task.subtaskCount > 0 ? String(task.subtaskCount) : '-'
     case 'createdAt':
-      return formatDate(task.createdAt)
+      return formatDateTime(task.createdAt)
     case 'updatedAt':
-      return formatDate(task.updatedAt)
+      return formatDateTime(task.updatedAt)
     default:
       return ''
   }
@@ -320,14 +353,14 @@ function getCellValue(task: Task, columnId: string): string {
 
               <!-- Priority column -->
               <template v-else-if="column.id === 'priority'">
-                <span
-                  v-if="task.priority"
-                  class="text-xs font-medium"
-                  :class="priorityColors[task.priority]"
-                >
-                  {{ getCellValue(task, 'priority') }}
-                </span>
-                <span v-else class="text-xs text-gray-400 dark:text-gray-500">-</span>
+                <UiDropdown
+                  :model-value="task.priority || ''"
+                  :options="priorityOptions"
+                  placeholder="-"
+                  show-dot
+                  @click.stop
+                  @update:model-value="onPriorityChange(task, $event)"
+                />
               </template>
 
               <!-- Assignee column -->
@@ -363,6 +396,17 @@ function getCellValue(task: Task, columnId: string): string {
                   {{ task.subtaskCount }}
                 </span>
                 <span v-else class="text-xs text-gray-400 dark:text-gray-500">-</span>
+              </template>
+
+              <!-- Due date column -->
+              <template v-else-if="column.id === 'dueDate'">
+                <input
+                  type="date"
+                  :value="task.dueDate?.slice(0, 10) || ''"
+                  class="text-xs bg-transparent border-0 p-0 text-gray-600 dark:text-gray-400 focus:ring-0 cursor-pointer hover:text-gray-900 dark:hover:text-gray-200"
+                  @click.stop
+                  @change="onDueDateChange(task, $event)"
+                />
               </template>
 
               <!-- Default text columns (dates, etc) -->

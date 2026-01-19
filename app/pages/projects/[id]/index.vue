@@ -37,24 +37,79 @@ const {
 // View mode (from URL param, then localStorage, then default to 'list')
 const viewMode = ref<'list' | 'board'>('list')
 
+// Filters (synced with URL)
+const statusFilter = ref<string>('')
+const priorityFilter = ref<string>('')
+
+const statusOptions = [
+  { value: '', label: 'All Statuses' },
+  { value: 'todo', label: 'To Do' },
+  { value: 'awaiting_approval', label: 'Awaiting' },
+  { value: 'open', label: 'Open' },
+  { value: 'in_review', label: 'In Review' },
+  { value: 'done', label: 'Done' },
+]
+
+const priorityOptions = [
+  { value: '', label: 'All Priorities' },
+  { value: 'high', label: 'High' },
+  { value: 'medium', label: 'Medium' },
+  { value: 'low', label: 'Low' },
+]
+
+// Computed: any filters active
+const hasActiveFilters = computed(() => statusFilter.value || priorityFilter.value)
+
+// Clear all filters
+function clearFilters() {
+  statusFilter.value = ''
+  priorityFilter.value = ''
+}
+
 onMounted(() => {
-  // Check URL param first
+  // Check URL params
   const urlView = route.query.view as string
+  const urlStatus = route.query.status as string
+  const urlPriority = route.query.priority as string
+
   if (urlView === 'list' || urlView === 'board') {
     viewMode.value = urlView
-    return
+  } else {
+    // Fall back to localStorage
+    const saved = localStorage.getItem('taskViewMode')
+    if (saved === 'list' || saved === 'board') {
+      viewMode.value = saved
+    }
   }
 
-  // Fall back to localStorage
-  const saved = localStorage.getItem('taskViewMode')
-  if (saved === 'list' || saved === 'board') {
-    viewMode.value = saved
+  // Initialize filters from URL
+  if (urlStatus && statusOptions.some(o => o.value === urlStatus)) {
+    statusFilter.value = urlStatus
+  }
+  if (urlPriority && priorityOptions.some(o => o.value === urlPriority)) {
+    priorityFilter.value = urlPriority
   }
 })
 
 watch(viewMode, (value) => {
   localStorage.setItem('taskViewMode', value)
+  updateUrlParams()
 })
+
+// Update URL when filters change
+watch([statusFilter, priorityFilter], () => {
+  updateUrlParams()
+  loadTasks()
+})
+
+function updateUrlParams() {
+  const query: Record<string, string> = {}
+  if (viewMode.value !== 'list') query.view = viewMode.value
+  if (statusFilter.value) query.status = statusFilter.value
+  if (priorityFilter.value) query.priority = priorityFilter.value
+
+  router.replace({ query })
+}
 
 // Modals
 const showCreateModal = ref(false)
@@ -90,7 +145,11 @@ async function loadProject() {
 
 // Load tasks
 async function loadTasks() {
-  await fetchTasks({ rootOnly: true })
+  await fetchTasks({
+    rootOnly: true,
+    status: statusFilter.value || undefined,
+    priority: priorityFilter.value || undefined,
+  })
 }
 
 // Handle task creation
@@ -116,6 +175,18 @@ async function handleCreateTask(data: {
 // Handle task status update (for Kanban)
 async function handleUpdateStatus(task: Task, status: Task['status']) {
   await updateTask(task.id, { status })
+  await loadTasks()
+}
+
+// Handle task priority update
+async function handleUpdatePriority(task: Task, priority: Task['priority']) {
+  await updateTask(task.id, { priority })
+  await loadTasks()
+}
+
+// Handle task due date update
+async function handleUpdateDueDate(task: Task, dueDate: string | null) {
+  await updateTask(task.id, { dueDate: dueDate || undefined })
   await loadTasks()
 }
 
@@ -175,6 +246,36 @@ onMounted(async () => {
             Milestones
           </NuxtLink>
 
+          <!-- Filters -->
+          <div class="flex items-center gap-2">
+            <select
+              v-model="statusFilter"
+              class="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none"
+            >
+              <option v-for="opt in statusOptions" :key="opt.value" :value="opt.value">
+                {{ opt.label }}
+              </option>
+            </select>
+            <select
+              v-model="priorityFilter"
+              class="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none"
+            >
+              <option v-for="opt in priorityOptions" :key="opt.value" :value="opt.value">
+                {{ opt.label }}
+              </option>
+            </select>
+            <button
+              v-if="hasActiveFilters"
+              class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              title="Clear filters"
+              @click="clearFilters"
+            >
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+              </svg>
+            </button>
+          </div>
+
           <!-- View toggle -->
           <div class="flex border border-gray-200 dark:border-gray-700 overflow-hidden">
             <button
@@ -227,6 +328,8 @@ onMounted(async () => {
         :project-code="project?.code"
         @select="navigateToTask"
         @update-status="handleUpdateStatus"
+        @update-priority="handleUpdatePriority"
+        @update-due-date="handleUpdateDueDate"
         @task-created="loadTasks"
       />
     </div>

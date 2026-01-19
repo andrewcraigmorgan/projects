@@ -32,6 +32,7 @@ export function useTasks(projectId: Ref<string>) {
 
   async function fetchTasks(options: {
     status?: string
+    priority?: string
     parentTask?: string
     rootOnly?: boolean
   } = {}) {
@@ -41,6 +42,7 @@ export function useTasks(projectId: Ref<string>) {
     try {
       let url = `/api/tasks?projectId=${projectId.value}`
       if (options.status) url += `&status=${options.status}`
+      if (options.priority) url += `&priority=${options.priority}`
       if (options.parentTask) url += `&parentTask=${options.parentTask}`
       if (options.rootOnly) url += `&rootOnly=true`
 

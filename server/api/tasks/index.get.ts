@@ -5,7 +5,8 @@ import { requireOrganizationMember } from '../../utils/tenant'
 
 const querySchema = z.object({
   projectId: z.string(),
-  status: z.enum(['todo', 'in_progress', 'review', 'done']).optional(),
+  status: z.enum(['todo', 'awaiting_approval', 'open', 'in_review', 'done']).optional(),
+  priority: z.enum(['low', 'medium', 'high']).optional(),
   parentTask: z.string().optional(),
   rootOnly: z.coerce.boolean().default(false),
   page: z.coerce.number().min(1).default(1),
@@ -36,7 +37,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const { projectId, status, parentTask, rootOnly, page, limit } = result.data
+  const { projectId, status, priority, parentTask, rootOnly, page, limit } = result.data
 
   // Verify project access
   const project = await Project.findById(projectId)
@@ -55,6 +56,10 @@ export default defineEventHandler(async (event) => {
 
   if (status) {
     filter.status = status
+  }
+
+  if (priority) {
+    filter.priority = priority
   }
 
   if (parentTask) {
@@ -89,6 +94,7 @@ export default defineEventHandler(async (event) => {
     data: {
       tasks: tasks.map((t) => ({
         id: t._id,
+        taskNumber: t.taskNumber,
         title: t.title,
         description: t.description,
         status: t.status,
