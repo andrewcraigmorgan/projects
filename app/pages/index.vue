@@ -3,12 +3,17 @@ import { useAuthStore } from '~/stores/auth'
 
 const authStore = useAuthStore()
 
-// Redirect authenticated users to dashboard
+// Redirect authenticated users to last project or dashboard
 watch(
   () => authStore.isAuthenticated,
   (isAuthenticated) => {
     if (isAuthenticated) {
-      navigateTo('/dashboard')
+      const lastProjectId = localStorage.getItem('lastProjectId')
+      if (lastProjectId) {
+        navigateTo(`/projects/${lastProjectId}`)
+      } else {
+        navigateTo('/dashboard')
+      }
     }
   },
   { immediate: true }

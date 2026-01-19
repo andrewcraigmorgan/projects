@@ -51,7 +51,6 @@ const OrganizationSchema = new Schema<OrganizationDocument>(
   }
 )
 
-OrganizationSchema.index({ slug: 1 })
 OrganizationSchema.index({ 'members.user': 1 })
 
 export const Organization =

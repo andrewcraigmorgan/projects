@@ -47,7 +47,6 @@ const UserSchema = new Schema<UserDocument>(
   }
 )
 
-UserSchema.index({ email: 1 })
 UserSchema.index({ 'apiKeys.key': 1 })
 
 export const User =

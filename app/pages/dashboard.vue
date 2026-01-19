@@ -9,6 +9,14 @@ definePageMeta({
 const authStore = useAuthStore()
 const orgStore = useOrganizationStore()
 
+// Redirect to last project if available
+onMounted(() => {
+  const lastProjectId = localStorage.getItem('lastProjectId')
+  if (lastProjectId) {
+    navigateTo(`/projects/${lastProjectId}`)
+  }
+})
+
 const showCreateOrgModal = ref(false)
 const newOrgName = ref('')
 const creating = ref(false)
