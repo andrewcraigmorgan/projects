@@ -34,10 +34,18 @@ const {
   getTaskWithSubtasks,
 } = useTasks(projectId)
 
-// View mode (persisted to localStorage)
-const viewMode = ref<'list' | 'board'>('board')
+// View mode (from URL param, then localStorage, then default to 'list')
+const viewMode = ref<'list' | 'board'>('list')
 
 onMounted(() => {
+  // Check URL param first
+  const urlView = route.query.view as string
+  if (urlView === 'list' || urlView === 'board') {
+    viewMode.value = urlView
+    return
+  }
+
+  // Fall back to localStorage
   const saved = localStorage.getItem('taskViewMode')
   if (saved === 'list' || saved === 'board') {
     viewMode.value = saved
