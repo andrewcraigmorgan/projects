@@ -15,8 +15,8 @@ const props = withDefaults(defineProps<Props>(), {
     <div class="flex items-center justify-between px-6 py-4">
       <div class="flex items-center gap-4">
         <NuxtLink
-          v-if="props.backLink"
-          :to="props.backLink"
+          v-if="backLink"
+          :to="backLink"
           class="text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
         >
           <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
