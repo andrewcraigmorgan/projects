@@ -33,3 +33,8 @@ debug-storybook.log
 /playwright-report/
 /blob-report/
 /playwright/.cache/
+
+# Load testing
+load-tests/results/*.html
+load-tests/results/*.json
+!load-tests/results/.gitkeep

@@ -4,15 +4,20 @@
   "private": true,
   "scripts": {
     "build": "nuxt build",
-    "dev": "nuxt dev",
+    "dev": "node scripts/check-container.js && nuxt dev",
     "generate": "nuxt generate",
     "preview": "nuxt preview",
     "postinstall": "nuxt prepare",
     "generate:api-docs": "tsx server/utils/generateApiDocs.ts",
     "seed:tasks": "tsx scripts/seedTasks.ts",
+    "seed:loadtest": "tsx scripts/seedLoadTest.ts",
+    "clean:loadtest": "tsx scripts/cleanLoadTest.ts",
     "smtp:server": "tsx scripts/startSmtpServer.ts",
     "storybook": "storybook dev -p 6006",
-    "build-storybook": "storybook build"
+    "build-storybook": "storybook build",
+    "loadtest:smoke": "TEST_TYPE=smoke k6 run load-tests/k6/run-all.js",
+    "loadtest:load": "TEST_TYPE=load k6 run load-tests/k6/run-all.js",
+    "loadtest:stress": "TEST_TYPE=stress k6 run load-tests/k6/run-all.js"
   },
   "dependencies": {
     "@pinia/nuxt": "^0.11.3",
