@@ -5,6 +5,7 @@ import { generateReplyToAddress } from './emailToken'
 const SMTP_FROM_EMAIL = process.env.SMTP_FROM_EMAIL || 'tasks@localhost'
 const SMTP_FROM_NAME = process.env.SMTP_FROM_NAME || 'Project Tasks'
 const USE_MAILPIT = process.env.USE_MAILPIT === 'true'
+const MAILPIT_SMTP_HOST = process.env.MAILPIT_SMTP_HOST || 'localhost'
 const MAILPIT_SMTP_PORT = parseInt(process.env.MAILPIT_SMTP_PORT || '1025', 10)
 
 let transporter: Transporter | null = null
@@ -21,7 +22,7 @@ function getTransporter(): Transporter {
   if (USE_MAILPIT) {
     // Development: Use Mailpit for testing
     transporter = nodemailer.createTransport({
-      host: 'localhost',
+      host: MAILPIT_SMTP_HOST,
       port: MAILPIT_SMTP_PORT,
       secure: false,
     })

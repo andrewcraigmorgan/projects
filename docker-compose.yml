@@ -12,6 +12,8 @@ services:
       - NUXT_MONGODB_URI=mongodb://mongo:27017/projects
       - NUXT_JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
       - NUXT_PUBLIC_APP_URL=http://localhost:3000
+      - USE_MAILPIT=true
+      - MAILPIT_SMTP_HOST=mailpit
     depends_on:
       mongo:
         condition: service_healthy
@@ -28,6 +30,13 @@ services:
       interval: 10s
       timeout: 5s
       retries: 5
+    restart: unless-stopped
+
+  mailpit:
+    image: axllent/mailpit
+    ports:
+      - "1025:1025"
+      - "8025:8025"
     restart: unless-stopped
 
 volumes:

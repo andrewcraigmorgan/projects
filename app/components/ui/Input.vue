@@ -7,6 +7,7 @@ interface Props {
   error?: string
   disabled?: boolean
   required?: boolean
+  id?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -15,6 +16,9 @@ const props = withDefaults(defineProps<Props>(), {
   disabled: false,
   required: false,
 })
+
+const autoId = useId()
+const inputId = computed(() => props.id || autoId)
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
@@ -36,12 +40,14 @@ const inputClasses = computed(() => {
   <div>
     <label
       v-if="label"
+      :for="inputId"
       class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1"
     >
       {{ label }}
       <span v-if="required" class="text-red-500">*</span>
     </label>
     <input
+      :id="inputId"
       :type="type"
       :value="modelValue"
       :placeholder="placeholder"

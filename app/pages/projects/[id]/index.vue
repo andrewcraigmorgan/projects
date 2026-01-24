@@ -633,6 +633,14 @@ onMounted(async () => {
             Milestones
           </NuxtLink>
 
+          <!-- Tags link - hidden on small mobile -->
+          <NuxtLink
+            :to="`/projects/${projectId}/tags`"
+            class="hidden sm:block px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
+          >
+            Tags
+          </NuxtLink>
+
           <!-- Mobile: Filter toggle button -->
           <button
             class="lg:hidden p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors relative"

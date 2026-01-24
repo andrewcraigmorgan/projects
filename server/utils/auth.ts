@@ -38,3 +38,31 @@ export function generateApiKey(): string {
   }
   return key
 }
+
+export interface ResetTokenPayload {
+  userId: string
+  email: string
+  type: 'password-reset'
+}
+
+export function generateResetToken(userId: string, email: string): string {
+  const config = useRuntimeConfig()
+  return jwt.sign(
+    { userId, email, type: 'password-reset' } as ResetTokenPayload,
+    config.jwtSecret,
+    { expiresIn: '15m' }
+  )
+}
+
+export function verifyResetToken(token: string): ResetTokenPayload | null {
+  try {
+    const config = useRuntimeConfig()
+    const payload = jwt.verify(token, config.jwtSecret) as ResetTokenPayload
+    if (payload.type !== 'password-reset') {
+      return null
+    }
+    return payload
+  } catch {
+    return null
+  }
+}
