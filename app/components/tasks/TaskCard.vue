@@ -218,7 +218,7 @@ function onMilestoneChange(event: Event) {
           />
           <select
             :value="task.status"
-            class="appearance-none pl-5 pr-6 py-1.5 sm:py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-0 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-1 focus:ring-primary-500 transition-colors min-h-[32px] sm:min-h-0"
+            class="appearance-none pl-5 pr-6 py-1.5 sm:py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-0 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-1 focus:ring-primary-500 transition-colors min-h-[32px] sm:min-h-0 dark:[color-scheme:dark]"
             @click.stop
             @change="onStatusChange"
           >
@@ -263,7 +263,7 @@ function onMilestoneChange(event: Event) {
             <div class="relative">
               <select
                 :value="task.priority || ''"
-                class="appearance-none px-2 py-1 sm:py-0.5 pr-5 text-xs font-medium bg-gray-100 dark:bg-gray-700 border-0 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-1 focus:ring-primary-500 transition-colors min-h-[28px] sm:min-h-0"
+                class="appearance-none px-2 py-1 sm:py-0.5 pr-5 text-xs font-medium bg-gray-100 dark:bg-gray-700 border-0 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-1 focus:ring-primary-500 transition-colors min-h-[28px] sm:min-h-0 dark:[color-scheme:dark]"
                 :class="task.priority ? priorityColors[task.priority] : 'text-gray-400 dark:text-gray-500'"
                 @click.stop
                 @change="onPriorityChange"
@@ -304,7 +304,7 @@ function onMilestoneChange(event: Event) {
             <div v-if="milestones.length" class="relative">
               <select
                 :value="task.milestone?.id || ''"
-                class="appearance-none px-2 py-1 sm:py-0.5 pr-5 text-xs font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-0 cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 focus:ring-1 focus:ring-indigo-500 transition-colors min-h-[28px] sm:min-h-0"
+                class="appearance-none px-2 py-1 sm:py-0.5 pr-5 text-xs font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-0 cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 focus:ring-1 focus:ring-indigo-500 transition-colors min-h-[28px] sm:min-h-0 dark:[color-scheme:dark]"
                 @click.stop
                 @change="onMilestoneChange"
               >
@@ -352,7 +352,7 @@ function onMilestoneChange(event: Event) {
         <div class="relative flex-shrink-0">
           <select
             :value="task.assignee?.id || ''"
-            class="appearance-none pl-2 pr-6 py-1.5 sm:py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 border-0 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-1 focus:ring-primary-500 transition-colors min-h-[32px] sm:min-h-0"
+            class="appearance-none pl-2 pr-6 py-1.5 sm:py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 border-0 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-1 focus:ring-primary-500 transition-colors min-h-[32px] sm:min-h-0 dark:[color-scheme:dark]"
             :class="task.assignee?.role === 'client'
               ? 'text-orange-600 dark:text-orange-300'
               : 'text-gray-700 dark:text-gray-300'"

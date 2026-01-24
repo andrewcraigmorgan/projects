@@ -599,7 +599,7 @@ onMounted(async () => {
             <!-- Preset selector -->
             <select
               :value="currentPreset"
-              class="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none font-medium"
+              class="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none font-medium dark:[color-scheme:dark]"
               @change="(e: Event) => {
                 const preset = presets.find(p => p.name === (e.target as HTMLSelectElement).value)
                 if (preset) {
@@ -704,7 +704,7 @@ onMounted(async () => {
             <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Quick Filter</label>
             <select
               :value="currentPreset"
-              class="w-full text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-3 py-2 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none"
+              class="w-full text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-3 py-2 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none dark:[color-scheme:dark]"
               @change="(e: Event) => {
                 const preset = presets.find(p => p.name === (e.target as HTMLSelectElement).value)
                 if (preset) {
