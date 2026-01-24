@@ -45,9 +45,8 @@ const organizationMembers = ref<Array<{ id: string; name: string; email: string;
 // Description editing functions
 function startEditingDescription() {
   if (!currentParentTask.value) return
-  // Strip HTML tags for plain text editing
-  const plainText = currentParentTask.value.description?.replace(/<[^>]*>/g, '') || ''
-  editedDescription.value = plainText
+  // Keep HTML for rich text editing
+  editedDescription.value = currentParentTask.value.description || ''
   isEditingDescription.value = true
 }
 
@@ -748,12 +747,10 @@ onMounted(async () => {
               <!-- Description editing area -->
               <div class="mt-2">
                 <template v-if="isEditingDescription">
-                  <textarea
+                  <UiRichTextEditor
                     v-model="editedDescription"
-                    rows="3"
-                    class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
-                    placeholder="Add a description..."
-                    :disabled="savingDescription"
+                    placeholder="Add a description... (paste formatted content with images)"
+                    class="min-h-[150px]"
                   />
                   <div class="mt-2 flex items-center gap-2">
                     <button
@@ -774,18 +771,17 @@ onMounted(async () => {
                 </template>
                 <template v-else>
                   <div
-                    class="group cursor-pointer"
+                    class="group cursor-pointer rounded hover:bg-gray-100 dark:hover:bg-gray-700 p-2 -m-2 transition-colors"
                     @click="startEditingDescription"
                   >
-                    <p
+                    <div
                       v-if="currentParentTask.description"
-                      class="text-sm text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors"
-                    >
-                      {{ currentParentTask.description.replace(/<[^>]*>/g, '').slice(0, 300) }}{{ currentParentTask.description.length > 300 ? '...' : '' }}
-                    </p>
+                      class="text-sm text-gray-600 dark:text-gray-400 prose prose-sm dark:prose-invert max-w-none [&_img]:max-h-48 [&_img]:object-contain"
+                      v-html="currentParentTask.description"
+                    />
                     <p
                       v-else
-                      class="text-sm text-gray-400 dark:text-gray-500 italic group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-colors"
+                      class="text-sm text-gray-400 dark:text-gray-500 italic"
                     >
                       Click to add a description...
                     </p>
