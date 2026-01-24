@@ -276,6 +276,12 @@ watch([statusFilter, priorityFilter, dueDateFrom, dueDateTo], () => {
 
 function updateUrlParams() {
   const query: Record<string, string> = {}
+
+  // Preserve the parent param for hierarchical navigation
+  if (currentParentId.value) {
+    query.parent = currentParentId.value
+  }
+
   if (viewMode.value !== 'list') query.view = viewMode.value
   if (statusFilter.value.length > 0) query.status = statusFilter.value.join(',')
   if (priorityFilter.value.length > 0) query.priority = priorityFilter.value.join(',')
@@ -625,67 +631,6 @@ onMounted(async () => {
             />
           </button>
 
-          <!-- Desktop: Filters inline -->
-          <div class="hidden lg:flex items-center gap-2">
-            <!-- Preset selector -->
-            <select
-              :value="currentPreset"
-              class="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none font-medium dark:[color-scheme:dark]"
-              @change="(e: Event) => {
-                const preset = presets.find(p => p.name === (e.target as HTMLSelectElement).value)
-                if (preset) {
-                  applyPreset(preset)
-                }
-              }"
-            >
-              <option v-for="preset in presets" :key="preset.name" :value="preset.name">
-                {{ preset.name }}
-              </option>
-              <option v-if="currentPreset === 'Custom'" value="Custom">Custom</option>
-            </select>
-
-            <div class="h-4 w-px bg-gray-300 dark:bg-gray-600" />
-
-            <UiFilterDropdown
-              v-model="statusFilter"
-              :options="statusOptions"
-              label="Status"
-              placeholder="Status"
-            />
-            <UiFilterDropdown
-              v-model="priorityFilter"
-              :options="priorityOptions"
-              label="Priority"
-              placeholder="Priority"
-            />
-            <!-- Date range -->
-            <div class="flex items-center gap-1">
-              <input
-                v-model="dueDateFrom"
-                type="date"
-                class="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none"
-                title="Due date from"
-              />
-              <span class="text-gray-400">-</span>
-              <input
-                v-model="dueDateTo"
-                type="date"
-                class="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none"
-                title="Due date to"
-              />
-            </div>
-            <button
-              v-if="hasActiveFilters"
-              class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
-              title="Reset to All Open"
-              @click="clearFilters"
-            >
-              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
-              </svg>
-            </button>
-          </div>
-
           <!-- View toggle - icon only on mobile -->
           <div class="flex border border-gray-200 dark:border-gray-700 overflow-hidden">
             <button
@@ -715,6 +660,83 @@ onMounted(async () => {
         </div>
       </template>
     </LayoutHeader>
+
+    <!-- Desktop Filter Bar - separate row below header -->
+    <div class="hidden lg:block bg-gray-50 dark:bg-gray-800/50 border-b border-gray-200 dark:border-gray-700">
+      <div class="px-4 sm:px-6 py-3">
+        <div class="flex items-center justify-between gap-4">
+          <!-- Left side: Filter controls -->
+          <div class="flex items-center gap-3 flex-wrap">
+            <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Filters</span>
+
+            <!-- Preset selector -->
+            <select
+              :value="currentPreset"
+              class="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none font-medium dark:[color-scheme:dark]"
+              @change="(e: Event) => {
+                const preset = presets.find(p => p.name === (e.target as HTMLSelectElement).value)
+                if (preset) {
+                  applyPreset(preset)
+                }
+              }"
+            >
+              <option v-for="preset in presets" :key="preset.name" :value="preset.name">
+                {{ preset.name }}
+              </option>
+              <option v-if="currentPreset === 'Custom'" value="Custom">Custom</option>
+            </select>
+
+            <div class="h-4 w-px bg-gray-300 dark:bg-gray-600" />
+
+            <UiFilterDropdown
+              v-model="statusFilter"
+              :options="statusOptions"
+              label="Status"
+              placeholder="Status"
+            />
+            <UiFilterDropdown
+              v-model="priorityFilter"
+              :options="priorityOptions"
+              label="Priority"
+              placeholder="Priority"
+            />
+
+            <div class="h-4 w-px bg-gray-300 dark:bg-gray-600" />
+
+            <!-- Date range with label -->
+            <div class="flex items-center gap-2">
+              <span class="text-xs text-gray-500 dark:text-gray-400">Due:</span>
+              <input
+                v-model="dueDateFrom"
+                type="date"
+                class="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none dark:[color-scheme:dark]"
+                title="Due date from"
+              />
+              <span class="text-gray-400">to</span>
+              <input
+                v-model="dueDateTo"
+                type="date"
+                class="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none dark:[color-scheme:dark]"
+                title="Due date to"
+              />
+            </div>
+          </div>
+
+          <!-- Right side: Reset button -->
+          <button
+            v-if="hasActiveFilters"
+            class="flex items-center gap-1.5 text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200 transition-colors"
+            title="Reset to All Open"
+            @click="clearFilters"
+          >
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 4v5h.582m15.356 2A8.001 8.001 0 004.582 9m0 0H9m11 11v-5h-.581m0 0a8.003 8.003 0 01-15.357-2m15.357 2H15" />
+            </svg>
+            <span>Reset</span>
+          </button>
+        </div>
+      </div>
+    </div>
 
     <!-- Mobile Filter Drawer -->
     <Transition

@@ -23,6 +23,7 @@ const emit = defineEmits<{
 const isOpen = ref(false)
 const containerRef = ref<HTMLElement | null>(null)
 const buttonRef = ref<HTMLButtonElement | null>(null)
+const dropdownRef = ref<HTMLElement | null>(null)
 const dropdownStyle = ref({ top: '0px', left: '0px', minWidth: '180px' })
 
 // Update dropdown position when opening
@@ -71,7 +72,11 @@ function clearAll() {
 
 // Close on click outside
 function handleClickOutside(event: MouseEvent) {
-  if (containerRef.value && !containerRef.value.contains(event.target as Node)) {
+  const target = event.target as Node
+  const isInsideContainer = containerRef.value && containerRef.value.contains(target)
+  const isInsideDropdown = dropdownRef.value && dropdownRef.value.contains(target)
+
+  if (!isInsideContainer && !isInsideDropdown) {
     isOpen.value = false
   }
 }
@@ -110,6 +115,7 @@ onUnmounted(() => {
     <Teleport to="body">
       <div
         v-if="isOpen"
+        ref="dropdownRef"
         class="fixed z-[100] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg"
         :style="dropdownStyle"
       >
@@ -144,7 +150,7 @@ onUnmounted(() => {
           <input
             type="checkbox"
             :checked="modelValue.includes(option.value)"
-            class="h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 focus:ring-primary-500"
+            class="h-4 w-4 rounded text-primary-600 border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 checked:bg-primary-600 dark:checked:bg-primary-500 focus:ring-primary-500 focus:ring-offset-0 dark:focus:ring-offset-gray-800"
             @change="toggleOption(option.value)"
           />
           <span
