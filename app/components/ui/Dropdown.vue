@@ -134,7 +134,7 @@ onUnmounted(() => {
         />
         <select
           :value="modelValue"
-          class="appearance-none font-medium cursor-pointer focus:ring-1 focus:ring-primary-500 focus:outline-none transition-colors text-gray-700 dark:text-gray-300"
+          class="appearance-none font-medium cursor-pointer focus:ring-1 focus:ring-primary-500 focus:outline-none transition-colors text-gray-700 dark:text-gray-300 min-w-[70px]"
           :class="[sizeClasses.trigger, sizeClasses.triggerPadding, variantClasses.trigger]"
           @change="onNativeChange"
           @click.stop

@@ -91,7 +91,7 @@ function parseCSV(file: File, type: 'projects' | 'tasks') {
 
     if (type === 'projects') {
       projectColumns.value = headers
-      // Auto-map common Zoho column names
+      // Auto-map common column names
       autoMapColumns(headers, projectColumnMap, 'project')
     } else {
       taskColumns.value = headers
@@ -139,7 +139,7 @@ function parseCSVLine(line: string): string[] {
 }
 
 function autoMapColumns(headers: string[], columnMap: Ref<Record<string, string>>, type: 'project' | 'task') {
-  const zohoMappings: Record<string, string[]> = {
+  const columnMappings: Record<string, string[]> = {
     // Project mappings
     name: ['Project Name', 'Name', 'Title', 'project_name'],
     description: ['Description', 'Details', 'project_description'],
@@ -159,7 +159,7 @@ function autoMapColumns(headers: string[], columnMap: Ref<Record<string, string>
 
   headers.forEach(header => {
     const headerLower = header.toLowerCase().trim()
-    for (const [field, aliases] of Object.entries(zohoMappings)) {
+    for (const [field, aliases] of Object.entries(columnMappings)) {
       if (aliases.some(alias => alias.toLowerCase() === headerLower)) {
         columnMap.value[field] = header
         break
@@ -203,9 +203,9 @@ const previewTasks = computed(() => {
   }))
 })
 
-function mapStatus(zohoStatus: string): string {
-  if (!zohoStatus) return 'todo'
-  const statusLower = zohoStatus.toLowerCase().trim()
+function mapStatus(sourceStatus: string): string {
+  if (!sourceStatus) return 'todo'
+  const statusLower = sourceStatus.toLowerCase().trim()
 
   // Exact matches first
   if (statusLower === 'closed' || statusLower === 'complete' || statusLower === 'completed' || statusLower === 'done') {
@@ -241,9 +241,9 @@ function mapStatus(zohoStatus: string): string {
   return 'todo'
 }
 
-function mapPriority(zohoPriority: string): string | null {
-  if (!zohoPriority) return null
-  const priorityLower = zohoPriority.toLowerCase().trim()
+function mapPriority(sourcePriority: string): string | null {
+  if (!sourcePriority) return null
+  const priorityLower = sourcePriority.toLowerCase().trim()
 
   // "None" means no priority set
   if (priorityLower === 'none' || priorityLower === '') {
@@ -380,7 +380,7 @@ function resetImport() {
 }
 
 useHead({
-  title: 'Import from Zoho Projects',
+  title: 'Import from CSV',
 })
 </script>
 
@@ -389,10 +389,10 @@ useHead({
     <LayoutHeader back-link="/settings">
       <template #title>
         <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">
-          Import from Zoho Projects
+          Import from CSV
         </h1>
         <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-          Import your projects and tasks from Zoho Projects CSV exports
+          Import your projects and tasks from CSV files
         </p>
       </template>
     </LayoutHeader>

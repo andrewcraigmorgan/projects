@@ -7,6 +7,13 @@ interface Column {
   width?: string
 }
 
+interface AssigneeOption {
+  id: string
+  name: string
+  email: string
+  avatar?: string
+}
+
 interface Props {
   tasks: Task[]
   loading?: boolean
@@ -14,6 +21,7 @@ interface Props {
   projectCode?: string
   enableDragDrop?: boolean
   parentTaskId?: string
+  assigneeOptions?: AssigneeOption[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -22,6 +30,7 @@ const props = withDefaults(defineProps<Props>(), {
   projectCode: '',
   enableDragDrop: true,
   parentTaskId: undefined,
+  assigneeOptions: () => [],
 })
 
 const emit = defineEmits<{
@@ -30,6 +39,7 @@ const emit = defineEmits<{
   (e: 'update-status', task: Task, status: Task['status']): void
   (e: 'update-priority', task: Task, priority: Task['priority']): void
   (e: 'update-due-date', task: Task, dueDate: string | null): void
+  (e: 'update-assignee', task: Task, assigneeId: string | null): void
   (e: 'move-task', taskId: string, newParentTask: string | null, newOrder: number): void
   (e: 'context-menu', task: Task, event: MouseEvent): void
 }>()
@@ -205,6 +215,22 @@ function onDueDateChange(task: Task, event: Event) {
   const value = input.value || null
   emit('update-due-date', task, value)
 }
+
+// Handle assignee change
+function onAssigneeChange(task: Task, value: string) {
+  emit('update-assignee', task, value || null)
+}
+
+// Computed assignee options for dropdown
+const assigneeDropdownOptions = computed(() => {
+  return [
+    { value: '', label: 'Unassigned' },
+    ...props.assigneeOptions.map(u => ({
+      value: u.id,
+      label: u.name,
+    }))
+  ]
+})
 
 // Priority options for dropdown
 const priorityOptions = [
@@ -451,26 +477,33 @@ function getCellValue(task: Task, columnId: string): string {
 
               <!-- Assignee column -->
               <template v-else-if="column.id === 'assignee'">
-                <div v-if="task.assignee" class="flex items-center gap-1.5">
+                <div class="flex items-center gap-1.5 min-w-[120px]" @click.stop>
                   <div
-                    v-if="task.assignee.avatar"
-                    class="w-5 h-5 rounded-full bg-cover bg-center"
+                    v-if="task.assignee?.avatar"
+                    class="w-5 h-5 rounded-full bg-cover bg-center flex-shrink-0"
                     :style="{ backgroundImage: `url(${task.assignee.avatar})` }"
                   />
                   <div
-                    v-else
-                    class="w-5 h-5 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300"
+                    v-else-if="task.assignee"
+                    class="w-5 h-5 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300 flex-shrink-0"
                   >
                     {{ task.assignee.name.charAt(0) }}
                   </div>
-                  <span
-                    class="text-xs truncate"
-                    :class="task.assignee.role === 'client' ? 'text-orange-600 dark:text-orange-400' : 'text-gray-700 dark:text-gray-300'"
+                  <select
+                    :value="task.assignee?._id || ''"
+                    class="flex-1 min-w-0 appearance-none text-xs bg-transparent border-0 p-0 pr-4 text-gray-700 dark:text-gray-300 focus:ring-0 cursor-pointer hover:text-gray-900 dark:hover:text-gray-100 truncate"
+                    @change="onAssigneeChange(task, ($event.target as HTMLSelectElement).value)"
                   >
-                    {{ task.assignee.name }}
-                  </span>
+                    <option value="">Unassigned</option>
+                    <option
+                      v-for="user in assigneeOptions"
+                      :key="user.id"
+                      :value="user.id"
+                    >
+                      {{ user.name }}
+                    </option>
+                  </select>
                 </div>
-                <span v-else class="text-xs text-gray-400 dark:text-gray-500">-</span>
               </template>
 
               <!-- Subtask count column -->
@@ -492,7 +525,7 @@ function getCellValue(task: Task, columnId: string): string {
                 <input
                   type="date"
                   :value="task.dueDate?.slice(0, 10) || ''"
-                  class="text-xs bg-transparent border-0 p-0 text-gray-600 dark:text-gray-400 focus:ring-0 cursor-pointer hover:text-gray-900 dark:hover:text-gray-200"
+                  class="text-xs bg-transparent border-0 p-0 text-gray-600 dark:text-gray-300 focus:ring-0 cursor-pointer hover:text-gray-900 dark:hover:text-gray-100 [color-scheme:light] dark:[color-scheme:dark]"
                   @click.stop
                   @change="onDueDateChange(task, $event)"
                 />

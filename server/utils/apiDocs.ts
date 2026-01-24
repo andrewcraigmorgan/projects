@@ -207,7 +207,7 @@ export function generateOpenApiSpec(apiDir: string): OpenApiSpec {
     info: {
       title: 'Projects API',
       version: '1.0.0',
-      description: 'API documentation for the Projects application - a Zoho Projects replacement',
+      description: 'API documentation for the Projects application - a project management system',
     },
     servers: [
       { url: 'http://localhost:3000' },

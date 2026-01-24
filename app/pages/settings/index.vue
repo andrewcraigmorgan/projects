@@ -95,7 +95,7 @@ function closeKeyModal() {
       <!-- Import Data Section -->
       <UiCard title="Import Data">
         <p class="text-sm text-gray-500 dark:text-gray-400 mb-4">
-          Import tasks and projects from other tools like Zoho Projects via CSV export.
+          Import tasks and projects from other tools via CSV export.
         </p>
         <NuxtLink
           to="/settings/import"

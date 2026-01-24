@@ -8,9 +8,18 @@ definePageMeta({
 
 const authStore = useAuthStore()
 const orgStore = useOrganizationStore()
+const route = useRoute()
 
-// Redirect to last project if available (only if it looks like a valid MongoDB ObjectId)
+// Only auto-redirect to last project on initial load (from login/index), not when explicitly navigating to dashboard
 onMounted(() => {
+  // Check if user explicitly navigated here (has 'stay' param or came from sidebar)
+  const fromSidebar = route.query.from === 'nav'
+  const shouldStay = route.query.stay === 'true' || fromSidebar
+
+  if (shouldStay) {
+    return
+  }
+
   const lastProjectId = localStorage.getItem('lastProjectId')
   if (lastProjectId && /^[0-9a-fA-F]{24}$/.test(lastProjectId)) {
     navigateTo(`/projects/${lastProjectId}`)

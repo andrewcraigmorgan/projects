@@ -6,7 +6,7 @@ const authStore = useAuthStore()
 const orgStore = useOrganizationStore()
 
 const navigation = [
-  { name: 'Dashboard', href: '/dashboard', icon: 'home' },
+  { name: 'Dashboard', href: '/dashboard?from=nav', icon: 'home' },
   { name: 'Projects', href: '/projects', icon: 'folder' },
   { name: 'Settings', href: '/settings', icon: 'cog' },
 ]
@@ -14,7 +14,9 @@ const navigation = [
 const route = useRoute()
 
 function isActive(href: string) {
-  return route.path === href || route.path.startsWith(href + '/')
+  // Strip query params for comparison
+  const path = href.split('?')[0]
+  return route.path === path || route.path.startsWith(path + '/')
 }
 </script>
 

@@ -19,6 +19,8 @@ const project = ref<{
   name: string
   description: string
   status: string
+  organization: string
+  members?: Array<{ _id: string; name: string; email: string; avatar?: string }>
 } | null>(null)
 
 const projectLoading = ref(true)
@@ -31,6 +33,47 @@ const currentParentId = computed(() => route.query.parent as string | undefined)
 const breadcrumbs = ref<Array<{ id: string; title: string; taskNumber: number }>>([])
 const currentParentTask = ref<Task | null>(null)
 const loadingBreadcrumbs = ref(false)
+
+// Inline description editing for parent task
+const isEditingDescription = ref(false)
+const editedDescription = ref('')
+const savingDescription = ref(false)
+
+// Organization members for assignee selection
+const organizationMembers = ref<Array<{ id: string; name: string; email: string; avatar?: string }>>([])
+
+// Description editing functions
+function startEditingDescription() {
+  if (!currentParentTask.value) return
+  // Strip HTML tags for plain text editing
+  const plainText = currentParentTask.value.description?.replace(/<[^>]*>/g, '') || ''
+  editedDescription.value = plainText
+  isEditingDescription.value = true
+}
+
+function cancelEditingDescription() {
+  isEditingDescription.value = false
+  editedDescription.value = ''
+}
+
+async function saveDescription() {
+  if (!currentParentTask.value) return
+
+  savingDescription.value = true
+  try {
+    await updateTask(currentParentTask.value.id, { description: editedDescription.value })
+    // Update local state
+    currentParentTask.value = {
+      ...currentParentTask.value,
+      description: editedDescription.value,
+    }
+    isEditingDescription.value = false
+  } catch (error) {
+    console.error('Failed to save description:', error)
+  } finally {
+    savingDescription.value = false
+  }
+}
 
 // Tasks
 const {
@@ -245,6 +288,48 @@ async function loadProject() {
 
     if (response.success) {
       project.value = response.data.project
+
+      // Also fetch organization members for assignee selection
+      if (response.data.project?.organization) {
+        try {
+          const orgResponse = await fetchApi<{
+            success: boolean
+            data: {
+              organization: {
+                members: Array<{ user: { _id: string; name: string; email: string; avatar?: string }; role: string }>
+                owner: { _id: string; name: string; email: string; avatar?: string }
+              }
+            }
+          }>(`/api/organizations/${response.data.project.organization}`)
+
+          if (orgResponse.success) {
+            const members: Array<{ id: string; name: string; email: string; avatar?: string }> = []
+            // Add owner
+            if (orgResponse.data.organization.owner) {
+              members.push({
+                id: orgResponse.data.organization.owner._id,
+                name: orgResponse.data.organization.owner.name,
+                email: orgResponse.data.organization.owner.email,
+                avatar: orgResponse.data.organization.owner.avatar,
+              })
+            }
+            // Add members
+            for (const m of orgResponse.data.organization.members || []) {
+              if (m.user && !members.find(existing => existing.id === m.user._id)) {
+                members.push({
+                  id: m.user._id,
+                  name: m.user.name,
+                  email: m.user.email,
+                  avatar: m.user.avatar,
+                })
+              }
+            }
+            organizationMembers.value = members
+          }
+        } catch {
+          // Silently fail - assignee selection will just be empty
+        }
+      }
     } else {
       projectError.value = true
     }
@@ -371,6 +456,12 @@ async function handleUpdatePriority(task: Task, priority: Task['priority']) {
 // Handle task due date update
 async function handleUpdateDueDate(task: Task, dueDate: string | null) {
   await updateTask(task.id, { dueDate: dueDate || undefined })
+  await loadTasks()
+}
+
+// Handle task assignee update
+async function handleUpdateAssignee(task: Task, assigneeId: string | null) {
+  await updateTask(task.id, { assignee: assigneeId })
   await loadTasks()
 }
 
@@ -654,9 +745,54 @@ onMounted(async () => {
               <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {{ currentParentTask.title }}
               </h2>
-              <p v-if="currentParentTask.description" class="mt-1 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
-                {{ currentParentTask.description.replace(/<[^>]*>/g, '').slice(0, 200) }}
-              </p>
+              <!-- Description editing area -->
+              <div class="mt-2">
+                <template v-if="isEditingDescription">
+                  <textarea
+                    v-model="editedDescription"
+                    rows="3"
+                    class="w-full px-3 py-2 text-sm border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent resize-none"
+                    placeholder="Add a description..."
+                    :disabled="savingDescription"
+                  />
+                  <div class="mt-2 flex items-center gap-2">
+                    <button
+                      class="px-3 py-1.5 text-sm font-medium bg-primary-600 text-white hover:bg-primary-700 transition-colors disabled:opacity-50"
+                      :disabled="savingDescription"
+                      @click="saveDescription"
+                    >
+                      {{ savingDescription ? 'Saving...' : 'Save' }}
+                    </button>
+                    <button
+                      class="px-3 py-1.5 text-sm font-medium text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 transition-colors"
+                      :disabled="savingDescription"
+                      @click="cancelEditingDescription"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </template>
+                <template v-else>
+                  <div
+                    class="group cursor-pointer"
+                    @click="startEditingDescription"
+                  >
+                    <p
+                      v-if="currentParentTask.description"
+                      class="text-sm text-gray-600 dark:text-gray-400 group-hover:text-gray-900 dark:group-hover:text-gray-200 transition-colors"
+                    >
+                      {{ currentParentTask.description.replace(/<[^>]*>/g, '').slice(0, 300) }}{{ currentParentTask.description.length > 300 ? '...' : '' }}
+                    </p>
+                    <p
+                      v-else
+                      class="text-sm text-gray-400 dark:text-gray-500 italic group-hover:text-gray-600 dark:group-hover:text-gray-400 transition-colors"
+                    >
+                      Click to add a description...
+                    </p>
+                    <span class="sr-only">Edit description</span>
+                  </div>
+                </template>
+              </div>
             </div>
             <button
               class="flex-shrink-0 px-3 py-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
@@ -690,10 +826,12 @@ onMounted(async () => {
           :project-id="projectId"
           :project-code="project?.code"
           :parent-task-id="currentParentId"
+          :assignee-options="organizationMembers"
           @select="handleTaskSelect"
           @update-status="handleUpdateStatus"
           @update-priority="handleUpdatePriority"
           @update-due-date="handleUpdateDueDate"
+          @update-assignee="handleUpdateAssignee"
           @task-created="loadTasks"
           @move-task="handleMoveTask"
           @context-menu="handleContextMenu"

@@ -7,7 +7,7 @@ export interface Task {
   description: string
   status: 'todo' | 'awaiting_approval' | 'open' | 'in_review' | 'done'
   priority?: 'low' | 'medium' | 'high'
-  assignee?: { id: string; name: string; email: string; avatar?: string; role?: 'team' | 'client' }
+  assignee?: { _id: string; id?: string; name: string; email: string; avatar?: string; role?: 'team' | 'client' }
   dueDate?: string
   estimatedHours?: number
   isExternal?: boolean

@@ -35,7 +35,7 @@ function handleProjectsFile(event: Event) {
   <div class="space-y-6">
     <UiCard title="Upload CSV Files">
       <p class="text-sm text-gray-500 dark:text-gray-400 mb-6">
-        Export your data from Zoho Projects as CSV files and upload them here. At minimum, upload a tasks file.
+        Export your data as CSV files and upload them here. At minimum, upload a tasks file.
       </p>
 
       <div class="space-y-4">
@@ -99,18 +99,17 @@ function handleProjectsFile(event: Event) {
       </div>
     </UiCard>
 
-    <!-- Zoho export instructions -->
+    <!-- CSV format instructions -->
     <div class="bg-blue-50 dark:bg-blue-900/20 border border-blue-200 dark:border-blue-800 p-6">
       <h3 class="text-sm font-medium text-blue-800 dark:text-blue-300 mb-2">
-        How to export from Zoho Projects
+        CSV Format Tips
       </h3>
-      <ol class="text-sm text-blue-700 dark:text-blue-400 space-y-1 list-decimal list-inside">
-        <li>Go to your Zoho Projects portal</li>
-        <li>Navigate to the project you want to export</li>
-        <li>Click on Tasks &gt; More Options &gt; Export to CSV</li>
-        <li>For projects, go to Projects &gt; Export</li>
-        <li>Upload the exported CSV files above</li>
-      </ol>
+      <ul class="text-sm text-blue-700 dark:text-blue-400 space-y-1 list-disc list-inside">
+        <li>First row should contain column headers</li>
+        <li>Tasks file should include at minimum: task title and project name</li>
+        <li>Common columns: Title, Description, Status, Priority, Due Date, Assignee</li>
+        <li>Column names are auto-mapped in the next step</li>
+      </ul>
     </div>
   </div>
 </template>
