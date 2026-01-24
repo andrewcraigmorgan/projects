@@ -173,10 +173,11 @@ onMounted(async () => {
     >
       <form class="space-y-4" @submit.prevent="handleCreate">
         <div>
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
+          <label for="tag-name" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">
             Name *
           </label>
           <input
+            id="tag-name"
             v-model="newTag.name"
             type="text"
             required
