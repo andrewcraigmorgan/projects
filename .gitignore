@@ -38,3 +38,4 @@ debug-storybook.log
 load-tests/results/*.html
 load-tests/results/*.json
 !load-tests/results/.gitkeep
+load-tests/k6-bin
