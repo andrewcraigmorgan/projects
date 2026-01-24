@@ -1,0 +1,31 @@
+# Prometheus configuration for load testing
+global:
+  scrape_interval: 5s
+  evaluation_interval: 5s
+
+# Alerting (optional - configure if needed)
+alerting:
+  alertmanagers: []
+
+# Rule files (optional)
+rule_files: []
+
+scrape_configs:
+  # Prometheus self-monitoring
+  - job_name: 'prometheus'
+    static_configs:
+      - targets: ['localhost:9090']
+
+  # Nginx metrics
+  - job_name: 'nginx'
+    static_configs:
+      - targets: ['nginx:80']
+    metrics_path: /nginx_status
+
+  # k6 metrics (when running with prometheus output)
+  - job_name: 'k6'
+    static_configs:
+      - targets: ['k6:6565']
+
+# Remote write for k6 (k6 pushes metrics here)
+remote_write: []
