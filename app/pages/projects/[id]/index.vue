@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import { useApi } from '~/composables/useApi'
 import { useTasks, type Task } from '~/composables/useTasks'
+import { useMilestones } from '~/composables/useMilestones'
 
 definePageMeta({
   layout: 'default',
@@ -88,6 +89,12 @@ const {
   getTaskWithSubtasks,
   moveTask,
 } = useTasks(projectId)
+
+// Milestones
+const {
+  milestones,
+  fetchMilestones,
+} = useMilestones(projectId)
 
 // Context menu state
 const contextMenuTask = ref<Task | null>(null)
@@ -546,7 +553,7 @@ onMounted(async () => {
   // Only remember project if it loaded successfully
   if (!projectError.value && project.value) {
     localStorage.setItem('lastProjectId', projectId.value)
-    await Promise.all([loadTasks(), loadBreadcrumbs()])
+    await Promise.all([loadTasks(), loadBreadcrumbs(), fetchMilestones()])
   } else {
     // Clear invalid project from localStorage
     localStorage.removeItem('lastProjectId')
@@ -948,6 +955,7 @@ onMounted(async () => {
           :project-code="project?.code"
           :parent-task-id="currentParentId"
           :assignee-options="organizationMembers"
+          :milestones="milestones"
           @select="handleTaskSelect"
           @update-status="handleUpdateStatus"
           @update-priority="handleUpdatePriority"

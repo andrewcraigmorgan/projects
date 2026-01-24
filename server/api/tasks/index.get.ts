@@ -102,6 +102,7 @@ export default defineEventHandler(async (event) => {
     Task.find(filter)
       .populate('assignee', 'name email avatar')
       .populate('createdBy', 'name email avatar')
+      .populate('milestone', 'name')
       .sort({ order: 1, createdAt: -1 })
       .skip((page - 1) * limit)
       .limit(limit),
@@ -131,6 +132,7 @@ export default defineEventHandler(async (event) => {
         priority: t.priority,
         assignee: t.assignee,
         dueDate: t.dueDate,
+        milestone: t.milestone ? { id: (t.milestone as { _id: unknown })._id, name: (t.milestone as { name: string }).name } : undefined,
         parentTask: t.parentTask,
         depth: t.depth,
         order: t.order,

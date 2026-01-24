@@ -14,6 +14,11 @@ interface AssigneeOption {
   avatar?: string
 }
 
+interface MilestoneOption {
+  id: string
+  name: string
+}
+
 interface Props {
   tasks: Task[]
   loading?: boolean
@@ -22,6 +27,7 @@ interface Props {
   enableDragDrop?: boolean
   parentTaskId?: string
   assigneeOptions?: AssigneeOption[]
+  milestones?: MilestoneOption[]
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -31,6 +37,7 @@ const props = withDefaults(defineProps<Props>(), {
   enableDragDrop: true,
   parentTaskId: undefined,
   assigneeOptions: () => [],
+  milestones: () => [],
 })
 
 const emit = defineEmits<{
@@ -110,6 +117,7 @@ const availableColumns: Column[] = [
   { id: 'status', label: 'Status', width: 'w-28' },
   { id: 'priority', label: 'Priority', width: 'w-24' },
   { id: 'assignee', label: 'Assignee', width: 'w-32' },
+  { id: 'milestone', label: 'Milestone', width: 'w-36' },
   { id: 'dueDate', label: 'Due Date', width: 'w-28' },
   { id: 'subtaskCount', label: 'Subtasks', width: 'w-20' },
   { id: 'createdAt', label: 'Created', width: 'w-28' },
@@ -531,6 +539,18 @@ function getCellValue(task: Task, columnId: string): string {
                   <span v-else class="text-xs text-gray-400 dark:text-gray-500">-</span>
                 </template>
 
+                <!-- Milestone column -->
+                <template v-else-if="column.id === 'milestone'">
+                  <span
+                    v-if="task.milestone"
+                    class="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300 truncate max-w-full"
+                    :title="task.milestone.name"
+                  >
+                    {{ task.milestone.name }}
+                  </span>
+                  <span v-else class="text-xs text-gray-400 dark:text-gray-500">-</span>
+                </template>
+
                 <!-- Due date column -->
                 <template v-else-if="column.id === 'dueDate'">
                   <input
@@ -634,6 +654,14 @@ function getCellValue(task: Task, columnId: string): string {
               class="text-xs text-primary-600 dark:text-primary-400"
             >
               {{ task.subtaskCount }} subtask{{ task.subtaskCount !== 1 ? 's' : '' }}
+            </span>
+
+            <!-- Milestone -->
+            <span
+              v-if="task.milestone"
+              class="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-indigo-50 text-indigo-700 dark:bg-indigo-900/30 dark:text-indigo-300"
+            >
+              {{ task.milestone.name }}
             </span>
 
             <!-- Due date -->
