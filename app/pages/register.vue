@@ -60,16 +60,16 @@ watch(
 </script>
 
 <template>
-  <div class="min-h-screen flex items-center justify-center bg-gray-50 py-12 px-4">
+  <div class="min-h-screen flex items-center justify-center bg-gray-50 dark:bg-gray-900 py-12 px-4">
     <div class="max-w-md w-full space-y-8">
       <div class="text-center">
-        <h1 class="text-3xl font-bold text-gray-900">Projects</h1>
-        <h2 class="mt-6 text-xl font-semibold text-gray-900">
+        <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100">Projects</h1>
+        <h2 class="mt-6 text-xl font-semibold text-gray-900 dark:text-gray-100">
           Create your account
         </h2>
-        <p class="mt-2 text-sm text-gray-600">
+        <p class="mt-2 text-sm text-gray-600 dark:text-gray-400">
           Already have an account?
-          <NuxtLink to="/login" class="text-primary-600 hover:text-primary-500">
+          <NuxtLink to="/login" class="text-primary-600 hover:text-primary-500 dark:text-primary-400">
             Sign in
           </NuxtLink>
         </p>
@@ -78,7 +78,7 @@ watch(
       <form class="mt-8 space-y-6" @submit.prevent="handleSubmit">
         <div
           v-if="error"
-          class="bg-red-50 border border-red-200 text-red-600 px-4 py-3 rounded-lg text-sm"
+          class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 text-sm"
         >
           {{ error }}
         </div>

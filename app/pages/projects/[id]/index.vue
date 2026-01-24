@@ -34,6 +34,9 @@ const currentParentId = computed(() => route.query.parent as string | undefined)
 // Breadcrumb trail (array of ancestor tasks)
 const breadcrumbs = ref<Array<{ id: string; title: string; taskNumber: number }>>([])
 
+// Breadcrumb drop zone state
+const breadcrumbDropTarget = ref<string | null>(null) // 'root' or ancestor id
+
 // Compute the back link based on navigation hierarchy
 const backLink = computed(() => {
   // If not viewing subtasks, no back button (we're at project root)
@@ -589,6 +592,41 @@ async function handleMoveTask(taskId: string, newParentTask: string | null, newO
   }
 }
 
+// Breadcrumb drop zone handlers
+function handleBreadcrumbDragOver(targetId: string | null, event: DragEvent) {
+  event.preventDefault()
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move'
+  }
+  breadcrumbDropTarget.value = targetId ?? 'root'
+}
+
+function handleBreadcrumbDragLeave() {
+  breadcrumbDropTarget.value = null
+}
+
+async function handleBreadcrumbDrop(targetParentId: string | null, event: DragEvent) {
+  event.preventDefault()
+  const taskId = event.dataTransfer?.getData('text/plain')
+  breadcrumbDropTarget.value = null
+
+  if (!taskId) return
+
+  // Don't allow dropping a task onto itself or its current parent
+  if (taskId === targetParentId) return
+  if (taskId === currentParentId.value && targetParentId === null) {
+    // Task is already at root level relative to current view
+    return
+  }
+
+  try {
+    await moveTask(taskId, targetParentId, 0)
+    await loadTasks()
+  } catch (error) {
+    console.error('Failed to move task:', error)
+  }
+}
+
 // Set page title
 useHead({
   title: computed(() => project.value?.name ? `${project.value.name} - Projects` : 'Projects'),
@@ -868,20 +906,26 @@ onMounted(async () => {
       </div>
 
       <template v-else>
-        <!-- Breadcrumb Navigation -->
+        <!-- Breadcrumb Navigation (also serves as drop zones for moving tasks up) -->
         <nav v-if="currentParentId" class="mb-4">
           <ol class="flex items-center gap-2 text-sm flex-wrap">
-            <!-- Root link -->
+            <!-- Root link (drop zone) -->
             <li>
               <button
-                class="text-primary-600 dark:text-primary-400 hover:underline font-medium"
+                class="px-2 py-1 -mx-2 -my-1 text-primary-600 dark:text-primary-400 hover:underline font-medium transition-colors"
+                :class="{
+                  'bg-primary-100 dark:bg-primary-900/50 ring-2 ring-primary-500': breadcrumbDropTarget === 'root'
+                }"
                 @click="navigateToParent(null)"
+                @dragover="handleBreadcrumbDragOver(null, $event)"
+                @dragleave="handleBreadcrumbDragLeave"
+                @drop="handleBreadcrumbDrop(null, $event)"
               >
                 All Tasks
               </button>
             </li>
 
-            <!-- Ancestor tasks -->
+            <!-- Ancestor tasks (drop zones) -->
             <template v-for="ancestor in breadcrumbs" :key="ancestor.id">
               <li class="text-gray-400 dark:text-gray-500">
                 <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
@@ -890,15 +934,21 @@ onMounted(async () => {
               </li>
               <li>
                 <button
-                  class="text-primary-600 dark:text-primary-400 hover:underline"
+                  class="px-2 py-1 -mx-2 -my-1 text-primary-600 dark:text-primary-400 hover:underline transition-colors"
+                  :class="{
+                    'bg-primary-100 dark:bg-primary-900/50 ring-2 ring-primary-500': breadcrumbDropTarget === ancestor.id
+                  }"
                   @click="navigateToParent(ancestor.id)"
+                  @dragover="handleBreadcrumbDragOver(ancestor.id, $event)"
+                  @dragleave="handleBreadcrumbDragLeave"
+                  @drop="handleBreadcrumbDrop(ancestor.id, $event)"
                 >
                   {{ getShortId(ancestor) }}: {{ ancestor.title }}
                 </button>
               </li>
             </template>
 
-            <!-- Current parent (not clickable) -->
+            <!-- Current parent (not a drop zone - tasks are already at this level) -->
             <li v-if="currentParentTask" class="text-gray-400 dark:text-gray-500">
               <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
