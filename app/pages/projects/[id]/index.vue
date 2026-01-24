@@ -33,6 +33,30 @@ const currentParentId = computed(() => route.query.parent as string | undefined)
 
 // Breadcrumb trail (array of ancestor tasks)
 const breadcrumbs = ref<Array<{ id: string; title: string; taskNumber: number }>>([])
+
+// Compute the back link based on navigation hierarchy
+const backLink = computed(() => {
+  // If not viewing subtasks, go to projects list
+  if (!currentParentId.value) {
+    return '/projects'
+  }
+
+  // If viewing subtasks but no ancestors (direct child of project), go to project root
+  if (breadcrumbs.value.length === 0) {
+    return `/projects/${projectId.value}`
+  }
+
+  // If has ancestors, go to the immediate parent's parent (second to last in breadcrumbs)
+  // breadcrumbs is ordered from root to parent, so the grandparent is second to last
+  if (breadcrumbs.value.length === 1) {
+    // Only one ancestor (the current parent), go to project root
+    return `/projects/${projectId.value}`
+  }
+
+  // Go to the grandparent's subtask view
+  const grandparent = breadcrumbs.value[breadcrumbs.value.length - 2]
+  return `/projects/${projectId.value}?parent=${grandparent.id}`
+})
 const currentParentTask = ref<Task | null>(null)
 const loadingBreadcrumbs = ref(false)
 
@@ -563,7 +587,7 @@ onMounted(async () => {
 
 <template>
   <div>
-    <LayoutHeader back-link="/projects">
+    <LayoutHeader :back-link="backLink">
       <template #title>
         <div v-if="projectLoading" class="h-8 w-48 bg-gray-200 dark:bg-gray-700 animate-pulse" />
         <div v-else class="min-w-0">
