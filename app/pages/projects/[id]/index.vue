@@ -24,6 +24,14 @@ const project = ref<{
 const projectLoading = ref(true)
 const projectError = ref(false)
 
+// Current parent task for hierarchical navigation
+const currentParentId = computed(() => route.query.parent as string | undefined)
+
+// Breadcrumb trail (array of ancestor tasks)
+const breadcrumbs = ref<Array<{ id: string; title: string; taskNumber: number }>>([])
+const currentParentTask = ref<Task | null>(null)
+const loadingBreadcrumbs = ref(false)
+
 // Tasks
 const {
   tasks,
@@ -210,6 +218,21 @@ function navigateToTask(task: Task) {
   router.push(`/projects/${projectId.value}/tasks/${task.id}?from=${viewMode.value}`)
 }
 
+// Handle task selection - either drill down or go to detail
+function handleTaskSelect(task: Task) {
+  if (task.subtaskCount > 0) {
+    navigateToSubtasks(task)
+  } else {
+    navigateToTask(task)
+  }
+}
+
+// Get short task ID
+function getShortId(task: { id: string; taskNumber?: number }) {
+  const prefix = project.value?.code || task.id.slice(0, 3).toUpperCase()
+  return `${prefix}-T${task.taskNumber ?? 0}`
+}
+
 // Fetch project
 async function loadProject() {
   projectLoading.value = true
@@ -232,16 +255,86 @@ async function loadProject() {
   }
 }
 
-// Load tasks
+// Load tasks (either root or children of current parent)
 async function loadTasks() {
-  await fetchTasks({
-    rootOnly: true,
-    status: statusFilter.value.length > 0 ? statusFilter.value : undefined,
-    priority: priorityFilter.value.length > 0 ? priorityFilter.value : undefined,
-    dueDateFrom: dueDateFrom.value || undefined,
-    dueDateTo: dueDateTo.value || undefined,
-  })
+  if (currentParentId.value) {
+    // Load children of the current parent task
+    await fetchTasks({
+      parentTask: currentParentId.value,
+      status: statusFilter.value.length > 0 ? statusFilter.value : undefined,
+      priority: priorityFilter.value.length > 0 ? priorityFilter.value : undefined,
+      dueDateFrom: dueDateFrom.value || undefined,
+      dueDateTo: dueDateTo.value || undefined,
+    })
+  } else {
+    // Load root tasks
+    await fetchTasks({
+      rootOnly: true,
+      status: statusFilter.value.length > 0 ? statusFilter.value : undefined,
+      priority: priorityFilter.value.length > 0 ? priorityFilter.value : undefined,
+      dueDateFrom: dueDateFrom.value || undefined,
+      dueDateTo: dueDateTo.value || undefined,
+    })
+  }
 }
+
+// Load breadcrumbs for hierarchical navigation
+async function loadBreadcrumbs() {
+  if (!currentParentId.value) {
+    breadcrumbs.value = []
+    currentParentTask.value = null
+    return
+  }
+
+  loadingBreadcrumbs.value = true
+  try {
+    // Fetch the current parent task with its path info
+    const response = await fetchApi<{
+      success: boolean
+      data: { task: Task; ancestors?: Array<{ id: string; title: string; taskNumber: number }> }
+    }>(`/api/tasks/${currentParentId.value}?includeAncestors=true`)
+
+    if (response.success) {
+      currentParentTask.value = response.data.task
+      breadcrumbs.value = response.data.ancestors || []
+    }
+  } catch {
+    // If we can't load breadcrumbs, navigate back to root
+    router.replace({ query: { ...route.query, parent: undefined } })
+  } finally {
+    loadingBreadcrumbs.value = false
+  }
+}
+
+// Navigate into a task's subtasks
+function navigateToSubtasks(task: Task) {
+  if (task.subtaskCount > 0) {
+    router.push({
+      query: { ...route.query, parent: task.id }
+    })
+  } else {
+    // No subtasks, go to detail page
+    navigateToTask(task)
+  }
+}
+
+// Navigate up to a parent level
+function navigateToParent(parentId: string | null) {
+  if (parentId) {
+    router.push({
+      query: { ...route.query, parent: parentId }
+    })
+  } else {
+    // Go to root
+    const { parent, ...rest } = route.query
+    router.push({ query: rest })
+  }
+}
+
+// Watch for parent changes to reload data
+watch(currentParentId, async () => {
+  await Promise.all([loadTasks(), loadBreadcrumbs()])
+})
 
 // Handle task creation
 async function handleCreateTask(data: {
@@ -359,7 +452,7 @@ onMounted(async () => {
   // Only remember project if it loaded successfully
   if (!projectError.value && project.value) {
     localStorage.setItem('lastProjectId', projectId.value)
-    await loadTasks()
+    await Promise.all([loadTasks(), loadBreadcrumbs()])
   } else {
     // Clear invalid project from localStorage
     localStorage.removeItem('lastProjectId')
@@ -483,33 +576,129 @@ onMounted(async () => {
         </NuxtLink>
       </div>
 
-      <!-- Board View -->
-      <TasksTaskBoard
-        v-else-if="viewMode === 'board'"
-        :tasks="tasks"
-        :loading="tasksLoading"
-        :project-id="projectId"
-        :project-code="project?.code"
-        @select="navigateToTask"
-        @update-status="handleUpdateStatus"
-        @task-created="loadTasks"
-      />
+      <template v-else>
+        <!-- Breadcrumb Navigation -->
+        <nav v-if="currentParentId" class="mb-4">
+          <ol class="flex items-center gap-2 text-sm flex-wrap">
+            <!-- Root link -->
+            <li>
+              <button
+                class="text-primary-600 dark:text-primary-400 hover:underline font-medium"
+                @click="navigateToParent(null)"
+              >
+                All Tasks
+              </button>
+            </li>
 
-      <!-- List View (Table) -->
-      <TasksTaskTable
-        v-else
-        :tasks="tasks"
-        :loading="tasksLoading"
-        :project-id="projectId"
-        :project-code="project?.code"
-        @select="navigateToTask"
-        @update-status="handleUpdateStatus"
-        @update-priority="handleUpdatePriority"
-        @update-due-date="handleUpdateDueDate"
-        @task-created="loadTasks"
-        @move-task="handleMoveTask"
-        @context-menu="handleContextMenu"
-      />
+            <!-- Ancestor tasks -->
+            <template v-for="ancestor in breadcrumbs" :key="ancestor.id">
+              <li class="text-gray-400 dark:text-gray-500">
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                </svg>
+              </li>
+              <li>
+                <button
+                  class="text-primary-600 dark:text-primary-400 hover:underline"
+                  @click="navigateToParent(ancestor.id)"
+                >
+                  {{ getShortId(ancestor) }}: {{ ancestor.title }}
+                </button>
+              </li>
+            </template>
+
+            <!-- Current parent (not clickable) -->
+            <li v-if="currentParentTask" class="text-gray-400 dark:text-gray-500">
+              <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
+            </li>
+            <li v-if="currentParentTask" class="text-gray-700 dark:text-gray-300 font-medium">
+              {{ getShortId(currentParentTask) }}: {{ currentParentTask.title }}
+            </li>
+          </ol>
+        </nav>
+
+        <!-- Parent Task Header (when viewing subtasks) -->
+        <div v-if="currentParentTask" class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
+          <div class="flex items-start justify-between gap-4">
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-3 mb-2">
+                <span class="px-2 py-0.5 text-xs font-mono bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
+                  {{ getShortId(currentParentTask) }}
+                </span>
+                <span
+                  class="px-2 py-0.5 text-xs font-medium"
+                  :class="{
+                    'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400': currentParentTask.status === 'todo',
+                    'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300': currentParentTask.status === 'awaiting_approval',
+                    'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300': currentParentTask.status === 'open',
+                    'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300': currentParentTask.status === 'in_review',
+                    'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300': currentParentTask.status === 'done',
+                  }"
+                >
+                  {{ statusOptions.find(s => s.value === currentParentTask?.status)?.label }}
+                </span>
+                <span
+                  v-if="currentParentTask.priority"
+                  class="px-2 py-0.5 text-xs font-medium"
+                  :class="{
+                    'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400': currentParentTask.priority === 'low',
+                    'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300': currentParentTask.priority === 'medium',
+                    'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300': currentParentTask.priority === 'high',
+                  }"
+                >
+                  {{ currentParentTask.priority }}
+                </span>
+              </div>
+              <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                {{ currentParentTask.title }}
+              </h2>
+              <p v-if="currentParentTask.description" class="mt-1 text-sm text-gray-600 dark:text-gray-400 line-clamp-2">
+                {{ currentParentTask.description.replace(/<[^>]*>/g, '').slice(0, 200) }}
+              </p>
+            </div>
+            <button
+              class="flex-shrink-0 px-3 py-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
+              @click="navigateToTask(currentParentTask)"
+            >
+              View Details
+            </button>
+          </div>
+          <div class="mt-3 text-sm text-gray-500 dark:text-gray-400">
+            {{ tasks.length }} subtask{{ tasks.length !== 1 ? 's' : '' }}
+          </div>
+        </div>
+
+        <!-- Board View -->
+        <TasksTaskBoard
+          v-if="viewMode === 'board'"
+          :tasks="tasks"
+          :loading="tasksLoading"
+          :project-id="projectId"
+          :project-code="project?.code"
+          @select="handleTaskSelect"
+          @update-status="handleUpdateStatus"
+          @task-created="loadTasks"
+        />
+
+        <!-- List View (Table) -->
+        <TasksTaskTable
+          v-else
+          :tasks="tasks"
+          :loading="tasksLoading"
+          :project-id="projectId"
+          :project-code="project?.code"
+          :parent-task-id="currentParentId"
+          @select="handleTaskSelect"
+          @update-status="handleUpdateStatus"
+          @update-priority="handleUpdatePriority"
+          @update-due-date="handleUpdateDueDate"
+          @task-created="loadTasks"
+          @move-task="handleMoveTask"
+          @context-menu="handleContextMenu"
+        />
+      </template>
     </div>
 
     <!-- Task Context Menu -->

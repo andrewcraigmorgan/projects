@@ -5,8 +5,8 @@ import { User } from '../server/models/User'
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/projects'
 
-const statuses = ['todo', 'in_progress', 'review', 'done'] as const
-const priorities = ['low', 'medium', 'high', 'urgent'] as const
+const statuses = ['todo', 'awaiting_approval', 'open', 'in_review', 'done'] as const
+const priorities = ['low', 'medium', 'high'] as const
 
 function randomItem<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]

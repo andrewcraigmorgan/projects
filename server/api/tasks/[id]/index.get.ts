@@ -8,6 +8,7 @@ import { requireOrganizationMember } from '../../../utils/tenant'
  * @authenticated
  * @urlParam id string required Task ID
  * @queryParam includeSubtasks boolean optional Include all subtasks recursively
+ * @queryParam includeAncestors boolean optional Include ancestor chain for breadcrumb navigation
  * @response 200 { "success": true, "data": { "task": {...} } }
  * @response 404 { "success": false, "error": "Task not found" }
  */
@@ -23,6 +24,7 @@ export default defineEventHandler(async (event) => {
 
   const query = getQuery(event)
   const includeSubtasks = query.includeSubtasks === 'true'
+  const includeAncestors = query.includeAncestors === 'true'
 
   const task = await Task.findById(id)
     .populate('assignee', 'name email avatar')
@@ -76,13 +78,40 @@ export default defineEventHandler(async (event) => {
     taskData.subtasks = subtasks
   }
 
+  // Include ancestor chain if requested (for breadcrumb navigation)
+  let ancestors: Array<{ id: string; title: string; taskNumber: number }> | undefined
+  if (includeAncestors && task.path) {
+    ancestors = await getAncestorChain(task.path)
+  }
+
   return {
     success: true,
     data: {
       task: taskData,
+      ...(ancestors && { ancestors }),
     },
   }
 })
+
+// Get ancestor chain from path for breadcrumb navigation
+async function getAncestorChain(path: string): Promise<Array<{ id: string; title: string; taskNumber: number }>> {
+  if (!path) return []
+
+  const ancestorIds = path.split('/')
+  const ancestors = await Task.find({ _id: { $in: ancestorIds } })
+    .select('_id title taskNumber')
+
+  // Sort ancestors according to path order
+  const ancestorMap = new Map(ancestors.map(a => [a._id.toString(), a]))
+  return ancestorIds
+    .map(id => ancestorMap.get(id))
+    .filter((a): a is NonNullable<typeof a> => !!a)
+    .map(a => ({
+      id: a._id.toString(),
+      title: a.title,
+      taskNumber: a.taskNumber,
+    }))
+}
 
 // Recursive function to build subtask tree
 async function getSubtaskTree(parentId: string): Promise<unknown[]> {

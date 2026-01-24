@@ -13,6 +13,7 @@ interface Props {
   projectId?: string
   projectCode?: string
   enableDragDrop?: boolean
+  parentTaskId?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -20,6 +21,7 @@ const props = withDefaults(defineProps<Props>(), {
   projectId: '',
   projectCode: '',
   enableDragDrop: true,
+  parentTaskId: undefined,
 })
 
 const emit = defineEmits<{
@@ -473,12 +475,15 @@ function getCellValue(task: Task, columnId: string): string {
 
               <!-- Subtask count column -->
               <template v-else-if="column.id === 'subtaskCount'">
-                <span
+                <div
                   v-if="task.subtaskCount > 0"
-                  class="text-xs text-gray-600 dark:text-gray-400"
+                  class="inline-flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400 font-medium"
                 >
                   {{ task.subtaskCount }}
-                </span>
+                  <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                  </svg>
+                </div>
                 <span v-else class="text-xs text-gray-400 dark:text-gray-500">-</span>
               </template>
 
@@ -510,7 +515,8 @@ function getCellValue(task: Task, columnId: string): string {
           <td :colspan="visibleColumns.length + 2" class="px-0 py-0">
             <TasksTaskQuickAdd
               :project-id="projectId"
-              placeholder="Add a task..."
+              :parent-task-id="parentTaskId"
+              :placeholder="parentTaskId ? 'Add a subtask...' : 'Add a task...'"
               @created="emit('task-created')"
             />
           </td>

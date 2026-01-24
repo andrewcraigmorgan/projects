@@ -3,11 +3,13 @@ import { useTasks, type Task } from '~/composables/useTasks'
 
 interface Props {
   projectId: string
+  parentTaskId?: string
   status?: Task['status']
   placeholder?: string
 }
 
 const props = withDefaults(defineProps<Props>(), {
+  parentTaskId: undefined,
   status: 'todo',
   placeholder: 'Add a task... (press Enter)',
 })
@@ -31,6 +33,7 @@ async function handleSubmit() {
     const response = await createTask({
       title: trimmedTitle,
       status: props.status,
+      parentTask: props.parentTaskId,
     })
 
     if (response.success) {
