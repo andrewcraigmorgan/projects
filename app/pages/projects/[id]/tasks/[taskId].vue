@@ -2,6 +2,8 @@
 import { useApi } from '~/composables/useApi'
 import { useTasks, type Task } from '~/composables/useTasks'
 import { useTags, type Tag } from '~/composables/useTags'
+import { useComments, type Comment } from '~/composables/useComments'
+import { useAuthStore } from '~/stores/auth'
 
 definePageMeta({
   layout: 'default',
@@ -46,6 +48,16 @@ const selectedTags = ref<Tag[]>([])
 // Description editing
 const isEditingDescription = ref(false)
 const editedDescription = ref('')
+
+// Comments
+const authStore = useAuthStore()
+const { comments, loading: loadingComments, fetchComments, addComment, updateComment, deleteComment } = useComments(taskId)
+const isAddingComment = ref(false)
+const newCommentContent = ref('')
+const savingComment = ref(false)
+const editingCommentId = ref<string | null>(null)
+const editedCommentContent = ref('')
+const showDeleteConfirm = ref<string | null>(null)
 
 // Computed short ID
 const shortId = computed(() => {
@@ -182,6 +194,80 @@ function cancelEditDescription() {
   editedDescription.value = ''
 }
 
+// Comment handlers
+function isCommentAuthor(comment: Comment) {
+  return comment.author && authStore.user && comment.author._id === authStore.user.id
+}
+
+function startAddingComment() {
+  newCommentContent.value = ''
+  isAddingComment.value = true
+}
+
+function cancelAddComment() {
+  isAddingComment.value = false
+  newCommentContent.value = ''
+}
+
+async function handleAddComment() {
+  if (!newCommentContent.value.trim()) return
+  savingComment.value = true
+  try {
+    await addComment(newCommentContent.value)
+    isAddingComment.value = false
+    newCommentContent.value = ''
+  } finally {
+    savingComment.value = false
+  }
+}
+
+function startEditingComment(comment: Comment) {
+  editingCommentId.value = comment.id
+  editedCommentContent.value = comment.content
+}
+
+function cancelEditComment() {
+  editingCommentId.value = null
+  editedCommentContent.value = ''
+}
+
+async function handleUpdateComment(commentId: string) {
+  if (!editedCommentContent.value.trim()) return
+  savingComment.value = true
+  try {
+    await updateComment(commentId, editedCommentContent.value)
+    editingCommentId.value = null
+    editedCommentContent.value = ''
+  } finally {
+    savingComment.value = false
+  }
+}
+
+async function handleDeleteComment(commentId: string) {
+  savingComment.value = true
+  try {
+    await deleteComment(commentId)
+    showDeleteConfirm.value = null
+  } finally {
+    savingComment.value = false
+  }
+}
+
+function formatCommentDate(dateString: string) {
+  const date = new Date(dateString)
+  const now = new Date()
+  const diffMs = now.getTime() - date.getTime()
+  const diffMins = Math.floor(diffMs / 60000)
+  const diffHours = Math.floor(diffMs / 3600000)
+  const diffDays = Math.floor(diffMs / 86400000)
+
+  if (diffMins < 1) return 'just now'
+  if (diffMins < 60) return `${diffMins}m ago`
+  if (diffHours < 24) return `${diffHours}h ago`
+  if (diffDays < 7) return `${diffDays}d ago`
+  return date.toLocaleDateString()
+}
+
 // Tag handling
 async function handleTagsChange(tags: Tag[]) {
   if (!task.value) return
@@ -248,7 +334,7 @@ useHead({
 
 // Initial load
 onMounted(async () => {
-  await Promise.all([loadProject(), loadTask(), fetchTags()])
+  await Promise.all([loadProject(), loadTask(), fetchTags(), fetchComments()])
   // Initialize selected tags from task
   if (task.value?.tags) {
     selectedTags.value = task.value.tags
@@ -491,6 +577,171 @@ onMounted(async () => {
                   </span>
                 </div>
               </NuxtLink>
+            </div>
+          </div>
+
+          <!-- Comments -->
+          <div class="border-t border-gray-200 dark:border-gray-700 pt-6 mt-6">
+            <div class="flex items-center justify-between mb-4">
+              <h3 class="text-sm font-medium text-gray-500 dark:text-gray-400">
+                Comments ({{ comments.length }})
+              </h3>
+              <button
+                v-if="!isAddingComment"
+                type="button"
+                class="text-sm text-primary-600 dark:text-primary-400 hover:underline"
+                @click="startAddingComment"
+              >
+                Add comment
+              </button>
+            </div>
+
+            <!-- Loading comments -->
+            <div v-if="loadingComments" class="flex justify-center py-4">
+              <UiLoadingSpinner size="sm" />
+            </div>
+
+            <!-- Comments list -->
+            <div v-else class="space-y-4">
+              <div
+                v-for="comment in comments"
+                :key="comment.id"
+                class="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4"
+              >
+                <!-- Comment header -->
+                <div class="flex items-start justify-between mb-3">
+                  <div class="flex items-center gap-2">
+                    <UiAvatar
+                      :name="comment.author?.name || comment.authorName || 'Unknown'"
+                      size="sm"
+                    />
+                    <div>
+                      <span class="font-medium text-gray-900 dark:text-gray-100">
+                        {{ comment.author?.name || comment.authorName || 'Unknown' }}
+                      </span>
+                      <span class="text-sm text-gray-500 dark:text-gray-400 ml-2">
+                        {{ formatCommentDate(comment.createdAt) }}
+                      </span>
+                      <span
+                        v-if="comment.updatedAt !== comment.createdAt"
+                        class="text-xs text-gray-400 dark:text-gray-500 ml-1"
+                      >
+                        (edited)
+                      </span>
+                    </div>
+                  </div>
+
+                  <!-- Edit/Delete buttons for author -->
+                  <div v-if="isCommentAuthor(comment) && editingCommentId !== comment.id" class="flex items-center gap-2">
+                    <button
+                      type="button"
+                      class="text-sm text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+                      @click="startEditingComment(comment)"
+                    >
+                      Edit
+                    </button>
+                    <button
+                      type="button"
+                      class="text-sm text-red-500 hover:text-red-700 dark:hover:text-red-400"
+                      @click="showDeleteConfirm = comment.id"
+                    >
+                      Delete
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Delete confirmation -->
+                <div
+                  v-if="showDeleteConfirm === comment.id"
+                  class="mb-3 p-3 bg-red-50 dark:bg-red-900/20 border border-red-200 dark:border-red-800"
+                >
+                  <p class="text-sm text-red-700 dark:text-red-300 mb-2">
+                    Are you sure you want to delete this comment?
+                  </p>
+                  <div class="flex gap-2">
+                    <button
+                      type="button"
+                      class="px-3 py-1 text-sm bg-red-600 text-white hover:bg-red-700 disabled:opacity-50"
+                      :disabled="savingComment"
+                      @click="handleDeleteComment(comment.id)"
+                    >
+                      {{ savingComment ? 'Deleting...' : 'Delete' }}
+                    </button>
+                    <button
+                      type="button"
+                      class="px-3 py-1 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                      @click="showDeleteConfirm = null"
+                    >
+                      Cancel
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Comment content (editing) -->
+                <div v-if="editingCommentId === comment.id">
+                  <UiRichTextEditor
+                    v-model="editedCommentContent"
+                    placeholder="Edit your comment..."
+                  />
+                  <div class="flex justify-end gap-2 mt-3">
+                    <button
+                      type="button"
+                      class="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                      @click="cancelEditComment"
+                    >
+                      Cancel
+                    </button>
+                    <button
+                      type="button"
+                      class="px-3 py-1.5 text-sm bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50"
+                      :disabled="savingComment || !editedCommentContent.trim()"
+                      @click="handleUpdateComment(comment.id)"
+                    >
+                      {{ savingComment ? 'Saving...' : 'Save' }}
+                    </button>
+                  </div>
+                </div>
+
+                <!-- Comment content (display) -->
+                <div
+                  v-else
+                  class="prose dark:prose-invert max-w-none text-sm"
+                  v-html="comment.content"
+                />
+              </div>
+
+              <!-- Empty state -->
+              <p
+                v-if="comments.length === 0 && !isAddingComment"
+                class="text-gray-400 dark:text-gray-500 italic text-center py-4"
+              >
+                No comments yet. Click "Add comment" to start a discussion.
+              </p>
+
+              <!-- Add comment form -->
+              <div v-if="isAddingComment" class="bg-gray-50 dark:bg-gray-900 border border-gray-200 dark:border-gray-700 p-4">
+                <UiRichTextEditor
+                  v-model="newCommentContent"
+                  placeholder="Write a comment... You can use formatting, add images, and more."
+                />
+                <div class="flex justify-end gap-2 mt-3">
+                  <button
+                    type="button"
+                    class="px-3 py-1.5 text-sm text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-100"
+                    @click="cancelAddComment"
+                  >
+                    Cancel
+                  </button>
+                  <button
+                    type="button"
+                    class="px-3 py-1.5 text-sm bg-primary-600 text-white hover:bg-primary-700 disabled:opacity-50"
+                    :disabled="savingComment || !newCommentContent.trim()"
+                    @click="handleAddComment"
+                  >
+                    {{ savingComment ? 'Posting...' : 'Post Comment' }}
+                  </button>
+                </div>
+              </div>
             </div>
           </div>
 
