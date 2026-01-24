@@ -4,6 +4,8 @@ import StarterKit from '@tiptap/starter-kit'
 import Image from '@tiptap/extension-image'
 import Link from '@tiptap/extension-link'
 import Placeholder from '@tiptap/extension-placeholder'
+import { useApi } from '~/composables/useApi'
+import { useOrganizationStore } from '~/stores/organization'
 
 interface Props {
   modelValue: string
@@ -19,6 +21,71 @@ const props = withDefaults(defineProps<Props>(), {
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
 }>()
+
+const { fetchApi } = useApi()
+const orgStore = useOrganizationStore()
+
+// Track if we're currently processing to avoid loops
+const isProcessing = ref(false)
+
+// Convert file to base64
+function fileToBase64(file: File | Blob): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader()
+    reader.onload = () => resolve(reader.result as string)
+    reader.onerror = reject
+    reader.readAsDataURL(file)
+  })
+}
+
+// Upload image to our server and return the URL
+async function uploadImage(base64Data: string, filename: string, mimeType: string): Promise<string | null> {
+  const organizationId = orgStore.currentOrganization?.id
+  if (!organizationId) {
+    console.warn('No organization selected, cannot upload image')
+    return null
+  }
+
+  try {
+    const response = await fetchApi<{
+      success: boolean
+      data: { attachment: { url: string } }
+    }>('/api/attachments', {
+      method: 'POST',
+      body: {
+        organizationId,
+        filename,
+        mimeType,
+        data: base64Data,
+      },
+    })
+
+    if (response.success) {
+      return response.data.attachment.url
+    }
+    return null
+  } catch (error) {
+    console.error('Failed to upload image:', error)
+    return null
+  }
+}
+
+// Process and upload a file
+async function processAndUploadFile(file: File | Blob): Promise<string | null> {
+  const base64 = await fileToBase64(file)
+  const mimeType = file.type || 'image/png'
+  const filename = file instanceof File ? file.name : `image-${Date.now()}.png`
+  return await uploadImage(base64, filename, mimeType)
+}
+
+// Remove external images that can't be loaded (replace with placeholder text)
+function removeExternalImages(html: string): string {
+  // Replace external image tags with a placeholder
+  return html.replace(
+    /<img[^>]+src="(?!data:|\/api\/attachments\/)[^"]*"[^>]*>/gi,
+    '<em>[Image could not be loaded - please copy the image directly or upload it]</em>'
+  )
+}
 
 const editor = useEditor({
   content: props.modelValue,
@@ -43,8 +110,89 @@ const editor = useEditor({
       placeholder: props.placeholder,
     }),
   ],
+  editorProps: {
+    handlePaste: (view, event) => {
+      const clipboardData = event.clipboardData
+      if (!clipboardData) return false
+
+      // First priority: Check for image files in clipboard (direct image copy)
+      const items = clipboardData.items
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          event.preventDefault()
+          const file = item.getAsFile()
+          if (file) {
+            // Upload the image
+            processAndUploadFile(file).then((url) => {
+              if (url) {
+                editor.value?.chain().focus().setImage({ src: url }).run()
+              } else {
+                // Fallback to base64 if upload fails
+                fileToBase64(file).then((base64) => {
+                  editor.value?.chain().focus().setImage({ src: base64 }).run()
+                })
+              }
+            })
+          }
+          return true
+        }
+      }
+
+      // Second priority: Check for HTML with images
+      const html = clipboardData.getData('text/html')
+      if (html && /<img[^>]+src=/i.test(html)) {
+        // Let the paste happen, then clean up external images
+        setTimeout(() => {
+          if (!editor.value || isProcessing.value) return
+          isProcessing.value = true
+
+          const currentHtml = editor.value.getHTML()
+
+          // Check for external images (not our API URLs and not base64)
+          const hasExternalImages = /<img[^>]+src="(?!data:|\/api\/attachments\/)[^"]+"/i.test(currentHtml)
+
+          if (hasExternalImages) {
+            // Remove external images and show placeholder
+            const cleanHtml = removeExternalImages(currentHtml)
+            editor.value.commands.setContent(cleanHtml, false)
+            emit('update:modelValue', cleanHtml)
+          }
+
+          isProcessing.value = false
+        }, 100)
+
+        return false // Let default paste happen first
+      }
+
+      // Let default paste happen
+      return false
+    },
+    handleDrop: (view, event, slice, moved) => {
+      if (moved) return false
+
+      const files = event.dataTransfer?.files
+      if (!files || files.length === 0) return false
+
+      // Check for image files
+      for (const file of files) {
+        if (file.type.startsWith('image/')) {
+          event.preventDefault()
+          processAndUploadFile(file).then((url) => {
+            if (url) {
+              editor.value?.chain().focus().setImage({ src: url }).run()
+            }
+          })
+          return true
+        }
+      }
+
+      return false
+    },
+  },
   onUpdate: ({ editor }) => {
-    emit('update:modelValue', editor.getHTML())
+    if (!isProcessing.value) {
+      emit('update:modelValue', editor.getHTML())
+    }
   },
 })
 
@@ -109,6 +257,7 @@ function unsetLink() {
 
 // Image handling
 const fileInput = ref<HTMLInputElement | null>(null)
+const uploading = ref(false)
 
 function triggerImageUpload() {
   fileInput.value?.click()
@@ -119,16 +268,20 @@ async function handleImageUpload(event: Event) {
   const file = target.files?.[0]
   if (!file) return
 
-  // Convert to base64 for now (in production, you'd upload to a server)
-  const reader = new FileReader()
-  reader.onload = (e) => {
-    const base64 = e.target?.result as string
-    editor.value?.chain().focus().setImage({ src: base64 }).run()
+  uploading.value = true
+  try {
+    const url = await processAndUploadFile(file)
+    if (url) {
+      editor.value?.chain().focus().setImage({ src: url }).run()
+    } else {
+      // Fallback to base64
+      const base64 = await fileToBase64(file)
+      editor.value?.chain().focus().setImage({ src: base64 }).run()
+    }
+  } finally {
+    uploading.value = false
+    target.value = ''
   }
-  reader.readAsDataURL(file)
-
-  // Reset input
-  target.value = ''
 }
 
 function addImageByUrl() {
@@ -301,21 +454,18 @@ onBeforeUnmount(() => {
       <button
         type="button"
         class="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-        title="Add Image"
+        :class="{ 'opacity-50': uploading }"
+        :disabled="uploading"
+        title="Upload Image"
         @click="triggerImageUpload"
       >
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg v-if="!uploading" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
-      </button>
-
-      <button
-        type="button"
-        class="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-xs"
-        title="Add Image from URL"
-        @click="addImageByUrl"
-      >
-        URL
+        <svg v-else class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+          <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
+          <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
+        </svg>
       </button>
 
       <input
@@ -325,6 +475,11 @@ onBeforeUnmount(() => {
         class="hidden"
         @change="handleImageUpload"
       />
+
+      <!-- Paste tip -->
+      <div class="ml-auto text-xs text-gray-400 dark:text-gray-500">
+        Tip: Copy images directly (right-click → Copy Image)
+      </div>
     </div>
 
     <!-- Editor Content -->
