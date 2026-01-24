@@ -78,6 +78,32 @@ async function processAndUploadFile(file: File | Blob): Promise<string | null> {
   return await uploadImage(base64, filename, mimeType)
 }
 
+// Try to fetch image client-side (works for CORS-enabled images)
+async function fetchImageClientSide(imageUrl: string): Promise<string | null> {
+  try {
+    const response = await fetch(imageUrl, { mode: 'cors' })
+    if (!response.ok) {
+      return null
+    }
+
+    const contentType = response.headers.get('content-type')
+    if (!contentType || !contentType.startsWith('image/')) {
+      return null
+    }
+
+    const blob = await response.blob()
+    const base64 = await fileToBase64(blob)
+
+    // Upload the fetched image
+    const filename = imageUrl.split('/').pop()?.split('?')[0] || `image-${Date.now()}.png`
+    return await uploadImage(base64, filename, contentType)
+  } catch (error) {
+    // CORS error or network error - this is expected for most external images
+    console.debug('Client-side fetch failed (CORS):', error)
+    return null
+  }
+}
+
 // Proxy an external image through our server
 async function proxyExternalImage(imageUrl: string): Promise<string | null> {
   const organizationId = orgStore.currentOrganization?.id
@@ -106,6 +132,23 @@ async function proxyExternalImage(imageUrl: string): Promise<string | null> {
     console.error('Failed to proxy image:', error)
     return null
   }
+}
+
+// Try multiple methods to fetch an external image
+async function fetchExternalImage(imageUrl: string): Promise<string | null> {
+  // First try server-side proxy (works for most images)
+  let result = await proxyExternalImage(imageUrl)
+  if (result) {
+    return result
+  }
+
+  // Fallback: try client-side fetch (works for CORS-enabled images)
+  result = await fetchImageClientSide(imageUrl)
+  if (result) {
+    return result
+  }
+
+  return null
 }
 
 // Extract all external image URLs from HTML
@@ -201,13 +244,13 @@ const editor = useEditor({
           const externalUrls = extractExternalImageUrls(currentHtml)
 
           if (externalUrls.length > 0) {
-            // Try to proxy each external image
+            // Try to fetch each external image (server proxy first, then client-side)
             for (const url of externalUrls) {
-              const proxiedUrl = await proxyExternalImage(url)
-              if (proxiedUrl) {
-                currentHtml = replaceImageUrl(currentHtml, url, proxiedUrl)
+              const fetchedUrl = await fetchExternalImage(url)
+              if (fetchedUrl) {
+                currentHtml = replaceImageUrl(currentHtml, url, fetchedUrl)
               } else {
-                // If proxy fails, replace with placeholder
+                // If all methods fail, replace with placeholder
                 currentHtml = currentHtml.replace(
                   new RegExp(`<img[^>]+src="${url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>`, 'gi'),
                   '<em>[Image could not be loaded - please copy the image directly or upload it]</em>'
