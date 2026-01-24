@@ -27,8 +27,10 @@ export default defineEventHandler(async (event) => {
   const includeAncestors = query.includeAncestors === 'true'
 
   const task = await Task.findById(id)
-    .populate('assignee', 'name email avatar')
+    .populate('assignee', 'name email avatar role')
     .populate('createdBy', 'name email avatar')
+    .populate('milestone', 'name')
+    .populate('tags', 'name color')
 
   if (!task) {
     throw createError({
@@ -55,6 +57,7 @@ export default defineEventHandler(async (event) => {
 
   const taskData: Record<string, unknown> = {
     id: task._id,
+    taskNumber: task.taskNumber,
     project: task.project,
     title: task.title,
     description: task.description,
@@ -62,6 +65,10 @@ export default defineEventHandler(async (event) => {
     priority: task.priority,
     assignee: task.assignee,
     dueDate: task.dueDate,
+    estimatedHours: task.estimatedHours,
+    isExternal: task.isExternal,
+    milestone: task.milestone,
+    tags: task.tags,
     parentTask: task.parentTask,
     depth: task.depth,
     path: task.path,
@@ -125,6 +132,7 @@ async function getSubtaskTree(parentId: string): Promise<unknown[]> {
     const children = await getSubtaskTree(subtask._id.toString())
     result.push({
       id: subtask._id,
+      taskNumber: subtask.taskNumber,
       title: subtask.title,
       description: subtask.description,
       status: subtask.status,

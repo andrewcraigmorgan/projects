@@ -73,14 +73,22 @@ export function useTasks(projectId: Ref<string>) {
     }
   }
 
-  async function getTaskWithSubtasks(taskId: string): Promise<Task | null> {
+  async function getTaskWithSubtasks(taskId: string): Promise<{
+    task: Task
+    ancestors: Array<{ id: string; title: string; taskNumber: number }>
+  } | null> {
     try {
       const response = await fetchApi<{
         success: boolean
-        data: { task: Task }
-      }>(`/api/tasks/${taskId}?includeSubtasks=true`)
+        data: {
+          task: Task
+          ancestors?: Array<{ id: string; title: string; taskNumber: number }>
+        }
+      }>(`/api/tasks/${taskId}?includeSubtasks=true&includeAncestors=true`)
 
-      return response.success ? response.data.task : null
+      return response.success
+        ? { task: response.data.task, ancestors: response.data.ancestors || [] }
+        : null
     } catch {
       return null
     }

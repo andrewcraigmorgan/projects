@@ -22,7 +22,7 @@ const project = ref<{
   description: string
   status: string
   organization: string
-  members?: Array<{ _id: string; name: string; email: string; avatar?: string }>
+  members?: Array<{ _id: string; name: string; email: string; avatar?: string; role?: 'team' | 'client' }>
 } | null>(null)
 
 const projectLoading = ref(true)
@@ -62,7 +62,7 @@ const editedDescription = ref('')
 const savingDescription = ref(false)
 
 // Organization members for assignee selection
-const organizationMembers = ref<Array<{ id: string; name: string; email: string; avatar?: string }>>([])
+const organizationMembers = ref<Array<{ id: string; name: string; email: string; avatar?: string; role?: 'team' | 'client' }>>([])
 
 // Mobile filter drawer state
 const showMobileFilters = ref(false)
@@ -359,7 +359,15 @@ async function loadProject() {
           }>(`/api/organizations/${response.data.project.organization}`)
 
           if (orgResponse.success) {
-            const members: Array<{ id: string; name: string; email: string; avatar?: string }> = []
+            // Build a map of project member roles
+            const projectMemberRoles = new Map<string, 'team' | 'client'>()
+            for (const pm of response.data.project?.members || []) {
+              if (pm._id) {
+                projectMemberRoles.set(pm._id, pm.role || 'team')
+              }
+            }
+
+            const members: Array<{ id: string; name: string; email: string; avatar?: string; role?: 'team' | 'client' }> = []
             // Add owner
             if (orgResponse.data.organization.owner) {
               members.push({
@@ -367,6 +375,7 @@ async function loadProject() {
                 name: orgResponse.data.organization.owner.name,
                 email: orgResponse.data.organization.owner.email,
                 avatar: orgResponse.data.organization.owner.avatar,
+                role: projectMemberRoles.get(orgResponse.data.organization.owner._id) || 'team',
               })
             }
             // Add members
@@ -377,6 +386,7 @@ async function loadProject() {
                   name: m.user.name,
                   email: m.user.email,
                   avatar: m.user.avatar,
+                  role: projectMemberRoles.get(m.user._id),
                 })
               }
             }
@@ -528,12 +538,12 @@ async function handleUpdateAssignee(task: Task, assigneeId: string | null) {
 
 // Load subtasks for expanded task
 async function handleLoadSubtasks(task: Task) {
-  const fullTask = await getTaskWithSubtasks(task.id)
-  if (fullTask?.subtasks) {
+  const result = await getTaskWithSubtasks(task.id)
+  if (result?.task.subtasks) {
     // Update the task in the list with subtasks
     const index = tasks.value.findIndex((t) => t.id === task.id)
     if (index !== -1) {
-      tasks.value[index] = { ...tasks.value[index], subtasks: fullTask.subtasks as Task[] }
+      tasks.value[index] = { ...tasks.value[index], subtasks: result.task.subtasks as Task[] }
     }
   }
 }
@@ -677,6 +687,14 @@ onMounted(async () => {
             class="hidden sm:block px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
           >
             Tags
+          </NuxtLink>
+
+          <!-- Members link - hidden on small mobile -->
+          <NuxtLink
+            :to="`/projects/${projectId}/members`"
+            class="hidden sm:block px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
+          >
+            Members
           </NuxtLink>
 
           <!-- Mobile: Filter toggle button -->
