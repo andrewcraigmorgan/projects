@@ -2,13 +2,14 @@ import { test, expect } from '@playwright/test'
 
 const MAILPIT_API = 'http://localhost:8025/api/v1'
 const TEST_EMAIL = 'admin@admin.com'
+const ORIGINAL_PASSWORD = 'admin123'
 const NEW_PASSWORD = 'newpassword123'
 
 async function clearMailpit() {
   await fetch(`${MAILPIT_API}/messages`, { method: 'DELETE' })
 }
 
-async function getLatestEmail(retries = 5): Promise<any> {
+async function getLatestEmail(retries = 10): Promise<any> {
   for (let i = 0; i < retries; i++) {
     const response = await fetch(`${MAILPIT_API}/messages`)
     const data = await response.json()
@@ -27,6 +28,12 @@ function extractResetToken(html: string): string | null {
   return match ? match[1] : null
 }
 
+// Helper to wait for Vue hydration
+async function waitForHydration(page: any) {
+  await page.waitForLoadState('networkidle')
+  await page.waitForTimeout(500)
+}
+
 test.describe('Forgot Password Flow', () => {
   test.beforeEach(async () => {
     await clearMailpit()
@@ -34,6 +41,7 @@ test.describe('Forgot Password Flow', () => {
 
   test('shows forgot password link on login page', async ({ page }) => {
     await page.goto('/login')
+    await waitForHydration(page)
 
     const forgotLink = page.getByRole('link', { name: /forgot your password/i })
     await expect(forgotLink).toBeVisible()
@@ -44,18 +52,19 @@ test.describe('Forgot Password Flow', () => {
 
   test('forgot password page shows success message after submission', async ({ page }) => {
     await page.goto('/forgot-password')
+    await waitForHydration(page)
 
     await expect(page.getByRole('heading', { name: /reset your password/i })).toBeVisible()
 
     await page.getByLabel(/email/i).fill(TEST_EMAIL)
     await page.getByRole('button', { name: /send reset link/i }).click()
 
-    // Wait for success message with longer timeout
     await expect(page.getByText(/if an account exists/i)).toBeVisible({ timeout: 10000 })
   })
 
   test('non-existent email still shows success message (no enumeration)', async ({ page }) => {
     await page.goto('/forgot-password')
+    await waitForHydration(page)
 
     await page.getByLabel(/email/i).fill('nonexistent@example.com')
     await page.getByRole('button', { name: /send reset link/i }).click()
@@ -66,6 +75,7 @@ test.describe('Forgot Password Flow', () => {
 
   test('sends reset email with valid link', async ({ page }) => {
     await page.goto('/forgot-password')
+    await waitForHydration(page)
 
     await page.getByLabel(/email/i).fill(TEST_EMAIL)
     await page.getByRole('button', { name: /send reset link/i }).click()
@@ -84,6 +94,7 @@ test.describe('Forgot Password Flow', () => {
 
   test('reset password page shows error for missing token', async ({ page }) => {
     await page.goto('/reset-password')
+    await waitForHydration(page)
 
     await expect(page.getByText(/invalid reset link/i)).toBeVisible()
     await expect(page.getByRole('button', { name: /request new reset link/i })).toBeVisible()
@@ -91,6 +102,7 @@ test.describe('Forgot Password Flow', () => {
 
   test('reset password page shows error for invalid token', async ({ page }) => {
     await page.goto('/reset-password?token=invalid-token')
+    await waitForHydration(page)
 
     await page.getByLabel(/new password/i).fill(NEW_PASSWORD)
     await page.getByLabel(/confirm password/i).fill(NEW_PASSWORD)
@@ -101,6 +113,7 @@ test.describe('Forgot Password Flow', () => {
 
   test('reset password validates password match', async ({ page }) => {
     await page.goto('/reset-password?token=some-token')
+    await waitForHydration(page)
 
     await page.getByLabel(/new password/i).fill('password123')
     await page.getByLabel(/confirm password/i).fill('differentpassword')
@@ -111,6 +124,7 @@ test.describe('Forgot Password Flow', () => {
 
   test('reset password validates minimum length', async ({ page }) => {
     await page.goto('/reset-password?token=some-token')
+    await waitForHydration(page)
 
     await page.getByLabel(/new password/i).fill('short')
     await page.getByLabel(/confirm password/i).fill('short')
@@ -122,6 +136,8 @@ test.describe('Forgot Password Flow', () => {
   test('complete password reset flow', async ({ page }) => {
     // Step 1: Request password reset
     await page.goto('/forgot-password')
+    await waitForHydration(page)
+
     await page.getByLabel(/email/i).fill(TEST_EMAIL)
     await page.getByRole('button', { name: /send reset link/i }).click()
     await expect(page.getByText(/if an account exists/i)).toBeVisible({ timeout: 10000 })
@@ -135,6 +151,8 @@ test.describe('Forgot Password Flow', () => {
 
     // Step 3: Reset password
     await page.goto(`/reset-password?token=${token}`)
+    await waitForHydration(page)
+
     await page.getByLabel(/new password/i).fill(NEW_PASSWORD)
     await page.getByLabel(/confirm password/i).fill(NEW_PASSWORD)
     await page.getByRole('button', { name: /reset password/i }).click()
@@ -147,65 +165,30 @@ test.describe('Forgot Password Flow', () => {
     await expect(page).toHaveURL('/login')
 
     // Step 6: Login with new password
+    await waitForHydration(page)
     await page.getByLabel(/email/i).fill(TEST_EMAIL)
     await page.getByLabel(/password/i).fill(NEW_PASSWORD)
     await page.getByRole('button', { name: /sign in/i }).click()
 
     // Should redirect to dashboard on successful login
     await expect(page).toHaveURL('/dashboard', { timeout: 10000 })
+
+    // Step 7: Reset password back to original for other tests
+    await clearMailpit()
+    await page.goto('/forgot-password')
+    await waitForHydration(page)
+    await page.getByLabel(/email/i).fill(TEST_EMAIL)
+    await page.getByRole('button', { name: /send reset link/i }).click()
+    await expect(page.getByText(/if an account exists/i)).toBeVisible({ timeout: 10000 })
+
+    const resetEmail = await getLatestEmail()
+    const resetToken = extractResetToken(resetEmail.HTML)
+
+    await page.goto(`/reset-password?token=${resetToken}`)
+    await waitForHydration(page)
+    await page.getByLabel(/new password/i).fill(ORIGINAL_PASSWORD)
+    await page.getByLabel(/confirm password/i).fill(ORIGINAL_PASSWORD)
+    await page.getByRole('button', { name: /reset password/i }).click()
+    await expect(page.getByText(/password has been reset/i)).toBeVisible({ timeout: 10000 })
   })
-})
-
-test('debug: capture page state after form submit', async ({ page }) => {
-  // Capture network requests
-  const requests: string[] = []
-  page.on('request', req => {
-    if (req.url().includes('/api/')) {
-      requests.push(`${req.method()} ${req.url()}`)
-    }
-  })
-  page.on('response', resp => {
-    if (resp.url().includes('/api/')) {
-      console.log(`Response: ${resp.status()} ${resp.url()}`)
-    }
-  })
-
-  // Capture console errors
-  const errors: string[] = []
-  page.on('console', msg => {
-    if (msg.type() === 'error') {
-      errors.push(msg.text())
-    }
-  })
-  page.on('pageerror', err => {
-    errors.push(err.message)
-  })
-
-  await page.goto('/forgot-password')
-
-  // Wait for Vue hydration
-  await page.waitForLoadState('networkidle')
-  await page.waitForTimeout(500)
-
-  await page.getByLabel(/email/i).fill('admin@admin.com')
-
-  const button = page.getByRole('button', { name: /send reset link/i })
-  console.log('Button found:', await button.count())
-  console.log('Button disabled:', await button.isDisabled())
-
-  // Try clicking with force
-  await button.click()
-  console.log('Button clicked')
-
-  // Also try submitting the form directly
-  // await page.locator('form').evaluate(form => (form as HTMLFormElement).submit())
-
-  await page.waitForTimeout(3000)
-
-  console.log('API requests:', requests)
-  console.log('Console errors:', errors)
-
-  // Check if success element exists
-  const successVisible = await page.getByText(/if an account exists/i).isVisible().catch(() => false)
-  console.log('Success message visible:', successVisible)
 })
