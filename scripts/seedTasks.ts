@@ -2,8 +2,14 @@ import mongoose from 'mongoose'
 import { Task } from '../server/models/Task'
 import { Project } from '../server/models/Project'
 import { User } from '../server/models/User'
+import { Organization } from '../server/models/Organization'
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/projects'
+
+const DEFAULT_PROJECT = {
+  name: 'Demo Project',
+  description: 'A demo project with sample tasks for testing and demonstration purposes.',
+}
 
 const statuses = ['todo', 'awaiting_approval', 'open', 'in_review', 'done'] as const
 const priorities = ['low', 'medium', 'high'] as const
@@ -142,17 +148,33 @@ async function seed() {
   await mongoose.connect(MONGODB_URI)
   console.log('Connected!')
 
-  // Find first user and first project
+  // Find first user (should be created by mongodb plugin on startup)
   const user = await User.findOne()
   if (!user) {
-    console.error('No user found. Please create a user first.')
+    console.error('No user found. Please start the app first to create the default user.')
     process.exit(1)
   }
 
-  const project = await Project.findOne()
-  if (!project) {
-    console.error('No project found. Please create a project first.')
+  // Find the user's organization
+  let org = await Organization.findOne({ members: { $elemMatch: { user: user._id } } })
+  if (!org) {
+    console.error('No organization found. Please start the app first to create the default organization.')
     process.exit(1)
+  }
+
+  // Find or create the demo project
+  let project = await Project.findOne({ name: DEFAULT_PROJECT.name, organization: org._id })
+  if (!project) {
+    console.log('Creating demo project...')
+    project = await Project.create({
+      name: DEFAULT_PROJECT.name,
+      description: DEFAULT_PROJECT.description,
+      organization: org._id,
+      owner: user._id,
+      members: [user._id],
+      status: 'active',
+    })
+    console.log(`Created project: ${project.name}`)
   }
 
   console.log(`Seeding tasks for project: ${project.name}`)
