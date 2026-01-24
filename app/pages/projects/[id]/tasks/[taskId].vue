@@ -73,10 +73,20 @@ const priorityOptions = [
 
 // Back navigation
 const backUrl = computed(() => {
-  // Check if there's a referrer in query params
   const from = route.query.from as string
+  const parent = route.query.parent as string
+
+  const params = new URLSearchParams()
   if (from === 'list' || from === 'board') {
-    return `/projects/${projectId.value}?view=${from}`
+    params.set('view', from)
+  }
+  if (parent) {
+    params.set('parent', parent)
+  }
+
+  const queryString = params.toString()
+  if (queryString) {
+    return `/projects/${projectId.value}?${queryString}`
   }
   return `/projects/${projectId.value}`
 })

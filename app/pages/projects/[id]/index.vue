@@ -298,7 +298,12 @@ const saving = ref(false)
 
 // Navigate to task detail page
 function navigateToTask(task: Task) {
-  router.push(`/projects/${projectId.value}/tasks/${task.id}?from=${viewMode.value}`)
+  const params = new URLSearchParams()
+  params.set('from', viewMode.value)
+  if (currentParentId.value) {
+    params.set('parent', currentParentId.value)
+  }
+  router.push(`/projects/${projectId.value}/tasks/${task.id}?${params.toString()}`)
 }
 
 // Handle task selection - either drill down or go to detail
