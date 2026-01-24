@@ -1,0 +1,55 @@
+import { Milestone } from '../../models/Milestone'
+import { Project } from '../../models/Project'
+import { Task } from '../../models/Task'
+import { requireOrganizationMember } from '../../utils/tenant'
+
+/**
+ * @group Milestones
+ * @description Delete a milestone
+ * @authenticated
+ * @param id string Milestone ID
+ * @response 200 { "success": true }
+ */
+export default defineEventHandler(async (event) => {
+  const milestoneId = getRouterParam(event, 'id')
+
+  if (!milestoneId) {
+    throw createError({
+      statusCode: 400,
+      statusMessage: 'Bad Request',
+      message: 'Milestone ID is required',
+    })
+  }
+
+  // Find milestone
+  const milestone = await Milestone.findById(milestoneId)
+  if (!milestone) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Not Found',
+      message: 'Milestone not found',
+    })
+  }
+
+  // Get project and verify organization access
+  const project = await Project.findById(milestone.project)
+  if (!project) {
+    throw createError({
+      statusCode: 404,
+      statusMessage: 'Not Found',
+      message: 'Project not found',
+    })
+  }
+
+  await requireOrganizationMember(event, project.organization.toString())
+
+  // Remove milestone reference from tasks
+  await Task.updateMany({ milestone: milestoneId }, { $unset: { milestone: 1 } })
+
+  // Delete milestone
+  await Milestone.findByIdAndDelete(milestoneId)
+
+  return {
+    success: true,
+  }
+})
