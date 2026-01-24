@@ -12,6 +12,7 @@ interface AssigneeOption {
   name: string
   email: string
   avatar?: string
+  role?: 'team' | 'client'
 }
 
 interface MilestoneOption {
@@ -514,13 +515,33 @@ function getCellValue(task: Task, columnId: string): string {
                       @change="onAssigneeChange(task, ($event.target as HTMLSelectElement).value)"
                     >
                       <option value="">Unassigned</option>
-                      <option
-                        v-for="user in assigneeOptions"
-                        :key="user.id"
-                        :value="user.id"
-                      >
-                        {{ user.name }}
-                      </option>
+                      <optgroup v-if="assigneeOptions.filter(u => u.role === 'team').length" label="Team">
+                        <option
+                          v-for="user in assigneeOptions.filter(u => u.role === 'team')"
+                          :key="user.id"
+                          :value="user.id"
+                        >
+                          {{ user.name }}
+                        </option>
+                      </optgroup>
+                      <optgroup v-if="assigneeOptions.filter(u => u.role === 'client').length" label="Client">
+                        <option
+                          v-for="user in assigneeOptions.filter(u => u.role === 'client')"
+                          :key="user.id"
+                          :value="user.id"
+                        >
+                          {{ user.name }}
+                        </option>
+                      </optgroup>
+                      <template v-if="!assigneeOptions.some(u => u.role)">
+                        <option
+                          v-for="user in assigneeOptions"
+                          :key="user.id"
+                          :value="user.id"
+                        >
+                          {{ user.name }}
+                        </option>
+                      </template>
                     </select>
                   </div>
                 </template>

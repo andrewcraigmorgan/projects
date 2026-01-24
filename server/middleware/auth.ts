@@ -18,6 +18,9 @@ export default defineEventHandler(async (event) => {
     '/api/auth/register',
     '/api/auth/forgot-password',
     '/api/auth/reset-password',
+    '/api/auth/magic-link',
+    '/api/auth/magic-link-verify',
+    '/api/invitations/',
     '/api/docs',
     '/docs',
   ]

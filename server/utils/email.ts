@@ -285,3 +285,170 @@ function escapeHtml(text: string): string {
   }
   return text.replace(/[&<>"']/g, (char) => map[char])
 }
+
+export interface ProjectInvitationData {
+  projectName: string
+  inviterName: string
+  role: 'team' | 'client'
+  acceptUrl: string
+}
+
+/**
+ * Send a project invitation email.
+ */
+export async function sendProjectInvitation(
+  recipientEmail: string,
+  data: ProjectInvitationData
+): Promise<void> {
+  const roleDescription = data.role === 'client' ? 'client' : 'team member'
+
+  const text = `You've been invited to join ${data.projectName}
+
+${data.inviterName} has invited you to join "${data.projectName}" as a ${roleDescription}.
+
+Click the link below to accept the invitation:
+${data.acceptUrl}
+
+This invitation will expire in 7 days.
+
+If you didn't expect this invitation, you can safely ignore this email.
+`
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { border-bottom: 2px solid #0066cc; padding-bottom: 15px; margin-bottom: 20px; }
+    .header h1 { color: #0066cc; margin: 0; font-size: 24px; }
+    .content { margin: 20px 0; }
+    .role-badge { display: inline-block; padding: 4px 12px; border-radius: 4px; font-size: 14px; font-weight: 500; }
+    .role-team { background: #dbeafe; color: #1e40af; }
+    .role-client { background: #ffedd5; color: #9a3412; }
+    .btn { display: inline-block; background: #0066cc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: 500; }
+    .btn:hover { background: #0052a3; }
+    .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; color: #888; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Project Invitation</h1>
+    </div>
+
+    <div class="content">
+      <p><strong>${escapeHtml(data.inviterName)}</strong> has invited you to join:</p>
+
+      <h2 style="color: #333; margin: 20px 0;">${escapeHtml(data.projectName)}</h2>
+
+      <p>
+        You've been invited as a
+        <span class="role-badge ${data.role === 'client' ? 'role-client' : 'role-team'}">
+          ${data.role === 'client' ? 'Client' : 'Team Member'}
+        </span>
+      </p>
+
+      <p style="margin-top: 30px;">
+        <a href="${escapeHtml(data.acceptUrl)}" class="btn">Accept Invitation</a>
+      </p>
+    </div>
+
+    <div class="footer">
+      <p>This invitation will expire in 7 days.</p>
+      <p>If you didn't expect this invitation, you can safely ignore this email.</p>
+    </div>
+  </div>
+</body>
+</html>
+`
+
+  await sendEmail({
+    to: recipientEmail,
+    subject: `You're invited to join ${data.projectName}`,
+    text,
+    html,
+  })
+}
+
+export interface MagicLinkData {
+  loginUrl: string
+}
+
+/**
+ * Send a magic link login email.
+ */
+export async function sendMagicLinkEmail(
+  recipientEmail: string,
+  recipientName: string,
+  data: MagicLinkData
+): Promise<void> {
+  const text = `Sign in to Projects
+
+Hi ${recipientName},
+
+Click the link below to sign in to your account:
+${data.loginUrl}
+
+This link will expire in 15 minutes.
+
+If you didn't request this email, you can safely ignore it.
+`
+
+  const html = `
+<!DOCTYPE html>
+<html>
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0">
+  <style>
+    body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, sans-serif; line-height: 1.5; color: #333; }
+    .container { max-width: 600px; margin: 0 auto; padding: 20px; }
+    .header { border-bottom: 2px solid #0066cc; padding-bottom: 15px; margin-bottom: 20px; }
+    .header h1 { color: #0066cc; margin: 0; font-size: 24px; }
+    .content { margin: 20px 0; }
+    .btn { display: inline-block; background: #0066cc; color: white; padding: 12px 24px; text-decoration: none; border-radius: 4px; font-weight: 500; }
+    .btn:hover { background: #0052a3; }
+    .footer { margin-top: 30px; padding-top: 15px; border-top: 1px solid #eee; color: #888; font-size: 12px; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <div class="header">
+      <h1>Sign in to Projects</h1>
+    </div>
+
+    <div class="content">
+      <p>Hi ${escapeHtml(recipientName)},</p>
+
+      <p>Click the button below to sign in to your account:</p>
+
+      <p style="margin: 30px 0;">
+        <a href="${escapeHtml(data.loginUrl)}" class="btn">Sign In</a>
+      </p>
+
+      <p style="color: #666; font-size: 14px;">
+        Or copy and paste this link in your browser:<br>
+        <a href="${escapeHtml(data.loginUrl)}" style="color: #0066cc; word-break: break-all;">${escapeHtml(data.loginUrl)}</a>
+      </p>
+    </div>
+
+    <div class="footer">
+      <p>This link will expire in 15 minutes.</p>
+      <p>If you didn't request this email, you can safely ignore it.</p>
+    </div>
+  </div>
+</body>
+</html>
+`
+
+  await sendEmail({
+    to: `"${recipientName}" <${recipientEmail}>`,
+    subject: 'Sign in to Projects',
+    text,
+    html,
+  })
+}

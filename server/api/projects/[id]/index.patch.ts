@@ -59,7 +59,7 @@ export default defineEventHandler(async (event) => {
     { new: true }
   )
     .populate('owner', 'name email avatar')
-    .populate('members', 'name email avatar')
+    .populate('members.user', 'name email avatar')
 
   return {
     success: true,
@@ -68,10 +68,17 @@ export default defineEventHandler(async (event) => {
         id: updatedProject!._id,
         organization: updatedProject!.organization,
         name: updatedProject!.name,
+        code: updatedProject!.code,
         description: updatedProject!.description,
         status: updatedProject!.status,
         owner: updatedProject!.owner,
-        members: updatedProject!.members,
+        members: updatedProject!.members.map((m: any) => ({
+          _id: m.user?._id || m.user,
+          name: m.user?.name,
+          email: m.user?.email,
+          avatar: m.user?.avatar,
+          role: m.role,
+        })),
         createdAt: updatedProject!.createdAt,
         updatedAt: updatedProject!.updatedAt,
       },

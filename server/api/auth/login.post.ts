@@ -5,6 +5,7 @@ import { verifyPassword, generateToken } from '../../utils/auth'
 const loginSchema = z.object({
   email: z.string().email(),
   password: z.string().min(1),
+  rememberMe: z.boolean().optional(),
 })
 
 /**
@@ -28,7 +29,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const { email, password } = result.data
+  const { email, password, rememberMe } = result.data
 
   // Find user
   const user = await User.findOne({ email })
@@ -50,11 +51,11 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  // Generate token
-  const token = generateToken({
-    userId: user._id.toString(),
-    email: user.email,
-  })
+  // Generate token (30 days for remember me, 7 days default)
+  const token = generateToken(
+    { userId: user._id.toString(), email: user.email },
+    rememberMe ? '30d' : '7d'
+  )
 
   return {
     success: true,

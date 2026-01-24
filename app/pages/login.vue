@@ -10,6 +10,7 @@ const authStore = useAuthStore()
 const form = reactive({
   email: '',
   password: '',
+  rememberMe: false,
 })
 
 const error = ref('')
@@ -20,7 +21,7 @@ async function handleSubmit() {
   loading.value = true
 
   try {
-    await authStore.login(form.email, form.password)
+    await authStore.login(form.email, form.password, form.rememberMe)
     navigateTo('/dashboard')
   } catch (e: unknown) {
     if (e && typeof e === 'object' && 'data' in e) {
@@ -88,6 +89,15 @@ watch(
           />
         </div>
 
+        <label class="flex items-center gap-2">
+          <input
+            v-model="form.rememberMe"
+            type="checkbox"
+            class="rounded border-gray-300 dark:border-gray-600 text-primary-600 focus:ring-primary-500 dark:bg-gray-700"
+          />
+          <span class="text-sm text-gray-600 dark:text-gray-400">Remember me</span>
+        </label>
+
         <UiButton
           type="submit"
           :loading="loading"
@@ -96,11 +106,18 @@ watch(
           Sign in
         </UiButton>
 
-        <p class="text-center text-sm text-gray-600 dark:text-gray-400">
-          <NuxtLink to="/forgot-password" class="text-primary-600 hover:text-primary-500 dark:text-primary-400">
-            Forgot your password?
-          </NuxtLink>
-        </p>
+        <div class="text-center text-sm text-gray-600 dark:text-gray-400 space-y-2">
+          <p>
+            <NuxtLink to="/magic-link" class="text-primary-600 hover:text-primary-500 dark:text-primary-400">
+              Sign in with email link
+            </NuxtLink>
+          </p>
+          <p>
+            <NuxtLink to="/forgot-password" class="text-primary-600 hover:text-primary-500 dark:text-primary-400">
+              Forgot your password?
+            </NuxtLink>
+          </p>
+        </div>
       </form>
     </div>
   </div>

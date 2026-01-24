@@ -82,14 +82,14 @@ export const useAuthStore = defineStore('auth', {
       }
     },
 
-    async login(email: string, password: string) {
+    async login(email: string, password: string, rememberMe?: boolean) {
       const response = await $fetch<{
         success: boolean
         data: { user: User; token: string }
         message?: string
       }>('/api/auth/login', {
         method: 'POST',
-        body: { email, password },
+        body: { email, password, rememberMe },
       })
 
       if (response.success) {

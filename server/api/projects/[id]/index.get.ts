@@ -21,7 +21,7 @@ export default defineEventHandler(async (event) => {
 
   const project = await Project.findById(id)
     .populate('owner', 'name email avatar')
-    .populate('members', 'name email avatar')
+    .populate('members.user', 'name email avatar')
 
   if (!project) {
     throw createError({
@@ -41,10 +41,17 @@ export default defineEventHandler(async (event) => {
         id: project._id,
         organization: project.organization,
         name: project.name,
+        code: project.code,
         description: project.description,
         status: project.status,
         owner: project.owner,
-        members: project.members,
+        members: project.members.map((m: any) => ({
+          _id: m.user?._id || m.user,
+          name: m.user?.name,
+          email: m.user?.email,
+          avatar: m.user?.avatar,
+          role: m.role,
+        })),
         createdAt: project.createdAt,
         updatedAt: project.updatedAt,
       },

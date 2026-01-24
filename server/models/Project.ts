@@ -1,7 +1,32 @@
 import mongoose, { Schema, type Document } from 'mongoose'
-import type { IProject } from '~/types'
+import type { IProject, IProjectMember } from '~/types'
 
 export interface ProjectDocument extends Omit<IProject, '_id'>, Document {}
+
+// Embedded schema for project members
+const ProjectMemberSchema = new Schema<IProjectMember>(
+  {
+    user: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+      required: true,
+    },
+    role: {
+      type: String,
+      enum: ['team', 'client'],
+      default: 'team',
+    },
+    addedAt: {
+      type: Date,
+      default: Date.now,
+    },
+    addedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
+    },
+  },
+  { _id: false }
+)
 
 const ProjectSchema = new Schema<ProjectDocument>(
   {
@@ -34,12 +59,7 @@ const ProjectSchema = new Schema<ProjectDocument>(
       ref: 'User',
       required: true,
     },
-    members: [
-      {
-        type: Schema.Types.ObjectId,
-        ref: 'User',
-      },
-    ],
+    members: [ProjectMemberSchema],
   },
   {
     timestamps: true,
@@ -50,7 +70,7 @@ ProjectSchema.index({ organization: 1 })
 ProjectSchema.index({ organization: 1, status: 1 })
 ProjectSchema.index({ organization: 1, code: 1 }, { unique: true, sparse: true })
 ProjectSchema.index({ owner: 1 }) // For owner's projects
-ProjectSchema.index({ members: 1 }) // For member's projects
+ProjectSchema.index({ 'members.user': 1 }) // For member's projects
 ProjectSchema.index({ organization: 1, createdAt: -1 }) // Recent projects in org
 
 // Pre-save hook to auto-generate project code if not provided

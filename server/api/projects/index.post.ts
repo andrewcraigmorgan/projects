@@ -50,7 +50,7 @@ export default defineEventHandler(async (event) => {
     description,
     status: 'active',
     owner: auth.userId,
-    members: [auth.userId],
+    members: [{ user: auth.userId, role: 'team', addedAt: new Date() }],
   })
 
   await project.populate('owner', 'name email avatar')

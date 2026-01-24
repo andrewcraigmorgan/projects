@@ -43,15 +43,40 @@ export interface IOrganization {
 
 // Project types
 export type ProjectStatus = 'active' | 'archived' | 'completed'
+export type ProjectRole = 'team' | 'client'
+
+export interface IProjectMember {
+  user: Types.ObjectId
+  role: ProjectRole
+  addedAt: Date
+  addedBy?: Types.ObjectId
+}
 
 export interface IProject {
   _id: Types.ObjectId
   organization: Types.ObjectId
   name: string
+  code: string
   description: string
   status: ProjectStatus
   owner: Types.ObjectId
-  members: Types.ObjectId[]
+  members: IProjectMember[]
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Invitation types
+export type InvitationStatus = 'pending' | 'accepted' | 'expired'
+
+export interface IInvitation {
+  _id: Types.ObjectId
+  email: string
+  project: Types.ObjectId
+  role: ProjectRole
+  token: string
+  status: InvitationStatus
+  invitedBy: Types.ObjectId
+  expiresAt: Date
   createdAt: Date
   updatedAt: Date
 }
@@ -117,6 +142,19 @@ export interface AuthPayload {
   userId: string
   email: string
   organizationId?: string
+}
+
+export interface MagicLinkPayload {
+  userId: string
+  email: string
+  type: 'magic-link'
+}
+
+export interface InviteTokenPayload {
+  email: string
+  projectId: string
+  role: ProjectRole
+  type: 'invitation'
 }
 
 export interface LoginRequest {
