@@ -17,9 +17,11 @@ export default defineNuxtConfig({
       ],
       style: [
         {
-          // Hide body until dark mode is resolved to prevent FOUC
+          // Hide everything until CSS is loaded to prevent FOUC
           innerHTML: `
-            html:not(.color-mode-resolved) body { visibility: hidden; }
+            html { background: #111827; }
+            html:not(.ready) body { opacity: 0; }
+            html.ready body { opacity: 1; transition: opacity 0.1s; }
           `,
         },
       ],
@@ -29,11 +31,13 @@ export default defineNuxtConfig({
             (function() {
               var saved = localStorage.getItem('colorMode');
               var prefersDark = window.matchMedia('(prefers-color-scheme: dark)').matches;
+              var isDark = saved === 'dark' || (!saved && prefersDark) || (saved === 'system' && prefersDark);
 
-              if (saved === 'dark' || (!saved && prefersDark) || (saved === 'system' && prefersDark)) {
+              if (isDark) {
                 document.documentElement.classList.add('dark');
+              } else {
+                document.documentElement.style.background = '#f9fafb';
               }
-              document.documentElement.classList.add('color-mode-resolved');
             })();
           `,
           type: 'text/javascript',

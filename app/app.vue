@@ -8,6 +8,8 @@ const { init: initDarkMode } = useDarkMode()
 onMounted(() => {
   authStore.initAuth()
   initDarkMode()
+  // Mark as ready to show content (prevents FOUC)
+  document.documentElement.classList.add('ready')
 })
 </script>
 
