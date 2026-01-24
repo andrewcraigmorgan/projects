@@ -3,6 +3,7 @@ import { Task } from '../server/models/Task'
 import { Project } from '../server/models/Project'
 import { User } from '../server/models/User'
 import { Organization } from '../server/models/Organization'
+import { Milestone } from '../server/models/Milestone'
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/projects'
 
@@ -13,6 +14,34 @@ const DEFAULT_PROJECT = {
 
 const statuses = ['todo', 'awaiting_approval', 'open', 'in_review', 'done'] as const
 const priorities = ['low', 'medium', 'high'] as const
+
+// Milestone templates - each epic task will be assigned to a milestone
+const milestoneTemplates = [
+  {
+    name: 'Phase 1: Foundation',
+    description: 'Core infrastructure and authentication setup',
+    status: 'active' as const,
+  },
+  {
+    name: 'Phase 2: Core Features',
+    description: 'Main feature development and implementation',
+    status: 'pending' as const,
+  },
+  {
+    name: 'Phase 3: Polish & Launch',
+    description: 'Testing, documentation, and release preparation',
+    status: 'pending' as const,
+  },
+]
+
+// Map epic tasks to milestones (by index)
+const taskToMilestoneMap: Record<string, number> = {
+  'User Authentication System': 0, // Phase 1
+  'API Performance Optimization': 0, // Phase 1
+  'Dashboard Redesign': 1, // Phase 2
+  'Mobile App Development': 1, // Phase 2
+  'Documentation Overhaul': 2, // Phase 3
+}
 
 function randomItem<T>(arr: readonly T[]): T {
   return arr[Math.floor(Math.random() * arr.length)]
@@ -117,7 +146,8 @@ async function createTaskWithSubtasks(
   projectId: mongoose.Types.ObjectId,
   userId: mongoose.Types.ObjectId,
   parentTaskId: mongoose.Types.ObjectId | null = null,
-  order: number = 0
+  order: number = 0,
+  milestoneId: mongoose.Types.ObjectId | null = null
 ): Promise<void> {
   const task = await Task.create({
     project: projectId,
@@ -126,6 +156,7 @@ async function createTaskWithSubtasks(
     status: randomItem(statuses),
     priority: randomItem(priorities),
     parentTask: parentTaskId,
+    milestone: milestoneId,
     order,
     createdBy: userId,
   })
@@ -137,7 +168,8 @@ async function createTaskWithSubtasks(
         projectId,
         userId,
         task._id as mongoose.Types.ObjectId,
-        i
+        i,
+        milestoneId // Subtasks inherit parent's milestone
       )
     }
   }
@@ -180,24 +212,58 @@ async function seed() {
   console.log(`Seeding tasks for project: ${project.name}`)
   console.log(`Using user: ${user.email}`)
 
-  // Clear existing tasks for this project
-  const deleted = await Task.deleteMany({ project: project._id })
-  console.log(`Deleted ${deleted.deletedCount} existing tasks`)
+  // Clear existing tasks and milestones for this project
+  const deletedTasks = await Task.deleteMany({ project: project._id })
+  console.log(`Deleted ${deletedTasks.deletedCount} existing tasks`)
 
-  // Create all task trees
+  const deletedMilestones = await Milestone.deleteMany({ project: project._id })
+  console.log(`Deleted ${deletedMilestones.deletedCount} existing milestones`)
+
+  // Create milestones
+  console.log('\nCreating milestones...')
+  const milestones: mongoose.Types.ObjectId[] = []
+  const today = new Date()
+
+  for (let i = 0; i < milestoneTemplates.length; i++) {
+    const template = milestoneTemplates[i]
+    const startDate = new Date(today)
+    startDate.setDate(startDate.getDate() + i * 30) // Each phase is 30 days apart
+    const endDate = new Date(startDate)
+    endDate.setDate(endDate.getDate() + 30) // Each phase lasts 30 days
+
+    const milestone = await Milestone.create({
+      project: project._id,
+      name: template.name,
+      description: template.description,
+      status: template.status,
+      startDate,
+      endDate,
+    })
+    milestones.push(milestone._id as mongoose.Types.ObjectId)
+    console.log(`  Created: ${template.name}`)
+  }
+
+  // Create all task trees with milestone assignments
+  console.log('\nCreating tasks...')
   for (let i = 0; i < taskTemplates.length; i++) {
-    console.log(`Creating: ${taskTemplates[i].title}`)
+    const taskTitle = taskTemplates[i].title
+    const milestoneIndex = taskToMilestoneMap[taskTitle]
+    const milestoneId = milestoneIndex !== undefined ? milestones[milestoneIndex] : null
+
+    console.log(`Creating: ${taskTitle}${milestoneId ? ` (${milestoneTemplates[milestoneIndex].name})` : ''}`)
     await createTaskWithSubtasks(
       taskTemplates[i],
       project._id as mongoose.Types.ObjectId,
       user._id as mongoose.Types.ObjectId,
       null,
-      i
+      i,
+      milestoneId
     )
   }
 
   const totalTasks = await Task.countDocuments({ project: project._id })
-  console.log(`\nSeeding complete! Created ${totalTasks} tasks.`)
+  const totalMilestones = await Milestone.countDocuments({ project: project._id })
+  console.log(`\nSeeding complete! Created ${totalMilestones} milestones and ${totalTasks} tasks.`)
 
   await mongoose.disconnect()
 }
