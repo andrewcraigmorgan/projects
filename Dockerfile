@@ -1,3 +1,14 @@
+# Development stage
+FROM node:20-alpine AS dev
+
+WORKDIR /app
+
+COPY package*.json ./
+RUN npm ci
+
+# Keep container running for exec commands
+CMD ["tail", "-f", "/dev/null"]
+
 # Build stage
 FROM node:20-alpine AS builder
 

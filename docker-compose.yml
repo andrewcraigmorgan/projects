@@ -1,8 +1,13 @@
 services:
   app:
-    build: .
+    build:
+      context: .
+      target: dev
     ports:
       - "3000:3000"
+    volumes:
+      - .:/app
+      - /app/node_modules
     environment:
       - NUXT_MONGODB_URI=mongodb://mongo:27017/projects
       - NUXT_JWT_SECRET=${JWT_SECRET:-your-super-secret-jwt-key-change-in-production}
