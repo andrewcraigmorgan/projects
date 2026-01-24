@@ -23,6 +23,8 @@ const querySchema = z.object({
   // Date range filters for due date
   dueDateFrom: z.string().optional(),
   dueDateTo: z.string().optional(),
+  // Milestone filter
+  milestone: z.string().optional(),
   parentTask: z.string().optional(),
   rootOnly: z.coerce.boolean().default(false),
   page: z.coerce.number().min(1).default(1),
@@ -53,7 +55,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const { projectId, status, priority, dueDateFrom, dueDateTo, parentTask, rootOnly, page, limit } = result.data
+  const { projectId, status, priority, dueDateFrom, dueDateTo, milestone, parentTask, rootOnly, page, limit } = result.data
 
   // Verify project access
   const project = await Project.findById(projectId)
@@ -90,6 +92,10 @@ export default defineEventHandler(async (event) => {
       endDate.setDate(endDate.getDate() + 1)
       ;(filter.dueDate as Record<string, Date>).$lt = endDate
     }
+  }
+
+  if (milestone) {
+    filter.milestone = milestone
   }
 
   if (parentTask) {

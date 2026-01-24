@@ -128,6 +128,7 @@ const viewMode = ref<'list' | 'board'>('list')
 // Filters (synced with URL) - now arrays for multi-select
 const statusFilter = ref<string[]>([])
 const priorityFilter = ref<string[]>([])
+const milestoneFilter = ref<string>('')
 const dueDateFrom = ref<string>('')
 const dueDateTo = ref<string>('')
 
@@ -192,17 +193,25 @@ function applyPreset(preset: typeof presets[0]) {
 // Computed: any filters different from "All Open" default
 const hasActiveFilters = computed(() => {
   const isDefault = arraysEqual(statusFilter.value.slice().sort(), defaultOpenStatuses.slice().sort())
-  const hasNoOtherFilters = priorityFilter.value.length === 0 && !dueDateFrom.value && !dueDateTo.value
+  const hasNoOtherFilters = priorityFilter.value.length === 0 && !milestoneFilter.value && !dueDateFrom.value && !dueDateTo.value
   if (isDefault && hasNoOtherFilters) {
     return false
   }
   return true
 })
 
+// Get the name of the active milestone filter
+const activeMilestoneName = computed(() => {
+  if (!milestoneFilter.value) return ''
+  const milestone = milestones.value.find(m => m.id === milestoneFilter.value)
+  return milestone?.name || ''
+})
+
 // Clear all filters (reset to "All Open")
 function clearFilters() {
   statusFilter.value = [...defaultOpenStatuses]
   priorityFilter.value = []
+  milestoneFilter.value = ''
   dueDateFrom.value = ''
   dueDateTo.value = ''
 }
@@ -212,6 +221,7 @@ onMounted(() => {
   const urlView = route.query.view as string
   const urlStatus = route.query.status as string
   const urlPriority = route.query.priority as string
+  const urlMilestone = route.query.milestone as string
   const urlDueDateFrom = route.query.dueDateFrom as string
   const urlDueDateTo = route.query.dueDateTo as string
 
@@ -241,6 +251,10 @@ onMounted(() => {
       hasUrlFilters = true
     }
   }
+  if (urlMilestone) {
+    milestoneFilter.value = urlMilestone
+    hasUrlFilters = true
+  }
   if (urlDueDateFrom) {
     dueDateFrom.value = urlDueDateFrom
     hasUrlFilters = true
@@ -250,7 +264,7 @@ onMounted(() => {
     hasUrlFilters = true
   }
 
-  // Apply default "All Open" preset if no URL filters specified
+  // Apply default "All Open" preset if no URL filters specified (unless filtering by milestone)
   if (!hasUrlFilters) {
     statusFilter.value = [...defaultOpenStatuses]
   }
@@ -262,7 +276,7 @@ watch(viewMode, (value) => {
 })
 
 // Update URL when filters change
-watch([statusFilter, priorityFilter, dueDateFrom, dueDateTo], () => {
+watch([statusFilter, priorityFilter, milestoneFilter, dueDateFrom, dueDateTo], () => {
   updateUrlParams()
   loadTasks()
 }, { deep: true })
@@ -278,6 +292,7 @@ function updateUrlParams() {
   if (viewMode.value !== 'list') query.view = viewMode.value
   if (statusFilter.value.length > 0) query.status = statusFilter.value.join(',')
   if (priorityFilter.value.length > 0) query.priority = priorityFilter.value.join(',')
+  if (milestoneFilter.value) query.milestone = milestoneFilter.value
   if (dueDateFrom.value) query.dueDateFrom = dueDateFrom.value
   if (dueDateTo.value) query.dueDateTo = dueDateTo.value
 
@@ -380,23 +395,28 @@ async function loadProject() {
 
 // Load tasks (either root or children of current parent)
 async function loadTasks() {
-  if (currentParentId.value) {
+  const filters = {
+    status: statusFilter.value.length > 0 ? statusFilter.value : undefined,
+    priority: priorityFilter.value.length > 0 ? priorityFilter.value : undefined,
+    milestone: milestoneFilter.value || undefined,
+    dueDateFrom: dueDateFrom.value || undefined,
+    dueDateTo: dueDateTo.value || undefined,
+  }
+
+  if (milestoneFilter.value) {
+    // When filtering by milestone, show all tasks in that milestone (not just root)
+    await fetchTasks(filters)
+  } else if (currentParentId.value) {
     // Load children of the current parent task
     await fetchTasks({
+      ...filters,
       parentTask: currentParentId.value,
-      status: statusFilter.value.length > 0 ? statusFilter.value : undefined,
-      priority: priorityFilter.value.length > 0 ? priorityFilter.value : undefined,
-      dueDateFrom: dueDateFrom.value || undefined,
-      dueDateTo: dueDateTo.value || undefined,
     })
   } else {
     // Load root tasks
     await fetchTasks({
+      ...filters,
       rootOnly: true,
-      status: statusFilter.value.length > 0 ? statusFilter.value : undefined,
-      priority: priorityFilter.value.length > 0 ? priorityFilter.value : undefined,
-      dueDateFrom: dueDateFrom.value || undefined,
-      dueDateTo: dueDateTo.value || undefined,
     })
   }
 }

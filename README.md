@@ -1,3 +1,7 @@
+> "The way to deal with an impossible task was to chop it down into a number of merely very difficult tasks, and break each one of them into a group of horribly hard tasks, and each of them into tricky jobs, and each of them..."
+>
+> — Terry Pratchett, *Truckers*
+
 # Projects
 
 A full-stack project management application built with Nuxt 4, MongoDB, and Tailwind CSS.

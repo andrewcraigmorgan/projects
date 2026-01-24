@@ -33,6 +33,7 @@ export function useTasks(projectId: Ref<string>) {
   async function fetchTasks(options: {
     status?: string | string[]
     priority?: string | string[]
+    milestone?: string
     dueDateFrom?: string
     dueDateTo?: string
     parentTask?: string
@@ -51,6 +52,7 @@ export function useTasks(projectId: Ref<string>) {
         const priorityStr = Array.isArray(options.priority) ? options.priority.join(',') : options.priority
         if (priorityStr) url += `&priority=${priorityStr}`
       }
+      if (options.milestone) url += `&milestone=${options.milestone}`
       if (options.dueDateFrom) url += `&dueDateFrom=${options.dueDateFrom}`
       if (options.dueDateTo) url += `&dueDateTo=${options.dueDateTo}`
       if (options.parentTask) url += `&parentTask=${options.parentTask}`

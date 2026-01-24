@@ -111,10 +111,19 @@ function formatDate(dateString: string) {
           </div>
           <h3
             v-else
-            class="text-lg font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400"
+            class="group/title text-lg font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 inline-flex items-center gap-2"
+            title="Click to edit"
             @click.stop="startEditingName"
           >
             {{ milestone.name }}
+            <svg
+              class="h-4 w-4 text-gray-400 opacity-0 group-hover/title:opacity-100 transition-opacity"
+              fill="none"
+              viewBox="0 0 24 24"
+              stroke="currentColor"
+            >
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+            </svg>
           </h3>
 
           <!-- Description -->
@@ -207,12 +216,21 @@ function formatDate(dateString: string) {
         <span>
           {{ formatDate(milestone.startDate) }} - {{ formatDate(milestone.endDate) }}
         </span>
-        <button
-          class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
-          @click.stop="emit('delete', milestone.id)"
-        >
-          Delete
-        </button>
+        <div class="flex items-center gap-3">
+          <NuxtLink
+            :to="`/projects/${milestone.projectId}?milestone=${milestone.id}`"
+            class="text-primary-600 hover:text-primary-700 dark:text-primary-400 dark:hover:text-primary-300 font-medium transition-colors"
+            @click.stop
+          >
+            View Tasks
+          </NuxtLink>
+          <button
+            class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+            @click.stop="emit('delete', milestone.id)"
+          >
+            Delete
+          </button>
+        </div>
       </div>
     </div>
   </div>
