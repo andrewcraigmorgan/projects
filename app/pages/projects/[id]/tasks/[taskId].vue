@@ -34,7 +34,10 @@ const subtasks = ref<Task[]>([])
 const loadingSubtasks = ref(false)
 
 // For useTasks composable (for updates)
-const { updateTask, getTaskWithSubtasks } = useTasks(projectId)
+const { updateTask, getTaskWithSubtasks, moveTask } = useTasks(projectId)
+
+// Move to project modal
+const showMoveModal = ref(false)
 
 // Tags
 const { tags: availableTags, fetchTags, createTag } = useTags(projectId)
@@ -209,6 +212,22 @@ async function copyId() {
     document.body.removeChild(textArea)
     copied.value = true
     setTimeout(() => { copied.value = false }, 1500)
+  }
+}
+
+// Move to project
+async function handleMoveToProject(destinationProjectId: string) {
+  if (!task.value) return
+
+  try {
+    const response = await moveTask(task.value.id, null, undefined, destinationProjectId)
+    if (response.success) {
+      // Navigate to the task in its new project
+      showMoveModal.value = false
+      router.push(`/projects/${destinationProjectId}/tasks/${task.value.id}`)
+    }
+  } catch (error) {
+    console.error('Failed to move task:', error)
   }
 }
 
@@ -465,6 +484,22 @@ onMounted(async () => {
             </div>
           </div>
 
+          <!-- Actions -->
+          <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-6">
+            <div class="flex items-center gap-3">
+              <button
+                type="button"
+                class="inline-flex items-center gap-2 px-3 py-1.5 text-sm font-medium text-gray-700 dark:text-gray-300 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors"
+                @click="showMoveModal = true"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
+                </svg>
+                Move to Project
+              </button>
+            </div>
+          </div>
+
           <!-- Metadata -->
           <div class="border-t border-gray-200 dark:border-gray-700 pt-4 mt-6">
             <div class="flex flex-wrap gap-6 text-sm text-gray-500 dark:text-gray-400">
@@ -482,5 +517,14 @@ onMounted(async () => {
         </UiCard>
       </div>
     </div>
+
+    <!-- Move to Project Modal -->
+    <TasksMoveToProjectModal
+      :open="showMoveModal"
+      :task="task"
+      :current-project-id="projectId"
+      @close="showMoveModal = false"
+      @move="handleMoveToProject"
+    />
   </div>
 </template>

@@ -32,7 +32,17 @@ const {
   createTask,
   updateTask,
   getTaskWithSubtasks,
+  moveTask,
 } = useTasks(projectId)
+
+// Context menu state
+const contextMenuTask = ref<Task | null>(null)
+const contextMenuPosition = ref({ x: 0, y: 0 })
+const showContextMenu = ref(false)
+
+// Move to project modal
+const showMoveModal = ref(false)
+const taskToMove = ref<Task | null>(null)
 
 // View mode (from URL param, then localStorage, then default to 'list')
 const viewMode = ref<'list' | 'board'>('list')
@@ -283,6 +293,60 @@ async function handleLoadSubtasks(task: Task) {
   }
 }
 
+// Context menu handlers
+function handleContextMenu(task: Task, event: MouseEvent) {
+  contextMenuTask.value = task
+  contextMenuPosition.value = { x: event.clientX, y: event.clientY }
+  showContextMenu.value = true
+}
+
+function closeContextMenu() {
+  showContextMenu.value = false
+  contextMenuTask.value = null
+}
+
+function handleMoveToProjectClick(task: Task) {
+  taskToMove.value = task
+  showMoveModal.value = true
+}
+
+async function handleMoveToProject(destinationProjectId: string) {
+  if (!taskToMove.value) return
+
+  try {
+    const response = await moveTask(taskToMove.value.id, null, undefined, destinationProjectId)
+    if (response.success) {
+      // Remove task from current list since it moved to another project
+      tasks.value = tasks.value.filter(t => t.id !== taskToMove.value?.id)
+      showMoveModal.value = false
+      taskToMove.value = null
+    }
+  } catch (error) {
+    console.error('Failed to move task:', error)
+  }
+}
+
+async function handleDeleteTask(task: Task) {
+  if (!confirm(`Are you sure you want to delete "${task.title}"?`)) return
+
+  try {
+    await fetchApi(`/api/tasks/${task.id}`, { method: 'DELETE' })
+    await loadTasks()
+  } catch (error) {
+    console.error('Failed to delete task:', error)
+  }
+}
+
+// Handle task reorder within same project
+async function handleMoveTask(taskId: string, newParentTask: string | null, newOrder: number) {
+  try {
+    await moveTask(taskId, newParentTask, newOrder)
+    await loadTasks()
+  } catch (error) {
+    console.error('Failed to move task:', error)
+  }
+}
+
 // Set page title
 useHead({
   title: computed(() => project.value?.name ? `${project.value.name} - Projects` : 'Projects'),
@@ -443,8 +507,30 @@ onMounted(async () => {
         @update-priority="handleUpdatePriority"
         @update-due-date="handleUpdateDueDate"
         @task-created="loadTasks"
+        @move-task="handleMoveTask"
+        @context-menu="handleContextMenu"
       />
     </div>
+
+    <!-- Task Context Menu -->
+    <TasksTaskContextMenu
+      :task="contextMenuTask"
+      :x="contextMenuPosition.x"
+      :y="contextMenuPosition.y"
+      :visible="showContextMenu"
+      @close="closeContextMenu"
+      @move-to-project="handleMoveToProjectClick"
+      @delete="handleDeleteTask"
+    />
+
+    <!-- Move to Project Modal -->
+    <TasksMoveToProjectModal
+      :open="showMoveModal"
+      :task="taskToMove"
+      :current-project-id="projectId"
+      @close="showMoveModal = false; taskToMove = null"
+      @move="handleMoveToProject"
+    />
 
     <!-- Create Task Modal -->
     <UiModal

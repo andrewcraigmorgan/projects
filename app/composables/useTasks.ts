@@ -151,16 +151,44 @@ export function useTasks(projectId: Ref<string>) {
     return response
   }
 
-  async function moveTask(taskId: string, newParentTask: string | null, newOrder?: number) {
+  interface CrossProjectMoveInfo {
+    fromProject: string
+    toProject: string
+    clearedFields: string[]
+    descendantsMoved: number
+  }
+
+  async function moveTask(
+    taskId: string,
+    newParentTask: string | null,
+    newOrder?: number,
+    newProject?: string
+  ) {
     const response = await fetchApi<{
       success: boolean
-      data: { task: Task }
+      data: {
+        task: Task
+        crossProjectMove?: CrossProjectMoveInfo
+      }
     }>(`/api/tasks/${taskId}/move`, {
       method: 'POST',
-      body: { newParentTask, newOrder },
+      body: { newParentTask, newOrder, newProject },
     })
 
+    // For cross-project moves, remove the task from the local list
+    if (response.success && response.data.crossProjectMove) {
+      tasks.value = tasks.value.filter((t) => t.id !== taskId)
+    }
+
     return response
+  }
+
+  async function reorderTask(taskId: string, newOrder: number) {
+    // Find the task to get its current parent
+    const task = tasks.value.find((t) => t.id === taskId)
+    if (!task) return { success: false }
+
+    return moveTask(taskId, task.parentTask || null, newOrder)
   }
 
   return {
@@ -173,5 +201,6 @@ export function useTasks(projectId: Ref<string>) {
     updateTask,
     deleteTask,
     moveTask,
+    reorderTask,
   }
 }

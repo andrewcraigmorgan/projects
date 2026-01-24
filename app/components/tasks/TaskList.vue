@@ -7,6 +7,7 @@ interface Props {
   depth?: number
   projectId?: string
   projectCode?: string
+  enableDragDrop?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -14,16 +15,23 @@ const props = withDefaults(defineProps<Props>(), {
   depth: 0,
   projectId: '',
   projectCode: '',
+  enableDragDrop: true,
 })
 
 const emit = defineEmits<{
   (e: 'select', task: Task): void
   (e: 'load-subtasks', task: Task): void
   (e: 'task-created'): void
+  (e: 'move-task', taskId: string, newParentTask: string | null, newOrder: number): void
+  (e: 'context-menu', task: Task, event: MouseEvent): void
 }>()
 
 const expandedTasks = ref<Set<string>>(new Set())
 const loadedSubtasks = ref<Map<string, Task[]>>(new Map())
+
+// Drag-and-drop state
+const draggedTask = ref<Task | null>(null)
+const dropTarget = ref<{ taskId: string; position: 'above' | 'below' | 'inside' } | null>(null)
 
 async function toggleExpand(task: Task) {
   if (expandedTasks.value.has(task.id)) {
@@ -34,6 +42,124 @@ async function toggleExpand(task: Task) {
       emit('load-subtasks', task)
     }
   }
+}
+
+// Drag-and-drop handlers
+function handleDragStart(task: Task, event: DragEvent) {
+  if (!props.enableDragDrop) return
+  draggedTask.value = task
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', task.id)
+  }
+}
+
+function handleDragEnd() {
+  draggedTask.value = null
+  dropTarget.value = null
+}
+
+function handleDragOver(task: Task, event: DragEvent) {
+  if (!props.enableDragDrop || !draggedTask.value) return
+  if (draggedTask.value.id === task.id) return
+
+  event.preventDefault()
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move'
+  }
+
+  // Determine drop position based on cursor location
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  const y = event.clientY - rect.top
+  const height = rect.height
+
+  let position: 'above' | 'below' | 'inside'
+  if (y < height * 0.25) {
+    position = 'above'
+  } else if (y > height * 0.75) {
+    position = 'below'
+  } else {
+    position = 'inside'
+  }
+
+  dropTarget.value = { taskId: task.id, position }
+}
+
+function handleDragLeave() {
+  dropTarget.value = null
+}
+
+function handleDrop(task: Task, event: DragEvent) {
+  if (!props.enableDragDrop || !draggedTask.value) return
+  if (draggedTask.value.id === task.id) return
+
+  event.preventDefault()
+
+  const position = dropTarget.value?.position || 'below'
+
+  // Calculate new parent and order based on drop position
+  let newParentTask: string | null
+  let newOrder: number
+
+  const taskIndex = props.tasks.findIndex(t => t.id === task.id)
+
+  if (position === 'inside') {
+    // Drop as child of target task
+    newParentTask = task.id
+    newOrder = 0 // Will be appended at the end by the backend
+  } else if (position === 'above') {
+    // Drop above target task (same parent)
+    newParentTask = task.parentTask || null
+    newOrder = task.order
+  } else {
+    // Drop below target task (same parent)
+    newParentTask = task.parentTask || null
+    newOrder = task.order + 1
+  }
+
+  emit('move-task', draggedTask.value.id, newParentTask, newOrder)
+
+  draggedTask.value = null
+  dropTarget.value = null
+}
+
+function handleRootDrop(event: DragEvent) {
+  if (!props.enableDragDrop || !draggedTask.value) return
+  event.preventDefault()
+
+  // Move to root level at the end
+  const maxOrder = props.tasks.reduce((max, t) => Math.max(max, t.order), -1)
+  emit('move-task', draggedTask.value.id, null, maxOrder + 1)
+
+  draggedTask.value = null
+  dropTarget.value = null
+}
+
+function handleRootDragOver(event: DragEvent) {
+  if (!props.enableDragDrop || !draggedTask.value) return
+  event.preventDefault()
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move'
+  }
+}
+
+function getDropIndicatorClass(taskId: string) {
+  if (!dropTarget.value || dropTarget.value.taskId !== taskId) return ''
+
+  switch (dropTarget.value.position) {
+    case 'above':
+      return 'ring-2 ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-800 -translate-y-0.5'
+    case 'below':
+      return 'ring-2 ring-primary-500 ring-offset-2 ring-offset-white dark:ring-offset-gray-800 translate-y-0.5'
+    case 'inside':
+      return 'ring-2 ring-primary-500 bg-primary-50 dark:bg-primary-900/20'
+    default:
+      return ''
+  }
+}
+
+function handleContextMenu(task: Task, event: MouseEvent) {
+  emit('context-menu', task, event)
 }
 
 defineExpose({
@@ -80,24 +206,49 @@ defineExpose({
     </template>
 
     <template v-else>
-      <div v-for="task in tasks" :key="task.id">
+      <div
+        v-for="task in tasks"
+        :key="task.id"
+        class="transition-transform duration-150"
+        :class="getDropIndicatorClass(task.id)"
+        @dragover="handleDragOver(task, $event)"
+        @dragleave="handleDragLeave"
+        @drop="handleDrop(task, $event)"
+      >
         <TasksTaskCard
           :task="{ ...task, subtasks: loadedSubtasks.get(task.id) }"
           :depth="depth"
           :project-code="projectCode"
           @click="emit('select', $event)"
           @toggle-expand="toggleExpand"
+          @dragstart="handleDragStart"
+          @dragend="handleDragEnd"
+          @context-menu="handleContextMenu"
         >
           <template #subtasks="{ subtasks }">
             <TaskList
               :tasks="subtasks"
               :depth="depth + 1"
               :project-code="projectCode"
+              :enable-drag-drop="enableDragDrop"
               @select="emit('select', $event)"
               @load-subtasks="emit('load-subtasks', $event)"
+              @move-task="(taskId, parent, order) => emit('move-task', taskId, parent, order)"
+              @context-menu="(task, event) => emit('context-menu', task, event)"
             />
           </template>
         </TasksTaskCard>
+      </div>
+
+      <!-- Root drop zone (when dragging) -->
+      <div
+        v-if="enableDragDrop && depth === 0 && draggedTask"
+        class="mt-2 p-4 border-2 border-dashed border-gray-300 dark:border-gray-600 text-center text-sm text-gray-500 dark:text-gray-400 transition-colors"
+        :class="{ 'border-primary-500 bg-primary-50 dark:bg-primary-900/20': true }"
+        @dragover="handleRootDragOver"
+        @drop="handleRootDrop"
+      >
+        Drop here to move to root level
       </div>
 
       <!-- Inline quick add at bottom of list -->

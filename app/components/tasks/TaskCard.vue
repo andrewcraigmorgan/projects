@@ -38,7 +38,28 @@ const emit = defineEmits<{
   (e: 'update-priority', taskId: string, priority: Task['priority']): void
   (e: 'update-assignee', taskId: string, userId: string | null): void
   (e: 'update-milestone', taskId: string, milestoneId: string | null): void
+  (e: 'dragstart', task: Task, event: DragEvent): void
+  (e: 'dragend', event: DragEvent): void
+  (e: 'context-menu', task: Task, event: MouseEvent): void
 }>()
+
+// Drag state
+const isDragging = ref(false)
+
+function handleDragStart(event: DragEvent) {
+  isDragging.value = true
+  emit('dragstart', props.task, event)
+}
+
+function handleDragEnd(event: DragEvent) {
+  isDragging.value = false
+  emit('dragend', event)
+}
+
+function handleContextMenu(event: MouseEvent) {
+  event.preventDefault()
+  emit('context-menu', props.task, event)
+}
 
 const expanded = ref(false)
 const copied = ref(false)
@@ -133,11 +154,26 @@ function onMilestoneChange(event: Event) {
 <template>
   <div
     class="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all cursor-pointer"
+    :class="{ 'opacity-50': isDragging }"
     :style="{ marginLeft: `${depth * 24}px` }"
+    draggable="true"
     @click="emit('click', task)"
+    @dragstart="handleDragStart"
+    @dragend="handleDragEnd"
+    @contextmenu="handleContextMenu"
   >
     <div class="p-4">
       <div class="flex items-start gap-3">
+        <!-- Drag handle -->
+        <div
+          class="flex-shrink-0 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+          @mousedown.stop
+        >
+          <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+            <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
+          </svg>
+        </div>
+
         <!-- Task ID - copyable -->
         <button
           class="flex-shrink-0 px-1.5 py-0.5 text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer"

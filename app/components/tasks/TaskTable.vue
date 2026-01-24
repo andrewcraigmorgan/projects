@@ -12,12 +12,14 @@ interface Props {
   loading?: boolean
   projectId?: string
   projectCode?: string
+  enableDragDrop?: boolean
 }
 
 const props = withDefaults(defineProps<Props>(), {
   loading: false,
   projectId: '',
   projectCode: '',
+  enableDragDrop: true,
 })
 
 const emit = defineEmits<{
@@ -26,7 +28,68 @@ const emit = defineEmits<{
   (e: 'update-status', task: Task, status: Task['status']): void
   (e: 'update-priority', task: Task, priority: Task['priority']): void
   (e: 'update-due-date', task: Task, dueDate: string | null): void
+  (e: 'move-task', taskId: string, newParentTask: string | null, newOrder: number): void
+  (e: 'context-menu', task: Task, event: MouseEvent): void
 }>()
+
+// Drag-and-drop state
+const draggedTask = ref<Task | null>(null)
+const dragOverIndex = ref<number | null>(null)
+
+function handleDragStart(task: Task, event: DragEvent) {
+  if (!props.enableDragDrop) return
+  draggedTask.value = task
+  if (event.dataTransfer) {
+    event.dataTransfer.effectAllowed = 'move'
+    event.dataTransfer.setData('text/plain', task.id)
+  }
+  // Add dragging class to row
+  const row = event.currentTarget as HTMLElement
+  row.classList.add('opacity-50')
+}
+
+function handleDragEnd(event: DragEvent) {
+  draggedTask.value = null
+  dragOverIndex.value = null
+  const row = event.currentTarget as HTMLElement
+  row.classList.remove('opacity-50')
+}
+
+function handleDragOver(index: number, event: DragEvent) {
+  if (!props.enableDragDrop || !draggedTask.value) return
+  event.preventDefault()
+  if (event.dataTransfer) {
+    event.dataTransfer.dropEffect = 'move'
+  }
+  dragOverIndex.value = index
+}
+
+function handleDragLeave() {
+  dragOverIndex.value = null
+}
+
+function handleDrop(targetTask: Task, index: number, event: DragEvent) {
+  if (!props.enableDragDrop || !draggedTask.value) return
+  if (draggedTask.value.id === targetTask.id) {
+    draggedTask.value = null
+    dragOverIndex.value = null
+    return
+  }
+
+  event.preventDefault()
+
+  // Calculate new order - insert before the target task
+  const newOrder = targetTask.order
+  emit('move-task', draggedTask.value.id, null, newOrder)
+
+  draggedTask.value = null
+  dragOverIndex.value = null
+}
+
+function handleContextMenu(task: Task, event: MouseEvent) {
+  event.preventDefault()
+  emit('context-menu', task, event)
+}
 
 const availableColumns: Column[] = [
   { id: 'title', label: 'Title', width: 'flex-1' },
@@ -307,16 +370,37 @@ function getCellValue(task: Task, columnId: string): string {
 
         <template v-else>
           <tr
-            v-for="task in tasks"
+            v-for="(task, index) in tasks"
             :key="task.id"
-            class="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-colors"
+            class="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-all"
+            :class="{
+              'border-t-2 border-t-primary-500': dragOverIndex === index && draggedTask?.id !== task.id
+            }"
+            draggable="true"
             @click="emit('select', task)"
+            @dragstart="handleDragStart(task, $event)"
+            @dragend="handleDragEnd"
+            @dragover="handleDragOver(index, $event)"
+            @dragleave="handleDragLeave"
+            @drop="handleDrop(task, index, $event)"
+            @contextmenu="handleContextMenu(task, $event)"
           >
-            <!-- ID column -->
+            <!-- Drag handle + ID column -->
             <td class="px-3 py-2 whitespace-nowrap">
-              <span class="text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5">
-                {{ getShortId(task) }}
-              </span>
+              <div class="flex items-center gap-2">
+                <div
+                  v-if="enableDragDrop"
+                  class="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                  @mousedown.stop
+                >
+                  <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                    <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
+                  </svg>
+                </div>
+                <span class="text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5">
+                  {{ getShortId(task) }}
+                </span>
+              </div>
             </td>
             <!-- Dynamic columns -->
             <td
