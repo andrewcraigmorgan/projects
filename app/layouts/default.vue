@@ -6,11 +6,11 @@ const authStore = useAuthStore()
 const orgStore = useOrganizationStore()
 const { isOpen, isMobile, close } = useSidebar()
 
-// Redirect to login if not authenticated
+// Redirect to login if not authenticated (only after auth is initialized)
 watch(
-  () => authStore.isAuthenticated,
-  (isAuthenticated) => {
-    if (!isAuthenticated && import.meta.client) {
+  () => ({ isAuth: authStore.isAuthenticated, isInit: authStore.isInitialized }),
+  ({ isAuth, isInit }) => {
+    if (isInit && !isAuth && import.meta.client) {
       navigateTo('/login')
     }
   },
