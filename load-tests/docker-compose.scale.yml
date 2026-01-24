@@ -8,8 +8,8 @@ services:
       context: ..
       dockerfile: Dockerfile
       target: runner
-    ports: []  # Remove direct port mapping, use nginx instead
-    volumes: []  # No volume mounts in production
+    ports: !override []  # Remove direct port mapping, use nginx instead
+    volumes: !override []  # No volume mounts in production
     environment:
       - NUXT_MONGODB_URI=mongodb://mongo:27017/projects_loadtest
       - NUXT_JWT_SECRET=${JWT_SECRET:-loadtest-jwt-secret-change-me}

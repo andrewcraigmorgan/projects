@@ -20,6 +20,11 @@ export default defineEventHandler(async (event) => {
     '/docs',
   ]
 
+  // Skip auth for attachment retrieval (GET requests only)
+  if (url.pathname.startsWith('/api/attachments/') && event.method === 'GET') {
+    return
+  }
+
   if (publicPaths.some((path) => url.pathname.startsWith(path))) {
     return
   }
