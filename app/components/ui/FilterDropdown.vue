@@ -22,6 +22,26 @@ const emit = defineEmits<{
 
 const isOpen = ref(false)
 const containerRef = ref<HTMLElement | null>(null)
+const buttonRef = ref<HTMLButtonElement | null>(null)
+const dropdownStyle = ref({ top: '0px', left: '0px', minWidth: '180px' })
+
+// Update dropdown position when opening
+function updateDropdownPosition() {
+  if (!buttonRef.value) return
+  const rect = buttonRef.value.getBoundingClientRect()
+  dropdownStyle.value = {
+    top: `${rect.bottom + 4}px`,
+    left: `${rect.left}px`,
+    minWidth: `${Math.max(180, rect.width)}px`,
+  }
+}
+
+function handleButtonClick() {
+  isOpen.value = !isOpen.value
+  if (isOpen.value) {
+    updateDropdownPosition()
+  }
+}
 
 const selectedCount = computed(() => props.modelValue.length)
 
@@ -68,10 +88,11 @@ onUnmounted(() => {
 <template>
   <div ref="containerRef" class="relative">
     <button
+      ref="buttonRef"
       type="button"
       class="flex items-center gap-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1.5 text-gray-700 dark:text-gray-300 hover:border-gray-300 dark:hover:border-gray-600 focus:ring-1 focus:ring-primary-500 focus:outline-none transition-colors"
       :class="{ 'border-primary-500 dark:border-primary-500': selectedCount > 0 }"
-      @click="isOpen = !isOpen"
+      @click="handleButtonClick"
     >
       <span class="truncate max-w-[120px]">{{ displayText }}</span>
       <svg
@@ -85,11 +106,13 @@ onUnmounted(() => {
       </svg>
     </button>
 
-    <!-- Dropdown -->
-    <div
-      v-if="isOpen"
-      class="absolute z-50 mt-1 min-w-[180px] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg"
-    >
+    <!-- Dropdown (teleported to body to avoid overflow clipping) -->
+    <Teleport to="body">
+      <div
+        v-if="isOpen"
+        class="fixed z-[100] bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg"
+        :style="dropdownStyle"
+      >
       <!-- Header with select/clear all -->
       <div class="flex items-center justify-between px-3 py-2 border-b border-gray-200 dark:border-gray-700">
         <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase">{{ label }}</span>
@@ -133,5 +156,6 @@ onUnmounted(() => {
         </label>
       </div>
     </div>
+    </Teleport>
   </div>
 </template>
