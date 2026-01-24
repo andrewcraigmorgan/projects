@@ -43,6 +43,8 @@ const emit = defineEmits<{
   (e: 'context-menu', task: Task, event: MouseEvent): void
 }>()
 
+const { isMobile } = useBreakpoints()
+
 // Drag state
 const isDragging = ref(false)
 
@@ -156,17 +158,18 @@ function onMilestoneChange(event: Event) {
     class="group bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 hover:border-gray-300 dark:hover:border-gray-600 hover:shadow-sm transition-all cursor-pointer"
     :class="{ 'opacity-50': isDragging }"
     :style="{ marginLeft: `${depth * 24}px` }"
-    draggable="true"
+    :draggable="!isMobile"
     @click="emit('click', task)"
     @dragstart="handleDragStart"
     @dragend="handleDragEnd"
     @contextmenu="handleContextMenu"
   >
-    <div class="p-4">
-      <div class="flex items-start gap-3">
-        <!-- Drag handle -->
+    <div class="p-3 sm:p-4">
+      <div class="flex items-start gap-2 sm:gap-3">
+        <!-- Drag handle - hidden on mobile/touch -->
         <div
-          class="flex-shrink-0 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+          v-if="!isMobile"
+          class="flex-shrink-0 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hidden sm:block"
           @mousedown.stop
         >
           <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
@@ -176,7 +179,7 @@ function onMilestoneChange(event: Event) {
 
         <!-- Task ID - copyable -->
         <button
-          class="flex-shrink-0 px-1.5 py-0.5 text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer"
+          class="flex-shrink-0 px-1.5 py-0.5 text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer min-h-[28px] flex items-center"
           :title="copied ? 'Copied!' : 'Click to copy ID'"
           @click="copyId"
         >
@@ -187,7 +190,7 @@ function onMilestoneChange(event: Event) {
         <!-- Expand button for subtasks -->
         <button
           v-if="task.subtaskCount > 0"
-          class="mt-0.5 p-1 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors"
+          class="mt-0.5 p-1.5 sm:p-1 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors min-h-[28px] min-w-[28px] flex items-center justify-center"
           @click.stop="expanded = !expanded; emit('toggle-expand', task)"
         >
           <svg
@@ -205,7 +208,7 @@ function onMilestoneChange(event: Event) {
             />
           </svg>
         </button>
-        <div v-else class="w-6" />
+        <div v-else class="w-6 hidden sm:block" />
 
         <!-- Status dropdown -->
         <div class="relative flex-shrink-0">
@@ -215,7 +218,7 @@ function onMilestoneChange(event: Event) {
           />
           <select
             :value="task.status"
-            class="appearance-none pl-5 pr-6 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-0 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-1 focus:ring-primary-500 transition-colors"
+            class="appearance-none pl-5 pr-6 py-1.5 sm:py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-0 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-1 focus:ring-primary-500 transition-colors min-h-[32px] sm:min-h-0"
             @click.stop
             @change="onStatusChange"
           >
@@ -260,7 +263,7 @@ function onMilestoneChange(event: Event) {
             <div class="relative">
               <select
                 :value="task.priority || ''"
-                class="appearance-none px-2 py-0.5 pr-5 text-xs font-medium bg-gray-100 dark:bg-gray-700 border-0 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-1 focus:ring-primary-500 transition-colors"
+                class="appearance-none px-2 py-1 sm:py-0.5 pr-5 text-xs font-medium bg-gray-100 dark:bg-gray-700 border-0 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-1 focus:ring-primary-500 transition-colors min-h-[28px] sm:min-h-0"
                 :class="task.priority ? priorityColors[task.priority] : 'text-gray-400 dark:text-gray-500'"
                 @click.stop
                 @change="onPriorityChange"
@@ -301,7 +304,7 @@ function onMilestoneChange(event: Event) {
             <div v-if="milestones.length" class="relative">
               <select
                 :value="task.milestone?.id || ''"
-                class="appearance-none px-2 py-0.5 pr-5 text-xs font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-0 cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 focus:ring-1 focus:ring-indigo-500 transition-colors"
+                class="appearance-none px-2 py-1 sm:py-0.5 pr-5 text-xs font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-0 cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 focus:ring-1 focus:ring-indigo-500 transition-colors min-h-[28px] sm:min-h-0"
                 @click.stop
                 @change="onMilestoneChange"
               >
@@ -349,7 +352,7 @@ function onMilestoneChange(event: Event) {
         <div class="relative flex-shrink-0">
           <select
             :value="task.assignee?.id || ''"
-            class="appearance-none pl-2 pr-6 py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 border-0 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-1 focus:ring-primary-500 transition-colors"
+            class="appearance-none pl-2 pr-6 py-1.5 sm:py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 border-0 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-1 focus:ring-primary-500 transition-colors min-h-[32px] sm:min-h-0"
             :class="task.assignee?.role === 'client'
               ? 'text-orange-600 dark:text-orange-300'
               : 'text-gray-700 dark:text-gray-300'"
@@ -399,7 +402,7 @@ function onMilestoneChange(event: Event) {
 
     <!-- Subtasks slot -->
     <div v-if="expanded && task.subtasks?.length">
-      <div class="border-t border-gray-100 dark:border-gray-700 px-4 py-2 bg-gray-50 dark:bg-gray-900">
+      <div class="border-t border-gray-100 dark:border-gray-700 px-3 sm:px-4 py-2 bg-gray-50 dark:bg-gray-900">
         <slot name="subtasks" :subtasks="task.subtasks" />
       </div>
     </div>

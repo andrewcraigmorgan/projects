@@ -5,6 +5,12 @@ import { useOrganizationStore } from '~/stores/organization'
 const authStore = useAuthStore()
 const orgStore = useOrganizationStore()
 
+const emit = defineEmits<{
+  (e: 'close'): void
+}>()
+
+const { isMobile } = useBreakpoints()
+
 const navigation = [
   { name: 'Dashboard', href: '/dashboard?from=nav', icon: 'home' },
   { name: 'Projects', href: '/projects', icon: 'folder' },
@@ -22,13 +28,24 @@ function isActive(href: string) {
 
 <template>
   <div class="flex h-full w-64 flex-col bg-gray-900">
-    <!-- Logo -->
-    <div class="flex h-16 items-center px-6">
+    <!-- Logo & Close Button -->
+    <div class="flex h-16 items-center justify-between px-4 sm:px-6">
       <h1 class="text-xl font-bold text-white">Projects</h1>
+      <!-- Mobile close button -->
+      <button
+        v-if="isMobile"
+        class="lg:hidden p-2 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors -mr-2"
+        aria-label="Close sidebar"
+        @click="emit('close')"
+      >
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+        </svg>
+      </button>
     </div>
 
     <!-- Organization Selector -->
-    <div class="px-4 mb-4">
+    <div class="px-3 sm:px-4 mb-4">
       <UiSearchSelect
         v-if="orgStore.organizations.length > 0"
         :model-value="orgStore.currentOrganization?.id"
@@ -40,7 +57,7 @@ function isActive(href: string) {
     </div>
 
     <!-- Navigation -->
-    <nav class="flex-1 space-y-1 px-3">
+    <nav class="flex-1 space-y-1 px-2 sm:px-3">
       <NuxtLink
         v-for="item in navigation"
         :key="item.name"
@@ -49,7 +66,7 @@ function isActive(href: string) {
           isActive(item.href)
             ? 'bg-gray-800 text-white'
             : 'text-gray-300 hover:bg-gray-800 hover:text-white',
-          'group flex items-center px-3 py-2 text-sm font-medium transition-colors',
+          'group flex items-center px-3 py-3 sm:py-2 text-sm font-medium transition-colors min-h-[44px]',
         ]"
       >
         <svg
@@ -85,10 +102,10 @@ function isActive(href: string) {
     </nav>
 
     <!-- User -->
-    <div class="border-t border-gray-800 p-4">
-      <div class="flex items-center">
+    <div class="border-t border-gray-800 p-3 sm:p-4">
+      <div class="flex items-center min-h-[44px]">
         <div
-          class="h-9 w-9 rounded-full bg-primary-600 flex items-center justify-center text-white font-medium"
+          class="h-9 w-9 rounded-full bg-primary-600 flex items-center justify-center text-white font-medium flex-shrink-0"
         >
           {{ authStore.user?.name?.[0]?.toUpperCase() || '?' }}
         </div>
@@ -101,7 +118,7 @@ function isActive(href: string) {
           </p>
         </div>
         <button
-          class="ml-2 text-gray-400 hover:text-white"
+          class="ml-2 p-2 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors -mr-2"
           title="Logout"
           @click="authStore.logout()"
         >

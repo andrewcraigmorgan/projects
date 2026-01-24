@@ -44,6 +44,8 @@ const emit = defineEmits<{
   (e: 'context-menu', task: Task, event: MouseEvent): void
 }>()
 
+const { isMobile } = useBreakpoints()
+
 // Drag-and-drop state
 const draggedTask = ref<Task | null>(null)
 const dragOverIndex = ref<number | null>(null)
@@ -199,6 +201,14 @@ const statusLabels: Record<string, string> = {
   done: 'Done',
 }
 
+const statusColors: Record<string, string> = {
+  todo: 'bg-gray-400',
+  awaiting_approval: 'bg-yellow-400',
+  open: 'bg-blue-400',
+  in_review: 'bg-purple-400',
+  done: 'bg-green-500',
+}
+
 // Handle status change
 function onStatusChange(task: Task, value: string) {
   emit('update-status', task, value as Task['status'])
@@ -304,257 +314,369 @@ function getCellValue(task: Task, columnId: string): string {
 </script>
 
 <template>
-  <div class="overflow-x-auto">
-    <!-- Loading state -->
-    <div v-if="loading" class="text-center py-8">
-      <svg
-        class="animate-spin h-8 w-8 mx-auto text-primary-600"
-        fill="none"
-        viewBox="0 0 24 24"
-      >
-        <circle
-          class="opacity-25"
-          cx="12"
-          cy="12"
-          r="10"
-          stroke="currentColor"
-          stroke-width="4"
-        />
-        <path
-          class="opacity-75"
-          fill="currentColor"
-          d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
-        />
-      </svg>
-    </div>
+  <!-- Loading state -->
+  <div v-if="loading" class="text-center py-8">
+    <svg
+      class="animate-spin h-8 w-8 mx-auto text-primary-600"
+      fill="none"
+      viewBox="0 0 24 24"
+    >
+      <circle
+        class="opacity-25"
+        cx="12"
+        cy="12"
+        r="10"
+        stroke="currentColor"
+        stroke-width="4"
+      />
+      <path
+        class="opacity-75"
+        fill="currentColor"
+        d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"
+      />
+    </svg>
+  </div>
 
-    <!-- Table -->
-    <table v-else class="w-full min-w-full border-collapse">
-      <!-- Header -->
-      <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900">
-        <tr class="border-b border-gray-200 dark:border-gray-700">
-          <!-- ID column (always visible) -->
-          <th class="w-24 px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
-            ID
-          </th>
-          <!-- Dynamic columns -->
-          <th
-            v-for="column in visibleColumns"
-            :key="column.id"
-            class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-            :class="column.width"
-          >
-            {{ column.label }}
-          </th>
-          <!-- Config column -->
-          <th class="w-10 px-2 py-2 text-right relative">
-            <button
-              ref="configButtonRef"
-              class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
-              title="Configure columns"
-              @click.stop="showColumnConfig = !showColumnConfig"
-            >
-              <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
-              </svg>
-            </button>
-            <!-- Dropdown -->
-            <div
-              v-if="showColumnConfig"
-              id="column-config-dropdown"
-              class="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-20"
-            >
-              <div class="py-1">
-                <label
-                  v-for="column in availableColumns"
-                  :key="column.id"
-                  class="flex items-center px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
-                  :class="{ 'opacity-50 cursor-not-allowed': column.id === 'title' }"
-                >
-                  <input
-                    type="checkbox"
-                    :checked="visibleColumnIds.includes(column.id)"
-                    :disabled="column.id === 'title'"
-                    class="h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 focus:ring-primary-500"
-                    @change="toggleColumn(column.id)"
-                  />
-                  <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ column.label }}</span>
-                </label>
-              </div>
-            </div>
-          </th>
-        </tr>
-      </thead>
-
-      <!-- Body -->
-      <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
-        <template v-if="tasks.length === 0">
-          <tr v-if="!projectId">
-            <td :colspan="visibleColumns.length + 2" class="px-3 py-8 text-center text-gray-500 dark:text-gray-400">
-              No tasks found
-            </td>
-          </tr>
-        </template>
-
-        <template v-else>
-          <tr
-            v-for="(task, index) in tasks"
-            :key="task.id"
-            class="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-all"
-            :class="{
-              'border-t-2 border-t-primary-500': dragOverIndex === index && draggedTask?.id !== task.id
-            }"
-            draggable="true"
-            @click="emit('select', task)"
-            @dragstart="handleDragStart(task, $event)"
-            @dragend="handleDragEnd"
-            @dragover="handleDragOver(index, $event)"
-            @dragleave="handleDragLeave"
-            @drop="handleDrop(task, index, $event)"
-            @contextmenu="handleContextMenu(task, $event)"
-          >
-            <!-- Drag handle + ID column -->
-            <td class="px-3 py-2 whitespace-nowrap">
-              <div class="flex items-center gap-2">
-                <div
-                  v-if="enableDragDrop"
-                  class="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
-                  @mousedown.stop
-                >
-                  <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
-                    <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
-                  </svg>
-                </div>
-                <span class="text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5">
-                  {{ getShortId(task) }}
-                </span>
-              </div>
-            </td>
+  <template v-else>
+    <!-- Desktop: Table view -->
+    <div class="hidden lg:block overflow-x-auto">
+      <table class="w-full min-w-full border-collapse">
+        <!-- Header -->
+        <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900">
+          <tr class="border-b border-gray-200 dark:border-gray-700">
+            <!-- ID column (always visible) -->
+            <th class="w-24 px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+              ID
+            </th>
             <!-- Dynamic columns -->
-            <td
+            <th
               v-for="column in visibleColumns"
               :key="column.id"
-              class="px-3 py-2 whitespace-nowrap"
+              class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               :class="column.width"
             >
-              <!-- Title column -->
-              <template v-if="column.id === 'title'">
-                <div class="flex items-center gap-2">
-                  <span
-                    v-if="task.isExternal"
-                    class="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
+              {{ column.label }}
+            </th>
+            <!-- Config column -->
+            <th class="w-10 px-2 py-2 text-right relative">
+              <button
+                ref="configButtonRef"
+                class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
+                title="Configure columns"
+                @click.stop="showColumnConfig = !showColumnConfig"
+              >
+                <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
+                </svg>
+              </button>
+              <!-- Dropdown -->
+              <div
+                v-if="showColumnConfig"
+                id="column-config-dropdown"
+                class="absolute right-0 top-full mt-1 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg z-20"
+              >
+                <div class="py-1">
+                  <label
+                    v-for="column in availableColumns"
+                    :key="column.id"
+                    class="flex items-center px-3 py-2 hover:bg-gray-100 dark:hover:bg-gray-700 cursor-pointer"
+                    :class="{ 'opacity-50 cursor-not-allowed': column.id === 'title' }"
                   >
-                    Ext
-                  </span>
-                  <span class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate max-w-md">
-                    {{ task.title }}
-                  </span>
+                    <input
+                      type="checkbox"
+                      :checked="visibleColumnIds.includes(column.id)"
+                      :disabled="column.id === 'title'"
+                      class="h-4 w-4 text-primary-600 border-gray-300 dark:border-gray-600 focus:ring-primary-500"
+                      @change="toggleColumn(column.id)"
+                    />
+                    <span class="ml-2 text-sm text-gray-700 dark:text-gray-300">{{ column.label }}</span>
+                  </label>
                 </div>
-              </template>
-
-              <!-- Status column -->
-              <template v-else-if="column.id === 'status'">
-                <UiDropdown
-                  :model-value="task.status"
-                  :options="statusOptions"
-                  show-dot
-                  @click.stop
-                  @update:model-value="onStatusChange(task, $event)"
-                />
-              </template>
-
-              <!-- Priority column -->
-              <template v-else-if="column.id === 'priority'">
-                <UiDropdown
-                  :model-value="task.priority || ''"
-                  :options="priorityOptions"
-                  placeholder="-"
-                  show-dot
-                  @click.stop
-                  @update:model-value="onPriorityChange(task, $event)"
-                />
-              </template>
-
-              <!-- Assignee column -->
-              <template v-else-if="column.id === 'assignee'">
-                <div class="flex items-center gap-1.5 min-w-[120px]" @click.stop>
-                  <div
-                    v-if="task.assignee?.avatar"
-                    class="w-5 h-5 rounded-full bg-cover bg-center flex-shrink-0"
-                    :style="{ backgroundImage: `url(${task.assignee.avatar})` }"
-                  />
-                  <div
-                    v-else-if="task.assignee"
-                    class="w-5 h-5 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300 flex-shrink-0"
-                  >
-                    {{ task.assignee.name.charAt(0) }}
-                  </div>
-                  <select
-                    :value="task.assignee?._id || ''"
-                    class="flex-1 min-w-0 appearance-none text-xs bg-transparent border-0 p-0 pr-4 text-gray-700 dark:text-gray-300 focus:ring-0 cursor-pointer hover:text-gray-900 dark:hover:text-gray-100 truncate"
-                    @change="onAssigneeChange(task, ($event.target as HTMLSelectElement).value)"
-                  >
-                    <option value="">Unassigned</option>
-                    <option
-                      v-for="user in assigneeOptions"
-                      :key="user.id"
-                      :value="user.id"
-                    >
-                      {{ user.name }}
-                    </option>
-                  </select>
-                </div>
-              </template>
-
-              <!-- Subtask count column -->
-              <template v-else-if="column.id === 'subtaskCount'">
-                <div
-                  v-if="task.subtaskCount > 0"
-                  class="inline-flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400 font-medium"
-                >
-                  {{ task.subtaskCount }}
-                  <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
-                  </svg>
-                </div>
-                <span v-else class="text-xs text-gray-400 dark:text-gray-500">-</span>
-              </template>
-
-              <!-- Due date column -->
-              <template v-else-if="column.id === 'dueDate'">
-                <input
-                  type="date"
-                  :value="task.dueDate?.slice(0, 10) || ''"
-                  class="text-xs bg-transparent border-0 p-0 text-gray-600 dark:text-gray-300 focus:ring-0 cursor-pointer hover:text-gray-900 dark:hover:text-gray-100 [color-scheme:light] dark:[color-scheme:dark]"
-                  @click.stop
-                  @change="onDueDateChange(task, $event)"
-                />
-              </template>
-
-              <!-- Default text columns (dates, etc) -->
-              <template v-else>
-                <span class="text-xs text-gray-600 dark:text-gray-400">
-                  {{ getCellValue(task, column.id) }}
-                </span>
-              </template>
-            </td>
-            <!-- Empty config column -->
-            <td class="w-10 px-2 py-2" />
+              </div>
+            </th>
           </tr>
-        </template>
+        </thead>
 
-        <!-- Quick add row -->
-        <tr v-if="projectId">
-          <td :colspan="visibleColumns.length + 2" class="px-0 py-0">
-            <TasksTaskQuickAdd
-              :project-id="projectId"
-              :parent-task-id="parentTaskId"
-              :placeholder="parentTaskId ? 'Add a subtask...' : 'Add a task...'"
-              @created="emit('task-created')"
-            />
-          </td>
-        </tr>
-      </tbody>
-    </table>
-  </div>
+        <!-- Body -->
+        <tbody class="bg-white dark:bg-gray-800 divide-y divide-gray-100 dark:divide-gray-700">
+          <template v-if="tasks.length === 0">
+            <tr v-if="!projectId">
+              <td :colspan="visibleColumns.length + 2" class="px-3 py-8 text-center text-gray-500 dark:text-gray-400">
+                No tasks found
+              </td>
+            </tr>
+          </template>
+
+          <template v-else>
+            <tr
+              v-for="(task, index) in tasks"
+              :key="task.id"
+              class="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-all"
+              :class="{
+                'border-t-2 border-t-primary-500': dragOverIndex === index && draggedTask?.id !== task.id
+              }"
+              draggable="true"
+              @click="emit('select', task)"
+              @dragstart="handleDragStart(task, $event)"
+              @dragend="handleDragEnd"
+              @dragover="handleDragOver(index, $event)"
+              @dragleave="handleDragLeave"
+              @drop="handleDrop(task, index, $event)"
+              @contextmenu="handleContextMenu(task, $event)"
+            >
+              <!-- Drag handle + ID column -->
+              <td class="px-3 py-2 whitespace-nowrap">
+                <div class="flex items-center gap-2">
+                  <div
+                    v-if="enableDragDrop"
+                    class="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                    @mousedown.stop
+                  >
+                    <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                      <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
+                    </svg>
+                  </div>
+                  <span class="text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5">
+                    {{ getShortId(task) }}
+                  </span>
+                </div>
+              </td>
+              <!-- Dynamic columns -->
+              <td
+                v-for="column in visibleColumns"
+                :key="column.id"
+                class="px-3 py-2 whitespace-nowrap"
+                :class="column.width"
+              >
+                <!-- Title column -->
+                <template v-if="column.id === 'title'">
+                  <div class="flex items-center gap-2">
+                    <span
+                      v-if="task.isExternal"
+                      class="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
+                    >
+                      Ext
+                    </span>
+                    <span class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate max-w-md">
+                      {{ task.title }}
+                    </span>
+                  </div>
+                </template>
+
+                <!-- Status column -->
+                <template v-else-if="column.id === 'status'">
+                  <UiDropdown
+                    :model-value="task.status"
+                    :options="statusOptions"
+                    show-dot
+                    @click.stop
+                    @update:model-value="onStatusChange(task, $event)"
+                  />
+                </template>
+
+                <!-- Priority column -->
+                <template v-else-if="column.id === 'priority'">
+                  <UiDropdown
+                    :model-value="task.priority || ''"
+                    :options="priorityOptions"
+                    placeholder="-"
+                    show-dot
+                    @click.stop
+                    @update:model-value="onPriorityChange(task, $event)"
+                  />
+                </template>
+
+                <!-- Assignee column -->
+                <template v-else-if="column.id === 'assignee'">
+                  <div class="flex items-center gap-1.5 min-w-[120px]" @click.stop>
+                    <div
+                      v-if="task.assignee?.avatar"
+                      class="w-5 h-5 rounded-full bg-cover bg-center flex-shrink-0"
+                      :style="{ backgroundImage: `url(${task.assignee.avatar})` }"
+                    />
+                    <div
+                      v-else-if="task.assignee"
+                      class="w-5 h-5 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300 flex-shrink-0"
+                    >
+                      {{ task.assignee.name.charAt(0) }}
+                    </div>
+                    <select
+                      :value="task.assignee?._id || ''"
+                      class="flex-1 min-w-0 appearance-none text-xs bg-transparent border-0 p-0 pr-4 text-gray-700 dark:text-gray-300 focus:ring-0 cursor-pointer hover:text-gray-900 dark:hover:text-gray-100 truncate"
+                      @change="onAssigneeChange(task, ($event.target as HTMLSelectElement).value)"
+                    >
+                      <option value="">Unassigned</option>
+                      <option
+                        v-for="user in assigneeOptions"
+                        :key="user.id"
+                        :value="user.id"
+                      >
+                        {{ user.name }}
+                      </option>
+                    </select>
+                  </div>
+                </template>
+
+                <!-- Subtask count column -->
+                <template v-else-if="column.id === 'subtaskCount'">
+                  <div
+                    v-if="task.subtaskCount > 0"
+                    class="inline-flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400 font-medium"
+                  >
+                    {{ task.subtaskCount }}
+                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                      <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+                    </svg>
+                  </div>
+                  <span v-else class="text-xs text-gray-400 dark:text-gray-500">-</span>
+                </template>
+
+                <!-- Due date column -->
+                <template v-else-if="column.id === 'dueDate'">
+                  <input
+                    type="date"
+                    :value="task.dueDate?.slice(0, 10) || ''"
+                    class="text-xs bg-transparent border-0 p-0 text-gray-600 dark:text-gray-300 focus:ring-0 cursor-pointer hover:text-gray-900 dark:hover:text-gray-100 [color-scheme:light] dark:[color-scheme:dark]"
+                    @click.stop
+                    @change="onDueDateChange(task, $event)"
+                  />
+                </template>
+
+                <!-- Default text columns (dates, etc) -->
+                <template v-else>
+                  <span class="text-xs text-gray-600 dark:text-gray-400">
+                    {{ getCellValue(task, column.id) }}
+                  </span>
+                </template>
+              </td>
+              <!-- Empty config column -->
+              <td class="w-10 px-2 py-2" />
+            </tr>
+          </template>
+
+          <!-- Quick add row -->
+          <tr v-if="projectId">
+            <td :colspan="visibleColumns.length + 2" class="px-0 py-0">
+              <TasksTaskQuickAdd
+                :project-id="projectId"
+                :parent-task-id="parentTaskId"
+                :placeholder="parentTaskId ? 'Add a subtask...' : 'Add a task...'"
+                @created="emit('task-created')"
+              />
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <!-- Mobile: Card list view -->
+    <div class="lg:hidden space-y-2">
+      <template v-if="tasks.length === 0 && !projectId">
+        <div class="text-center py-8 text-gray-500 dark:text-gray-400">
+          No tasks found
+        </div>
+      </template>
+
+      <template v-else>
+        <div
+          v-for="task in tasks"
+          :key="task.id"
+          class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 cursor-pointer active:bg-gray-50 dark:active:bg-gray-700 transition-colors"
+          @click="emit('select', task)"
+          @contextmenu="handleContextMenu(task, $event)"
+        >
+          <!-- Task ID and Title -->
+          <div class="flex items-start gap-3 mb-3">
+            <span class="flex-shrink-0 text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5">
+              {{ getShortId(task) }}
+            </span>
+            <div class="flex-1 min-w-0">
+              <div class="flex items-center gap-2">
+                <span
+                  v-if="task.isExternal"
+                  class="inline-flex items-center px-1.5 py-0.5 text-xs font-medium bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300"
+                >
+                  Ext
+                </span>
+                <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2">
+                  {{ task.title }}
+                </h4>
+              </div>
+            </div>
+          </div>
+
+          <!-- Status, Priority, Assignee row -->
+          <div class="flex items-center gap-2 flex-wrap">
+            <!-- Status badge -->
+            <div class="flex items-center gap-1.5">
+              <div class="h-2 w-2 flex-shrink-0" :class="statusColors[task.status]" />
+              <span class="text-xs text-gray-600 dark:text-gray-400">
+                {{ statusLabels[task.status] }}
+              </span>
+            </div>
+
+            <!-- Priority badge -->
+            <span
+              v-if="task.priority"
+              class="inline-flex items-center px-2 py-0.5 text-xs font-medium"
+              :class="{
+                'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300': task.priority === 'low',
+                'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300': task.priority === 'medium',
+                'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300': task.priority === 'high',
+              }"
+            >
+              {{ priorityLabels[task.priority] }}
+            </span>
+
+            <!-- Subtask count -->
+            <span
+              v-if="task.subtaskCount > 0"
+              class="text-xs text-primary-600 dark:text-primary-400"
+            >
+              {{ task.subtaskCount }} subtask{{ task.subtaskCount !== 1 ? 's' : '' }}
+            </span>
+
+            <!-- Due date -->
+            <span
+              v-if="task.dueDate"
+              class="text-xs text-gray-500 dark:text-gray-400"
+            >
+              Due {{ formatDate(task.dueDate) }}
+            </span>
+
+            <!-- Assignee (pushed to end) -->
+            <div
+              v-if="task.assignee"
+              class="flex items-center gap-1.5 ml-auto"
+            >
+              <div
+                v-if="task.assignee.avatar"
+                class="w-6 h-6 rounded-full bg-cover bg-center flex-shrink-0"
+                :style="{ backgroundImage: `url(${task.assignee.avatar})` }"
+              />
+              <div
+                v-else
+                class="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-xs font-medium text-primary-700 dark:text-primary-300 flex-shrink-0"
+              >
+                {{ task.assignee.name.charAt(0) }}
+              </div>
+              <span class="text-xs text-gray-600 dark:text-gray-400 truncate max-w-[80px]">
+                {{ task.assignee.name }}
+              </span>
+            </div>
+          </div>
+        </div>
+      </template>
+
+      <!-- Quick add on mobile -->
+      <div v-if="projectId" class="pt-2">
+        <TasksTaskQuickAdd
+          :project-id="projectId"
+          :parent-task-id="parentTaskId"
+          :placeholder="parentTaskId ? 'Add a subtask...' : 'Add a task...'"
+          @created="emit('task-created')"
+        />
+      </div>
+    </div>
+  </template>
 </template>

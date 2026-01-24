@@ -4,6 +4,7 @@ import { useOrganizationStore } from '~/stores/organization'
 
 const authStore = useAuthStore()
 const orgStore = useOrganizationStore()
+const { isOpen, isMobile, close } = useSidebar()
 
 // Redirect to login if not authenticated
 watch(
@@ -26,12 +27,41 @@ watch(
   },
   { immediate: true }
 )
+
+// Close sidebar when clicking overlay
+function handleOverlayClick() {
+  close()
+}
 </script>
 
 <template>
   <div class="flex h-screen bg-gray-50 dark:bg-gray-900">
-    <LayoutSidebar />
-    <main class="flex-1 overflow-auto">
+    <!-- Mobile overlay backdrop -->
+    <Transition
+      enter-active-class="transition-opacity duration-300"
+      enter-from-class="opacity-0"
+      enter-to-class="opacity-100"
+      leave-active-class="transition-opacity duration-200"
+      leave-from-class="opacity-100"
+      leave-to-class="opacity-0"
+    >
+      <div
+        v-if="isMobile && isOpen"
+        class="fixed inset-0 z-40 bg-black/50 lg:hidden"
+        @click="handleOverlayClick"
+      />
+    </Transition>
+
+    <!-- Sidebar -->
+    <aside
+      class="fixed lg:static inset-y-0 left-0 z-50 w-64 transform transition-transform duration-300 ease-in-out lg:translate-x-0"
+      :class="isMobile && !isOpen ? '-translate-x-full' : 'translate-x-0'"
+    >
+      <LayoutSidebar @close="close" />
+    </aside>
+
+    <!-- Main content -->
+    <main class="flex-1 overflow-auto w-full">
       <slot />
     </main>
   </div>

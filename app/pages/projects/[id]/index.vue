@@ -9,6 +9,7 @@ definePageMeta({
 const route = useRoute()
 const router = useRouter()
 const { fetchApi } = useApi()
+const { isMobile } = useBreakpoints()
 
 const projectId = computed(() => route.params.id as string)
 
@@ -41,6 +42,9 @@ const savingDescription = ref(false)
 
 // Organization members for assignee selection
 const organizationMembers = ref<Array<{ id: string; name: string; email: string; avatar?: string }>>([])
+
+// Mobile filter drawer state
+const showMobileFilters = ref(false)
 
 // Description editing functions
 function startEditingDescription() {
@@ -555,27 +559,43 @@ onMounted(async () => {
     <LayoutHeader back-link="/projects">
       <template #title>
         <div v-if="projectLoading" class="h-8 w-48 bg-gray-200 dark:bg-gray-700 animate-pulse" />
-        <div v-else>
-          <h1 class="text-2xl font-semibold text-gray-900 dark:text-gray-100">
+        <div v-else class="min-w-0">
+          <h1 class="text-xl sm:text-2xl font-semibold text-gray-900 dark:text-gray-100 truncate">
             {{ project?.name }}
           </h1>
-          <p v-if="project?.description" class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+          <p v-if="project?.description" class="text-sm text-gray-500 dark:text-gray-400 mt-1 hidden sm:block truncate">
             {{ project.description }}
           </p>
         </div>
       </template>
       <template #actions>
-        <div class="flex items-center gap-3">
-          <!-- Milestones link -->
+        <div class="flex items-center gap-2 sm:gap-3">
+          <!-- Milestones link - hidden on small mobile -->
           <NuxtLink
             :to="`/projects/${projectId}/milestones`"
-            class="px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
+            class="hidden sm:block px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
           >
             Milestones
           </NuxtLink>
 
-          <!-- Filters -->
-          <div class="flex items-center gap-2">
+          <!-- Mobile: Filter toggle button -->
+          <button
+            class="lg:hidden p-2 text-gray-600 dark:text-gray-400 hover:text-gray-900 dark:hover:text-gray-200 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors relative"
+            :class="{ 'text-primary-600 dark:text-primary-400': hasActiveFilters }"
+            @click="showMobileFilters = !showMobileFilters"
+          >
+            <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 4a1 1 0 011-1h16a1 1 0 011 1v2.586a1 1 0 01-.293.707l-6.414 6.414a1 1 0 00-.293.707V17l-4 4v-6.586a1 1 0 00-.293-.707L3.293 7.293A1 1 0 013 6.586V4z" />
+            </svg>
+            <!-- Active filter indicator -->
+            <span
+              v-if="hasActiveFilters"
+              class="absolute top-1 right-1 w-2 h-2 bg-primary-500 rounded-full"
+            />
+          </button>
+
+          <!-- Desktop: Filters inline -->
+          <div class="hidden lg:flex items-center gap-2">
             <!-- Preset selector -->
             <select
               :value="currentPreset"
@@ -635,21 +655,29 @@ onMounted(async () => {
             </button>
           </div>
 
-          <!-- View toggle -->
+          <!-- View toggle - icon only on mobile -->
           <div class="flex border border-gray-200 dark:border-gray-700 overflow-hidden">
             <button
-              class="px-3 py-1.5 text-sm font-medium transition-colors"
+              class="p-2 sm:px-3 sm:py-1.5 text-sm font-medium transition-colors"
               :class="viewMode === 'list' ? 'bg-primary-50 text-primary-700 dark:bg-primary-900 dark:text-primary-300' : 'bg-white text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'"
+              title="List view"
               @click="viewMode = 'list'"
             >
-              List
+              <svg class="h-5 w-5 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 10h16M4 14h16M4 18h16" />
+              </svg>
+              <span class="hidden sm:inline">List</span>
             </button>
             <button
-              class="px-3 py-1.5 text-sm font-medium transition-colors"
+              class="p-2 sm:px-3 sm:py-1.5 text-sm font-medium transition-colors"
               :class="viewMode === 'board' ? 'bg-primary-50 text-primary-700 dark:bg-primary-900 dark:text-primary-300' : 'bg-white text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'"
+              title="Board view"
               @click="viewMode = 'board'"
             >
-              Board
+              <svg class="h-5 w-5 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 17V7m0 10a2 2 0 01-2 2H5a2 2 0 01-2-2V7a2 2 0 012-2h2a2 2 0 012 2m0 10a2 2 0 002 2h2a2 2 0 002-2M9 7a2 2 0 012-2h2a2 2 0 012 2m0 10V7m0 10a2 2 0 002 2h2a2 2 0 002-2V7a2 2 0 00-2-2h-2a2 2 0 00-2 2" />
+              </svg>
+              <span class="hidden sm:inline">Board</span>
             </button>
           </div>
 
@@ -657,7 +685,101 @@ onMounted(async () => {
       </template>
     </LayoutHeader>
 
-    <div class="p-6">
+    <!-- Mobile Filter Drawer -->
+    <Transition
+      enter-active-class="transition-all duration-200 ease-out"
+      enter-from-class="max-h-0 opacity-0"
+      enter-to-class="max-h-96 opacity-100"
+      leave-active-class="transition-all duration-150 ease-in"
+      leave-from-class="max-h-96 opacity-100"
+      leave-to-class="max-h-0 opacity-0"
+    >
+      <div
+        v-if="showMobileFilters && isMobile"
+        class="lg:hidden bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 overflow-hidden"
+      >
+        <div class="p-4 space-y-4">
+          <!-- Preset selector -->
+          <div>
+            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Quick Filter</label>
+            <select
+              :value="currentPreset"
+              class="w-full text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-3 py-2 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none"
+              @change="(e: Event) => {
+                const preset = presets.find(p => p.name === (e.target as HTMLSelectElement).value)
+                if (preset) {
+                  applyPreset(preset)
+                }
+              }"
+            >
+              <option v-for="preset in presets" :key="preset.name" :value="preset.name">
+                {{ preset.name }}
+              </option>
+              <option v-if="currentPreset === 'Custom'" value="Custom">Custom</option>
+            </select>
+          </div>
+
+          <!-- Status & Priority filters -->
+          <div class="flex gap-3">
+            <div class="flex-1">
+              <UiFilterDropdown
+                v-model="statusFilter"
+                :options="statusOptions"
+                label="Status"
+                placeholder="Status"
+              />
+            </div>
+            <div class="flex-1">
+              <UiFilterDropdown
+                v-model="priorityFilter"
+                :options="priorityOptions"
+                label="Priority"
+                placeholder="Priority"
+              />
+            </div>
+          </div>
+
+          <!-- Date range -->
+          <div>
+            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Due Date Range</label>
+            <div class="flex items-center gap-2">
+              <input
+                v-model="dueDateFrom"
+                type="date"
+                class="flex-1 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-3 py-2 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none"
+                placeholder="From"
+              />
+              <span class="text-gray-400">-</span>
+              <input
+                v-model="dueDateTo"
+                type="date"
+                class="flex-1 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-3 py-2 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none"
+                placeholder="To"
+              />
+            </div>
+          </div>
+
+          <!-- Clear filters button -->
+          <div class="flex justify-between items-center pt-2">
+            <button
+              v-if="hasActiveFilters"
+              class="text-sm text-gray-500 hover:text-gray-700 dark:text-gray-400 dark:hover:text-gray-200"
+              @click="clearFilters"
+            >
+              Reset to All Open
+            </button>
+            <button
+              class="ml-auto text-sm font-medium text-primary-600 dark:text-primary-400"
+              @click="showMobileFilters = false"
+            >
+              Done
+            </button>
+          </div>
+        </div>
+      </div>
+    </Transition>
+
+    <div class="p-4 sm:p-6">
       <!-- Error state -->
       <div v-if="projectError" class="text-center py-12">
         <p class="text-gray-500 dark:text-gray-400 mb-4">Project not found</p>
@@ -713,7 +835,7 @@ onMounted(async () => {
         <div v-if="currentParentTask" class="mb-6 p-4 bg-gray-50 dark:bg-gray-800 border border-gray-200 dark:border-gray-700">
           <div class="flex items-start justify-between gap-4">
             <div class="flex-1 min-w-0">
-              <div class="flex items-center gap-3 mb-2">
+              <div class="flex items-center gap-2 sm:gap-3 mb-2 flex-wrap">
                 <span class="px-2 py-0.5 text-xs font-mono bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400">
                   {{ getShortId(currentParentTask) }}
                 </span>
@@ -741,7 +863,7 @@ onMounted(async () => {
                   {{ currentParentTask.priority }}
                 </span>
               </div>
-              <h2 class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+              <h2 class="text-base sm:text-lg font-semibold text-gray-900 dark:text-gray-100">
                 {{ currentParentTask.title }}
               </h2>
               <!-- Description editing area -->
@@ -794,7 +916,10 @@ onMounted(async () => {
               class="flex-shrink-0 px-3 py-1.5 text-sm font-medium text-primary-600 dark:text-primary-400 hover:bg-primary-50 dark:hover:bg-primary-900/20 transition-colors"
               @click="navigateToTask(currentParentTask)"
             >
-              View Details
+              <span class="hidden sm:inline">View Details</span>
+              <svg class="h-5 w-5 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
+              </svg>
             </button>
           </div>
           <div class="mt-3 text-sm text-gray-500 dark:text-gray-400">
