@@ -78,6 +78,55 @@ async function processAndUploadFile(file: File | Blob): Promise<string | null> {
   return await uploadImage(base64, filename, mimeType)
 }
 
+// Proxy an external image through our server
+async function proxyExternalImage(imageUrl: string): Promise<string | null> {
+  const organizationId = orgStore.currentOrganization?.id
+  if (!organizationId) {
+    console.warn('No organization selected, cannot proxy image')
+    return null
+  }
+
+  try {
+    const response = await fetchApi<{
+      success: boolean
+      data: { url: string }
+    }>('/api/attachments/proxy', {
+      method: 'POST',
+      body: {
+        organizationId,
+        imageUrl,
+      },
+    })
+
+    if (response.success) {
+      return response.data.url
+    }
+    return null
+  } catch (error) {
+    console.error('Failed to proxy image:', error)
+    return null
+  }
+}
+
+// Extract all external image URLs from HTML
+function extractExternalImageUrls(html: string): string[] {
+  const urls: string[] = []
+  const regex = /<img[^>]+src="((?!data:|\/api\/attachments\/)[^"]+)"[^>]*>/gi
+  let match
+  while ((match = regex.exec(html)) !== null) {
+    urls.push(match[1])
+  }
+  return urls
+}
+
+// Replace an image URL in HTML
+function replaceImageUrl(html: string, oldUrl: string, newUrl: string): string {
+  // Escape special regex characters in the URL
+  const escapedUrl = oldUrl.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+  const regex = new RegExp(`(<img[^>]+src=")${escapedUrl}("[^>]*>)`, 'gi')
+  return html.replace(regex, `$1${newUrl}$2`)
+}
+
 // Remove external images that can't be loaded (replace with placeholder text)
 function removeExternalImages(html: string): string {
   // Replace external image tags with a placeholder
@@ -141,21 +190,33 @@ const editor = useEditor({
       // Second priority: Check for HTML with images
       const html = clipboardData.getData('text/html')
       if (html && /<img[^>]+src=/i.test(html)) {
-        // Let the paste happen, then clean up external images
-        setTimeout(() => {
+        // Let the paste happen, then try to proxy external images
+        setTimeout(async () => {
           if (!editor.value || isProcessing.value) return
           isProcessing.value = true
 
-          const currentHtml = editor.value.getHTML()
+          let currentHtml = editor.value.getHTML()
 
-          // Check for external images (not our API URLs and not base64)
-          const hasExternalImages = /<img[^>]+src="(?!data:|\/api\/attachments\/)[^"]+"/i.test(currentHtml)
+          // Extract external image URLs
+          const externalUrls = extractExternalImageUrls(currentHtml)
 
-          if (hasExternalImages) {
-            // Remove external images and show placeholder
-            const cleanHtml = removeExternalImages(currentHtml)
-            editor.value.commands.setContent(cleanHtml, false)
-            emit('update:modelValue', cleanHtml)
+          if (externalUrls.length > 0) {
+            // Try to proxy each external image
+            for (const url of externalUrls) {
+              const proxiedUrl = await proxyExternalImage(url)
+              if (proxiedUrl) {
+                currentHtml = replaceImageUrl(currentHtml, url, proxiedUrl)
+              } else {
+                // If proxy fails, replace with placeholder
+                currentHtml = currentHtml.replace(
+                  new RegExp(`<img[^>]+src="${url.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')}"[^>]*>`, 'gi'),
+                  '<em>[Image could not be loaded - please copy the image directly or upload it]</em>'
+                )
+              }
+            }
+
+            editor.value.commands.setContent(currentHtml, false)
+            emit('update:modelValue', currentHtml)
           }
 
           isProcessing.value = false
