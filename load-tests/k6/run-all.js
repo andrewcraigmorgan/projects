@@ -199,13 +199,15 @@ function createTaskJourney(headers, projectId) {
       metrics.tasks.success.add(1)
       metrics.tasks.created.add(1)
 
-      const task = JSON.parse(createRes.body)
+      const createBody = JSON.parse(createRes.body)
+      const task = createBody.data?.task || createBody
       sleep(0.5)
 
       // Update the task
       const updateData = { status: 'open' }
       const updateStart = Date.now()
-      const updateRes = http.patch(`${API_URL}/tasks/${task._id}`, JSON.stringify(updateData), { headers })
+      const taskId = task.id || task._id
+      const updateRes = http.patch(`${API_URL}/tasks/${taskId}`, JSON.stringify(updateData), { headers })
       metrics.tasks.updateDuration.add(Date.now() - updateStart)
       metrics.tasks.success.add(updateRes.status === 200 ? 1 : 0)
     } else {
@@ -226,13 +228,15 @@ function commentJourney(headers, projectId) {
       return
     }
 
-    const tasks = JSON.parse(listRes.body).tasks || []
+    const tasksBody = JSON.parse(listRes.body)
+    const tasks = tasksBody.data?.tasks || tasksBody.tasks || []
     if (tasks.length === 0) {
       metrics.comments.success.add(0)
       return
     }
 
     const task = tasks[Math.floor(Math.random() * tasks.length)]
+    const taskId = task.id || task._id
 
     // Add comment
     const commentData = {
@@ -240,7 +244,7 @@ function commentJourney(headers, projectId) {
     }
 
     const start = Date.now()
-    const res = http.post(`${API_URL}/tasks/${task._id}/comments`, JSON.stringify(commentData), { headers })
+    const res = http.post(`${API_URL}/tasks/${taskId}/comments`, JSON.stringify(commentData), { headers })
     metrics.comments.createDuration.add(Date.now() - start)
 
     if (res.status === 201) {

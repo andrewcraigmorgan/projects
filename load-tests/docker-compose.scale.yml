@@ -5,7 +5,7 @@ services:
   # Override app service for production build with multiple replicas
   app:
     build:
-      context: ..
+      context: .
       dockerfile: Dockerfile
       target: runner
     ports: !override []  # Remove direct port mapping, use nginx instead
