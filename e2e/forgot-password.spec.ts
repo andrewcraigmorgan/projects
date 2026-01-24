@@ -9,7 +9,7 @@ async function clearMailpit() {
   await fetch(`${MAILPIT_API}/messages`, { method: 'DELETE' })
 }
 
-async function getLatestEmail(retries = 10): Promise<any> {
+async function getLatestEmail(retries = 20): Promise<any> {
   for (let i = 0; i < retries; i++) {
     const response = await fetch(`${MAILPIT_API}/messages`)
     const data = await response.json()
@@ -41,6 +41,9 @@ async function waitForHydration(page: any) {
 }
 
 test.describe('Forgot Password Flow', () => {
+  // Run tests serially to avoid race conditions with shared test user
+  test.describe.configure({ mode: 'serial' })
+
   test.beforeEach(async () => {
     await clearMailpit()
   })
