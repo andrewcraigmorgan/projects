@@ -88,6 +88,7 @@ const TaskSchema = new Schema<TaskDocument>(
 // Indexes for efficient queries
 TaskSchema.index({ project: 1, status: 1 })
 TaskSchema.index({ project: 1, parentTask: 1 })
+TaskSchema.index({ project: 1, taskNumber: -1 }) // For task number auto-increment and lookups
 TaskSchema.index({ path: 1 }) // For ancestor/descendant queries
 TaskSchema.index({ assignee: 1 })
 TaskSchema.index({ project: 1, order: 1 })
@@ -100,7 +101,7 @@ TaskSchema.index({ project: 1, parentTask: 1, order: 1 }) // Hierarchical orderi
 TaskSchema.index({ project: 1, createdAt: -1 }) // Recent tasks
 TaskSchema.index({ createdBy: 1, createdAt: -1 }) // User's created tasks
 
-// Pre-save hook to set path for hierarchical queries
+// Pre-save hook to set path for hierarchical queries and auto-assign taskNumber
 TaskSchema.pre('save', async function (next) {
   if (this.isNew || this.isModified('parentTask')) {
     if (this.parentTask) {
@@ -116,6 +117,15 @@ TaskSchema.pre('save', async function (next) {
       this.path = ''
     }
   }
+
+  // Auto-assign taskNumber if not set (new task with default 0)
+  if (this.isNew && this.taskNumber === 0) {
+    const maxTask = await mongoose.model('Task').findOne({ project: this.project })
+      .sort({ taskNumber: -1 })
+      .select('taskNumber')
+    this.taskNumber = (maxTask?.taskNumber || 0) + 1
+  }
+
   next()
 })
 

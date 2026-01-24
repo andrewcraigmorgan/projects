@@ -325,6 +325,12 @@ async function createTasks(
     // Clear existing tasks for this project (for clean re-runs)
     await Task.deleteMany({ project: projectId, title: { $regex: /^(Implement|Fix|Update|Refactor|Add|Remove|Optimize|Test|Review|Document)/ } })
 
+    // Get the highest existing task number for this project
+    const lastTask = await Task.findOne({ project: projectId })
+      .sort({ taskNumber: -1 })
+      .select('taskNumber')
+    let nextTaskNumber = (lastTask?.taskNumber || 0) + 1
+
     const projectTaskIds: mongoose.Types.ObjectId[] = []
     const batchSize = 100
 
@@ -361,6 +367,7 @@ async function createTasks(
 
         tasks.push({
           project: projectId,
+          taskNumber: nextTaskNumber++,
           title: generateTaskTitle(),
           description: `Load test task ${taskCount + i + 1}. This is a sample task description for testing purposes.`,
           status: randomItem(statuses),
