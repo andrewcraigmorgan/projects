@@ -48,6 +48,8 @@ const UserSchema = new Schema<UserDocument>(
 )
 
 UserSchema.index({ 'apiKeys.key': 1 })
+UserSchema.index({ organizations: 1 }) // For org membership queries
+UserSchema.index({ createdAt: -1 }) // For user listing
 
 export const User =
   mongoose.models.User || mongoose.model<UserDocument>('User', UserSchema)

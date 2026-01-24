@@ -92,6 +92,14 @@ TaskSchema.index({ path: 1 }) // For ancestor/descendant queries
 TaskSchema.index({ assignee: 1 })
 TaskSchema.index({ project: 1, order: 1 })
 
+// Additional indexes for load testing / scale
+TaskSchema.index({ project: 1, status: 1, priority: 1 }) // Filtered queries
+TaskSchema.index({ project: 1, dueDate: 1 }) // Date range queries
+TaskSchema.index({ project: 1, assignee: 1, status: 1 }) // Assigned task queries
+TaskSchema.index({ project: 1, parentTask: 1, order: 1 }) // Hierarchical ordering
+TaskSchema.index({ project: 1, createdAt: -1 }) // Recent tasks
+TaskSchema.index({ createdBy: 1, createdAt: -1 }) // User's created tasks
+
 // Pre-save hook to set path for hierarchical queries
 TaskSchema.pre('save', async function (next) {
   if (this.isNew || this.isModified('parentTask')) {

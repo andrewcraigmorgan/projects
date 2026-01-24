@@ -49,6 +49,9 @@ const ProjectSchema = new Schema<ProjectDocument>(
 ProjectSchema.index({ organization: 1 })
 ProjectSchema.index({ organization: 1, status: 1 })
 ProjectSchema.index({ organization: 1, code: 1 }, { unique: true, sparse: true })
+ProjectSchema.index({ owner: 1 }) // For owner's projects
+ProjectSchema.index({ members: 1 }) // For member's projects
+ProjectSchema.index({ organization: 1, createdAt: -1 }) // Recent projects in org
 
 // Pre-save hook to auto-generate project code if not provided
 ProjectSchema.pre('save', async function (next) {

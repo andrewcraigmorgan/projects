@@ -44,7 +44,9 @@ const CommentSchema = new Schema<CommentDocument>(
 
 // Indexes for efficient queries
 CommentSchema.index({ task: 1, createdAt: 1 })
+CommentSchema.index({ task: 1, createdAt: -1 }) // Descending for recent comments
 CommentSchema.index({ author: 1 })
+CommentSchema.index({ author: 1, createdAt: -1 }) // User's recent comments
 CommentSchema.index({ emailMessageId: 1 }, { sparse: true })
 
 export const Comment =
