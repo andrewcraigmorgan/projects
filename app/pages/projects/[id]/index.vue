@@ -36,20 +36,13 @@ const breadcrumbs = ref<Array<{ id: string; title: string; taskNumber: number }>
 
 // Compute the back link based on navigation hierarchy
 const backLink = computed(() => {
-  // If not viewing subtasks, go to projects list
+  // If not viewing subtasks, no back button (we're at project root)
   if (!currentParentId.value) {
-    return '/projects'
+    return undefined
   }
 
   // If viewing subtasks but no ancestors (direct child of project), go to project root
-  if (breadcrumbs.value.length === 0) {
-    return `/projects/${projectId.value}`
-  }
-
-  // If has ancestors, go to the immediate parent's parent (second to last in breadcrumbs)
-  // breadcrumbs is ordered from root to parent, so the grandparent is second to last
-  if (breadcrumbs.value.length === 1) {
-    // Only one ancestor (the current parent), go to project root
+  if (breadcrumbs.value.length === 0 || breadcrumbs.value.length === 1) {
     return `/projects/${projectId.value}`
   }
 
