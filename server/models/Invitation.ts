@@ -24,7 +24,6 @@ const InvitationSchema = new Schema<InvitationDocument>(
     token: {
       type: String,
       required: true,
-      unique: true,
     },
     status: {
       type: String,
