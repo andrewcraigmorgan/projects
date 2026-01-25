@@ -7,6 +7,15 @@ import { Milestone } from '../server/models/Milestone'
 
 const MONGODB_URI = process.env.MONGODB_URI || 'mongodb://localhost:27017/projects'
 
+// Test users to create for multi-user assignment testing
+const TEST_USERS = [
+  { name: 'Alice Chen', email: 'alice@example.com', role: 'team' as const },
+  { name: 'Bob Martinez', email: 'bob@example.com', role: 'team' as const },
+  { name: 'Carol Williams', email: 'carol@example.com', role: 'team' as const },
+  { name: 'David Kim', email: 'david@example.com', role: 'client' as const },
+  { name: 'Eve Johnson', email: 'eve@example.com', role: 'client' as const },
+]
+
 const DEFAULT_PROJECT = {
   name: 'Demo Project',
   description: 'A demo project with sample tasks for testing and demonstration purposes.',
@@ -141,14 +150,33 @@ interface TaskTemplate {
   subtasks?: TaskTemplate[]
 }
 
+function getRandomAssignees(allUserIds: mongoose.Types.ObjectId[]): mongoose.Types.ObjectId[] {
+  // 30% chance of no assignees, 40% chance of 1, 20% chance of 2, 10% chance of 3
+  const rand = Math.random()
+  let count: number
+  if (rand < 0.3) count = 0
+  else if (rand < 0.7) count = 1
+  else if (rand < 0.9) count = 2
+  else count = 3
+
+  if (count === 0 || allUserIds.length === 0) return []
+
+  // Shuffle and take first `count` users
+  const shuffled = [...allUserIds].sort(() => Math.random() - 0.5)
+  return shuffled.slice(0, Math.min(count, shuffled.length))
+}
+
 async function createTaskWithSubtasks(
   template: TaskTemplate,
   projectId: mongoose.Types.ObjectId,
   userId: mongoose.Types.ObjectId,
   parentTaskId: mongoose.Types.ObjectId | null = null,
   order: number = 0,
-  milestoneId: mongoose.Types.ObjectId | null = null
+  milestoneId: mongoose.Types.ObjectId | null = null,
+  allUserIds: mongoose.Types.ObjectId[] = []
 ): Promise<void> {
+  const assignees = getRandomAssignees(allUserIds)
+
   const task = await Task.create({
     project: projectId,
     title: template.title,
@@ -159,6 +187,7 @@ async function createTaskWithSubtasks(
     milestone: milestoneId,
     order,
     createdBy: userId,
+    assignees,
   })
 
   if (template.subtasks) {
@@ -169,7 +198,8 @@ async function createTaskWithSubtasks(
         userId,
         task._id as mongoose.Types.ObjectId,
         i,
-        milestoneId // Subtasks inherit parent's milestone
+        milestoneId, // Subtasks inherit parent's milestone
+        allUserIds
       )
     }
   }
@@ -194,6 +224,41 @@ async function seed() {
     process.exit(1)
   }
 
+  // Create test users
+  console.log('\nCreating test users...')
+  const testUserIds: { userId: mongoose.Types.ObjectId; role: 'team' | 'client' }[] = []
+
+  for (const testUser of TEST_USERS) {
+    let existingUser = await User.findOne({ email: testUser.email })
+    if (!existingUser) {
+      existingUser = await User.create({
+        name: testUser.name,
+        email: testUser.email,
+        password: '$2a$10$dummyhashedpasswordforseeding', // Not a real hash, just placeholder
+        organizations: [org._id],
+      })
+      console.log(`  Created user: ${testUser.name} (${testUser.email}) - ${testUser.role}`)
+    } else {
+      // Ensure user is in the organization
+      if (!existingUser.organizations?.includes(org._id)) {
+        existingUser.organizations = [...(existingUser.organizations || []), org._id]
+        await existingUser.save()
+      }
+      console.log(`  User exists: ${testUser.name} (${testUser.email}) - ${testUser.role}`)
+    }
+
+    testUserIds.push({ userId: existingUser._id as mongoose.Types.ObjectId, role: testUser.role })
+
+    // Add to organization members if not already
+    const isOrgMember = org.members.some(
+      (m: { user: mongoose.Types.ObjectId }) => m.user.toString() === existingUser._id.toString()
+    )
+    if (!isOrgMember) {
+      org.members.push({ user: existingUser._id, role: 'member' })
+    }
+  }
+  await org.save()
+
   // Find or create the demo project
   let project = await Project.findOne({ name: DEFAULT_PROJECT.name, organization: org._id })
   if (!project) {
@@ -203,11 +268,24 @@ async function seed() {
       description: DEFAULT_PROJECT.description,
       organization: org._id,
       owner: user._id,
-      members: [user._id],
+      members: [{ user: user._id, role: 'team' }],
       status: 'active',
     })
     console.log(`Created project: ${project.name}`)
   }
+
+  // Add test users to project members
+  console.log('\nAdding test users to project...')
+  for (const { userId, role } of testUserIds) {
+    const isMember = project.members.some(
+      (m: { user: mongoose.Types.ObjectId }) => m.user.toString() === userId.toString()
+    )
+    if (!isMember) {
+      project.members.push({ user: userId, role, addedBy: user._id })
+    }
+  }
+  await project.save()
+  console.log(`Project now has ${project.members.length} members`)
 
   console.log(`Seeding tasks for project: ${project.name}`)
   console.log(`Using user: ${user.email}`)
@@ -243,6 +321,12 @@ async function seed() {
     console.log(`  Created: ${template.name}`)
   }
 
+  // Collect all user IDs for random assignment
+  const allUserIds = [
+    user._id as mongoose.Types.ObjectId,
+    ...testUserIds.map((t) => t.userId),
+  ]
+
   // Create all task trees with milestone assignments
   console.log('\nCreating tasks...')
   for (let i = 0; i < taskTemplates.length; i++) {
@@ -257,7 +341,8 @@ async function seed() {
       user._id as mongoose.Types.ObjectId,
       null,
       i,
-      milestoneId
+      milestoneId,
+      allUserIds
     )
   }
 
