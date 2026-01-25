@@ -22,11 +22,13 @@ export default defineEventHandler(async (event) => {
     success: true,
     data: {
       owner: project.owner,
-      members: project.members.map((m: any) => ({
-        user: m.user,
-        role: m.role,
-        addedAt: m.addedAt,
-      })),
+      members: project.members
+        .filter((m: any) => m.user != null)
+        .map((m: any) => ({
+          user: m.user,
+          role: m.role,
+          addedAt: m.addedAt,
+        })),
     },
   }
 })
