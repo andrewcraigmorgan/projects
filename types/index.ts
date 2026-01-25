@@ -92,7 +92,7 @@ export interface ITask {
   description: string
   status: TaskStatus
   priority: TaskPriority
-  assignee?: Types.ObjectId
+  assignees?: Types.ObjectId[]
   dueDate?: Date
   parentTask?: Types.ObjectId
   depth: number

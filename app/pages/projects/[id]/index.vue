@@ -530,9 +530,9 @@ async function handleUpdateDueDate(task: Task, dueDate: string | null) {
   await loadTasks()
 }
 
-// Handle task assignee update
-async function handleUpdateAssignee(task: Task, assigneeId: string | null) {
-  await updateTask(task.id, { assignee: assigneeId })
+// Handle task assignees update (multiselect)
+async function handleUpdateAssignees(task: Task, assigneeIds: string[]) {
+  await updateTask(task.id, { assignees: assigneeIds })
   await loadTasks()
 }
 
@@ -1100,7 +1100,7 @@ onMounted(async () => {
           @update-status="handleUpdateStatus"
           @update-priority="handleUpdatePriority"
           @update-due-date="handleUpdateDueDate"
-          @update-assignee="handleUpdateAssignee"
+          @update-assignees="handleUpdateAssignees"
           @task-created="loadTasks"
           @move-task="handleMoveTask"
           @context-menu="handleContextMenu"

@@ -47,7 +47,7 @@ const emit = defineEmits<{
   (e: 'update-status', task: Task, status: Task['status']): void
   (e: 'update-priority', task: Task, priority: Task['priority']): void
   (e: 'update-due-date', task: Task, dueDate: string | null): void
-  (e: 'update-assignee', task: Task, assigneeId: string | null): void
+  (e: 'update-assignees', task: Task, assigneeIds: string[]): void
   (e: 'move-task', taskId: string, newParentTask: string | null, newOrder: number): void
   (e: 'context-menu', task: Task, event: MouseEvent): void
 }>()
@@ -183,6 +183,13 @@ function handleClickOutside(event: MouseEvent) {
       showColumnConfig.value = false
     }
   }
+  // Close assignee dropdown if clicking outside
+  if (openAssigneeDropdown.value) {
+    const target = event.target as HTMLElement
+    if (!target.closest('.relative.min-w-\\[120px\\]')) {
+      openAssigneeDropdown.value = null
+    }
+  }
 }
 
 onMounted(() => {
@@ -244,9 +251,28 @@ function onDueDateChange(task: Task, event: Event) {
   emit('update-due-date', task, value)
 }
 
-// Handle assignee change
-function onAssigneeChange(task: Task, value: string) {
-  emit('update-assignee', task, value || null)
+// Handle assignees change (multiselect)
+function onAssigneesChange(task: Task, assigneeIds: string[]) {
+  emit('update-assignees', task, assigneeIds)
+}
+
+function toggleAssignee(task: Task, assigneeId: string) {
+  const currentIds = task.assignees?.map(a => a._id) || []
+  const newIds = currentIds.includes(assigneeId)
+    ? currentIds.filter(id => id !== assigneeId)
+    : [...currentIds, assigneeId]
+  onAssigneesChange(task, newIds)
+}
+
+// Track which task's assignee dropdown is open
+const openAssigneeDropdown = ref<string | null>(null)
+
+function toggleAssigneeDropdown(taskId: string) {
+  openAssigneeDropdown.value = openAssigneeDropdown.value === taskId ? null : taskId
+}
+
+function closeAssigneeDropdown() {
+  openAssigneeDropdown.value = null
 }
 
 // Computed assignee options for dropdown
@@ -317,7 +343,7 @@ function getCellValue(task: Task, columnId: string): string {
     case 'priority':
       return task.priority ? priorityLabels[task.priority] : '-'
     case 'assignee':
-      return task.assignee?.name || '-'
+      return task.assignees?.map(a => a.name).join(', ') || '-'
     case 'dueDate':
       return formatDate(task.dueDate)
     case 'subtaskCount':
@@ -505,54 +531,176 @@ function getCellValue(task: Task, columnId: string): string {
                   />
                 </template>
 
-                <!-- Assignee column -->
+                <!-- Assignees column (multiselect) -->
                 <template v-else-if="column.id === 'assignee'">
-                  <div class="flex items-center gap-1.5 min-w-[120px]" @click.stop>
+                  <div class="relative min-w-[120px]" @click.stop>
+                    <!-- Display selected assignees -->
                     <div
-                      v-if="task.assignee?.avatar"
-                      class="w-5 h-5 rounded-full bg-cover bg-center flex-shrink-0"
-                      :style="{ backgroundImage: `url(${task.assignee.avatar})` }"
-                    />
-                    <div
-                      v-else-if="task.assignee"
-                      class="w-5 h-5 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-xs font-medium text-gray-600 dark:text-gray-300 flex-shrink-0"
+                      class="flex items-center gap-1 cursor-pointer hover:bg-gray-100 dark:hover:bg-gray-700 rounded px-1 py-0.5 -mx-1"
+                      @click="toggleAssigneeDropdown(task.id)"
                     >
-                      {{ task.assignee.name.charAt(0) }}
+                      <!-- Stacked avatars for multiple assignees -->
+                      <div v-if="task.assignees && task.assignees.length > 0" class="flex -space-x-1.5">
+                        <template v-for="(assignee, idx) in task.assignees.slice(0, 3)" :key="assignee._id">
+                          <div
+                            v-if="assignee.avatar"
+                            class="w-5 h-5 rounded-full bg-cover bg-center border border-white dark:border-gray-800"
+                            :style="{ backgroundImage: `url(${assignee.avatar})`, zIndex: 3 - idx }"
+                            :title="assignee.name"
+                          />
+                          <div
+                            v-else
+                            class="w-5 h-5 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-[10px] font-medium text-gray-600 dark:text-gray-300 border border-white dark:border-gray-800"
+                            :style="{ zIndex: 3 - idx }"
+                            :title="assignee.name"
+                          >
+                            {{ assignee.name.charAt(0) }}
+                          </div>
+                        </template>
+                        <div
+                          v-if="task.assignees.length > 3"
+                          class="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[10px] font-medium text-gray-600 dark:text-gray-300 border border-white dark:border-gray-800"
+                        >
+                          +{{ task.assignees.length - 3 }}
+                        </div>
+                      </div>
+                      <span
+                        v-if="!task.assignees || task.assignees.length === 0"
+                        class="text-xs text-gray-400 dark:text-gray-500"
+                      >
+                        Unassigned
+                      </span>
+                      <span
+                        v-else-if="task.assignees.length === 1"
+                        class="text-xs text-gray-700 dark:text-gray-300 truncate ml-1"
+                      >
+                        {{ task.assignees[0].name }}
+                      </span>
+                      <span
+                        v-else
+                        class="text-xs text-gray-500 dark:text-gray-400 ml-1"
+                      >
+                        {{ task.assignees.length }} assigned
+                      </span>
                     </div>
-                    <select
-                      :value="task.assignee?._id || ''"
-                      class="flex-1 min-w-0 appearance-none text-xs bg-transparent border-0 p-0 pr-4 text-gray-700 dark:text-gray-300 focus:ring-0 cursor-pointer hover:text-gray-900 dark:hover:text-gray-100 truncate"
-                      @change="onAssigneeChange(task, ($event.target as HTMLSelectElement).value)"
+
+                    <!-- Dropdown -->
+                    <div
+                      v-if="openAssigneeDropdown === task.id"
+                      class="absolute z-20 mt-1 left-0 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg max-h-60 overflow-auto"
                     >
-                      <option value="">Unassigned</option>
-                      <optgroup v-if="assigneeOptions.filter(u => u.role === 'team').length" label="Team">
-                        <option
+                      <!-- Team members -->
+                      <div v-if="assigneeOptions.filter(u => u.role === 'team').length" class="py-1">
+                        <div class="px-3 py-1 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Team</div>
+                        <button
                           v-for="user in assigneeOptions.filter(u => u.role === 'team')"
                           :key="user.id"
-                          :value="user.id"
+                          type="button"
+                          class="w-full px-3 py-1.5 text-left text-xs flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          @click="toggleAssignee(task, user.id)"
                         >
-                          {{ user.name }}
-                        </option>
-                      </optgroup>
-                      <optgroup v-if="assigneeOptions.filter(u => u.role === 'client').length" label="Client">
-                        <option
+                          <div
+                            v-if="user.avatar"
+                            class="w-5 h-5 rounded-full bg-cover bg-center flex-shrink-0"
+                            :style="{ backgroundImage: `url(${user.avatar})` }"
+                          />
+                          <div
+                            v-else
+                            class="w-5 h-5 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-[10px] font-medium text-gray-600 dark:text-gray-300 flex-shrink-0"
+                          >
+                            {{ user.name.charAt(0) }}
+                          </div>
+                          <span class="flex-1 text-gray-900 dark:text-gray-100 truncate">{{ user.name }}</span>
+                          <svg
+                            v-if="task.assignees?.some(a => a._id === user.id)"
+                            class="w-4 h-4 text-primary-600 flex-shrink-0"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      <!-- Client members -->
+                      <div v-if="assigneeOptions.filter(u => u.role === 'client').length" class="py-1 border-t border-gray-200 dark:border-gray-700">
+                        <div class="px-3 py-1 text-[10px] font-semibold text-gray-400 dark:text-gray-500 uppercase tracking-wider">Client</div>
+                        <button
                           v-for="user in assigneeOptions.filter(u => u.role === 'client')"
                           :key="user.id"
-                          :value="user.id"
+                          type="button"
+                          class="w-full px-3 py-1.5 text-left text-xs flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          @click="toggleAssignee(task, user.id)"
                         >
-                          {{ user.name }}
-                        </option>
-                      </optgroup>
-                      <template v-if="!assigneeOptions.some(u => u.role)">
-                        <option
+                          <div
+                            v-if="user.avatar"
+                            class="w-5 h-5 rounded-full bg-cover bg-center flex-shrink-0"
+                            :style="{ backgroundImage: `url(${user.avatar})` }"
+                          />
+                          <div
+                            v-else
+                            class="w-5 h-5 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-[10px] font-medium text-gray-600 dark:text-gray-300 flex-shrink-0"
+                          >
+                            {{ user.name.charAt(0) }}
+                          </div>
+                          <span class="flex-1 text-gray-900 dark:text-gray-100 truncate">{{ user.name }}</span>
+                          <svg
+                            v-if="task.assignees?.some(a => a._id === user.id)"
+                            class="w-4 h-4 text-primary-600 flex-shrink-0"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      <!-- All members (when no roles) -->
+                      <div v-if="!assigneeOptions.some(u => u.role)" class="py-1">
+                        <button
                           v-for="user in assigneeOptions"
                           :key="user.id"
-                          :value="user.id"
+                          type="button"
+                          class="w-full px-3 py-1.5 text-left text-xs flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          @click="toggleAssignee(task, user.id)"
                         >
-                          {{ user.name }}
-                        </option>
-                      </template>
-                    </select>
+                          <div
+                            v-if="user.avatar"
+                            class="w-5 h-5 rounded-full bg-cover bg-center flex-shrink-0"
+                            :style="{ backgroundImage: `url(${user.avatar})` }"
+                          />
+                          <div
+                            v-else
+                            class="w-5 h-5 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-[10px] font-medium text-gray-600 dark:text-gray-300 flex-shrink-0"
+                          >
+                            {{ user.name.charAt(0) }}
+                          </div>
+                          <span class="flex-1 text-gray-900 dark:text-gray-100 truncate">{{ user.name }}</span>
+                          <svg
+                            v-if="task.assignees?.some(a => a._id === user.id)"
+                            class="w-4 h-4 text-primary-600 flex-shrink-0"
+                            fill="none"
+                            viewBox="0 0 24 24"
+                            stroke="currentColor"
+                          >
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                          </svg>
+                        </button>
+                      </div>
+
+                      <!-- Clear all button -->
+                      <div v-if="task.assignees && task.assignees.length > 0" class="py-1 border-t border-gray-200 dark:border-gray-700">
+                        <button
+                          type="button"
+                          class="w-full px-3 py-1.5 text-left text-xs text-gray-500 dark:text-gray-400 hover:bg-gray-100 dark:hover:bg-gray-700"
+                          @click="onAssigneesChange(task, [])"
+                        >
+                          Clear all
+                        </button>
+                      </div>
+                    </div>
                   </div>
                 </template>
 
@@ -699,24 +847,37 @@ function getCellValue(task: Task, columnId: string): string {
               Due {{ formatDate(task.dueDate) }}
             </span>
 
-            <!-- Assignee (pushed to end) -->
+            <!-- Assignees (pushed to end) -->
             <div
-              v-if="task.assignee"
+              v-if="task.assignees && task.assignees.length > 0"
               class="flex items-center gap-1.5 ml-auto"
             >
-              <div
-                v-if="task.assignee.avatar"
-                class="w-6 h-6 rounded-full bg-cover bg-center flex-shrink-0"
-                :style="{ backgroundImage: `url(${task.assignee.avatar})` }"
-              />
-              <div
-                v-else
-                class="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-xs font-medium text-primary-700 dark:text-primary-300 flex-shrink-0"
-              >
-                {{ task.assignee.name.charAt(0) }}
+              <div class="flex -space-x-1">
+                <template v-for="(assignee, idx) in task.assignees.slice(0, 2)" :key="assignee._id">
+                  <div
+                    v-if="assignee.avatar"
+                    class="w-6 h-6 rounded-full bg-cover bg-center flex-shrink-0 border border-white dark:border-gray-800"
+                    :style="{ backgroundImage: `url(${assignee.avatar})`, zIndex: 2 - idx }"
+                    :title="assignee.name"
+                  />
+                  <div
+                    v-else
+                    class="w-6 h-6 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-xs font-medium text-primary-700 dark:text-primary-300 flex-shrink-0 border border-white dark:border-gray-800"
+                    :style="{ zIndex: 2 - idx }"
+                    :title="assignee.name"
+                  >
+                    {{ assignee.name.charAt(0) }}
+                  </div>
+                </template>
+                <div
+                  v-if="task.assignees.length > 2"
+                  class="w-6 h-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[10px] font-medium text-gray-600 dark:text-gray-300 border border-white dark:border-gray-800"
+                >
+                  +{{ task.assignees.length - 2 }}
+                </div>
               </div>
               <span class="text-xs text-gray-600 dark:text-gray-400 truncate max-w-[80px]">
-                {{ task.assignee.name }}
+                {{ task.assignees.length === 1 ? task.assignees[0].name : `${task.assignees.length} assigned` }}
               </span>
             </div>
           </div>

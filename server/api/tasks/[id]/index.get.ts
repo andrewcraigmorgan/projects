@@ -27,7 +27,7 @@ export default defineEventHandler(async (event) => {
   const includeAncestors = query.includeAncestors === 'true'
 
   const task = await Task.findById(id)
-    .populate('assignee', 'name email avatar role')
+    .populate('assignees', 'name email avatar role')
     .populate('createdBy', 'name email avatar')
     .populate('milestone', 'name')
     .populate('tags', 'name color')
@@ -63,7 +63,7 @@ export default defineEventHandler(async (event) => {
     description: task.description,
     status: task.status,
     priority: task.priority,
-    assignee: task.assignee,
+    assignees: task.assignees,
     dueDate: task.dueDate,
     estimatedHours: task.estimatedHours,
     isExternal: task.isExternal,
@@ -123,7 +123,7 @@ async function getAncestorChain(path: string): Promise<Array<{ id: string; title
 // Recursive function to build subtask tree
 async function getSubtaskTree(parentId: string): Promise<unknown[]> {
   const subtasks = await Task.find({ parentTask: parentId })
-    .populate('assignee', 'name email avatar')
+    .populate('assignees', 'name email avatar')
     .populate('createdBy', 'name email avatar')
     .sort({ order: 1 })
 
@@ -137,7 +137,7 @@ async function getSubtaskTree(parentId: string): Promise<unknown[]> {
       description: subtask.description,
       status: subtask.status,
       priority: subtask.priority,
-      assignee: subtask.assignee,
+      assignees: subtask.assignees,
       dueDate: subtask.dueDate,
       depth: subtask.depth,
       order: subtask.order,

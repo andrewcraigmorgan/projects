@@ -7,7 +7,7 @@ export interface Task {
   description: string
   status: 'todo' | 'awaiting_approval' | 'open' | 'in_review' | 'done'
   priority?: 'low' | 'medium' | 'high'
-  assignee?: { _id: string; id?: string; name: string; email: string; avatar?: string; role?: 'team' | 'client' }
+  assignees?: Array<{ _id: string; id?: string; name: string; email: string; avatar?: string; role?: 'team' | 'client' }>
   dueDate?: string
   estimatedHours?: number
   isExternal?: boolean
@@ -109,7 +109,7 @@ export function useTasks(projectId: Ref<string>) {
     description?: string
     status?: Task['status']
     priority?: Task['priority']
-    assignee?: string
+    assignees?: string[]
     dueDate?: string
     parentTask?: string
   }) {
@@ -138,7 +138,7 @@ export function useTasks(projectId: Ref<string>) {
   async function updateTask(
     taskId: string,
     data: Partial<Pick<Task, 'title' | 'description' | 'status' | 'priority' | 'order'>> & {
-      assignee?: string | null
+      assignees?: string[]
       dueDate?: string | null
     }
   ) {

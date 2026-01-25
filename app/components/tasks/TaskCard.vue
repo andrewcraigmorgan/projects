@@ -36,7 +36,7 @@ const emit = defineEmits<{
   (e: 'toggle-expand', task: Task): void
   (e: 'update-status', taskId: string, status: Task['status']): void
   (e: 'update-priority', taskId: string, priority: Task['priority']): void
-  (e: 'update-assignee', taskId: string, userId: string | null): void
+  (e: 'update-assignees', taskId: string, userIds: string[]): void
   (e: 'update-milestone', taskId: string, milestoneId: string | null): void
   (e: 'dragstart', task: Task, event: DragEvent): void
   (e: 'dragend', event: DragEvent): void
@@ -139,12 +139,15 @@ function onPriorityChange(event: Event) {
   emit('update-priority', props.task.id, value as Task['priority'])
 }
 
-function onAssigneeChange(event: Event) {
-  event.stopPropagation()
-  const target = event.target as HTMLSelectElement
-  const value = target.value || null
-  emit('update-assignee', props.task.id, value)
+function toggleAssignee(userId: string) {
+  const currentIds = props.task.assignees?.map(a => a._id) || []
+  const newIds = currentIds.includes(userId)
+    ? currentIds.filter(id => id !== userId)
+    : [...currentIds, userId]
+  emit('update-assignees', props.task.id, newIds)
 }
+
+const openAssigneeDropdown = ref(false)
 
 function onMilestoneChange(event: Event) {
   event.stopPropagation()
@@ -346,54 +349,87 @@ function onMilestoneChange(event: Event) {
           </div>
         </div>
 
-        <!-- Assignee selector -->
+        <!-- Assignees multiselect -->
         <div class="relative flex-shrink-0">
-          <select
-            :value="task.assignee?.id || ''"
-            class="appearance-none pl-2 pr-6 py-1.5 sm:py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 border-0 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-1 focus:ring-primary-500 transition-colors min-h-[32px] sm:min-h-0 dark:[color-scheme:dark]"
-            :class="task.assignee?.role === 'client'
-              ? 'text-orange-600 dark:text-orange-300'
-              : 'text-gray-700 dark:text-gray-300'"
-            @click.stop
-            @change="onAssigneeChange"
+          <button
+            class="flex items-center gap-1.5 px-2 py-1.5 sm:py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer min-h-[32px] sm:min-h-0"
+            @click.stop="openAssigneeDropdown = !openAssigneeDropdown"
           >
-            <option value="">Unassigned</option>
-            <optgroup v-if="projectUsers.filter(u => u.role === 'team').length" label="Team">
-              <option
+            <div v-if="task.assignees && task.assignees.length > 0" class="flex -space-x-1">
+              <template v-for="(assignee, idx) in task.assignees.slice(0, 2)" :key="assignee._id">
+                <div
+                  v-if="assignee.avatar"
+                  class="w-5 h-5 rounded-full bg-cover bg-center border border-white dark:border-gray-700"
+                  :style="{ backgroundImage: `url(${assignee.avatar})`, zIndex: 2 - idx }"
+                />
+                <div
+                  v-else
+                  class="w-5 h-5 rounded-full bg-gray-300 dark:bg-gray-600 flex items-center justify-center text-[10px] font-medium text-gray-600 dark:text-gray-300 border border-white dark:border-gray-700"
+                  :style="{ zIndex: 2 - idx }"
+                >
+                  {{ assignee.name.charAt(0) }}
+                </div>
+              </template>
+            </div>
+            <span class="text-gray-700 dark:text-gray-300">
+              {{ task.assignees?.length ? (task.assignees.length === 1 ? task.assignees[0].name : `${task.assignees.length} assigned`) : 'Unassigned' }}
+            </span>
+            <svg class="h-3 w-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+
+          <!-- Dropdown -->
+          <div
+            v-if="openAssigneeDropdown"
+            class="absolute z-20 mt-1 right-0 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg max-h-60 overflow-auto"
+            @click.stop
+          >
+            <div v-if="projectUsers.filter(u => u.role === 'team').length" class="py-1">
+              <div class="px-3 py-1 text-[10px] font-semibold text-gray-400 uppercase">Team</div>
+              <button
                 v-for="user in projectUsers.filter(u => u.role === 'team')"
                 :key="user.id"
-                :value="user.id"
+                type="button"
+                class="w-full px-3 py-1.5 text-left text-xs flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                @click="toggleAssignee(user.id)"
               >
-                {{ user.name }}
-              </option>
-            </optgroup>
-            <optgroup v-if="projectUsers.filter(u => u.role === 'client').length" label="Client">
-              <option
+                <span class="flex-1 text-gray-900 dark:text-gray-100">{{ user.name }}</span>
+                <svg v-if="task.assignees?.some(a => a._id === user.id)" class="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </button>
+            </div>
+            <div v-if="projectUsers.filter(u => u.role === 'client').length" class="py-1 border-t border-gray-200 dark:border-gray-700">
+              <div class="px-3 py-1 text-[10px] font-semibold text-gray-400 uppercase">Client</div>
+              <button
                 v-for="user in projectUsers.filter(u => u.role === 'client')"
                 :key="user.id"
-                :value="user.id"
+                type="button"
+                class="w-full px-3 py-1.5 text-left text-xs flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                @click="toggleAssignee(user.id)"
               >
-                {{ user.name }}
-              </option>
-            </optgroup>
-            <template v-if="!projectUsers.filter(u => u.role).length">
-              <option
+                <span class="flex-1 text-gray-900 dark:text-gray-100">{{ user.name }}</span>
+                <svg v-if="task.assignees?.some(a => a._id === user.id)" class="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </button>
+            </div>
+            <div v-if="!projectUsers.some(u => u.role)" class="py-1">
+              <button
                 v-for="user in projectUsers"
                 :key="user.id"
-                :value="user.id"
+                type="button"
+                class="w-full px-3 py-1.5 text-left text-xs flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
+                @click="toggleAssignee(user.id)"
               >
-                {{ user.name }}
-              </option>
-            </template>
-          </select>
-          <svg
-            class="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-500 pointer-events-none"
-            fill="none"
-            viewBox="0 0 24 24"
-            stroke="currentColor"
-          >
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
-          </svg>
+                <span class="flex-1 text-gray-900 dark:text-gray-100">{{ user.name }}</span>
+                <svg v-if="task.assignees?.some(a => a._id === user.id)" class="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
+                </svg>
+              </button>
+            </div>
+          </div>
         </div>
       </div>
     </div>

@@ -33,9 +33,13 @@ async function getNotifyUserIds(task: TaskDocument, excludeUserId: string): Prom
     notifyUserIds.add(task.createdBy.toString())
   }
 
-  // Add assignee
-  if (task.assignee && task.assignee.toString() !== excludeUserId) {
-    notifyUserIds.add(task.assignee.toString())
+  // Add all assignees
+  if (task.assignees && task.assignees.length > 0) {
+    for (const assignee of task.assignees) {
+      if (assignee.toString() !== excludeUserId) {
+        notifyUserIds.add(assignee.toString())
+      }
+    }
   }
 
   // Add all subscribers
@@ -64,10 +68,12 @@ export async function notifyTaskCreated(
 
   if (!creator || !project) return
 
-  // Notify assignee if different from creator
-  if (task.assignee && task.assignee.toString() !== creatorId) {
-    const assignee = await User.findById(task.assignee)
-    if (assignee) {
+  // Notify all assignees (except creator)
+  if (task.assignees && task.assignees.length > 0) {
+    const assigneesToNotify = task.assignees.filter(a => a.toString() !== creatorId)
+    const assignees = await User.find({ _id: { $in: assigneesToNotify } })
+
+    for (const assignee of assignees) {
       const data: TaskNotificationData = {
         taskId: task._id.toString(),
         taskTitle: task.title,

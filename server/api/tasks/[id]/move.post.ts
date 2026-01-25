@@ -170,15 +170,14 @@ export default defineEventHandler(async (event) => {
       crossProjectMoveInfo.clearedFields.push('tags')
     }
 
-    // Clear assignee if not a member of destination organization
-    if (task.assignee) {
+    // Filter assignees to only include members of destination organization
+    if (task.assignees && task.assignees.length > 0) {
       const destOrg = await Organization.findById(destinationProject.organization)
-      const isAssigneeMember = destOrg?.members.some(
-        (m) => m.user.toString() === task.assignee?.toString()
-      )
-      if (!isAssigneeMember) {
-        task.assignee = undefined
-        crossProjectMoveInfo.clearedFields.push('assignee')
+      const memberIds = new Set(destOrg?.members.map((m) => m.user.toString()) || [])
+      const validAssignees = task.assignees.filter((a) => memberIds.has(a.toString()))
+      if (validAssignees.length !== task.assignees.length) {
+        task.assignees = validAssignees
+        crossProjectMoveInfo.clearedFields.push('assignees')
       }
     }
   }
@@ -196,7 +195,7 @@ export default defineEventHandler(async (event) => {
     crossProjectMoveInfo.descendantsMoved = descendantCount
   }
 
-  await task.populate('assignee', 'name email avatar')
+  await task.populate('assignees', 'name email avatar')
   await task.populate('createdBy', 'name email avatar')
 
   const subtaskCount = await Task.countDocuments({ parentTask: id })
@@ -211,7 +210,7 @@ export default defineEventHandler(async (event) => {
         description: task.description,
         status: task.status,
         priority: task.priority,
-        assignee: task.assignee,
+        assignees: task.assignees,
         dueDate: task.dueDate,
         parentTask: task.parentTask,
         depth: task.depth,
@@ -255,14 +254,13 @@ async function updateDescendantPaths(
       updateFields.milestone = null
       updateFields.tags = []
 
-      // Clear assignee if not a member of destination organization
-      if (child.assignee && destOrgId) {
+      // Filter assignees to only include members of destination organization
+      if (child.assignees && child.assignees.length > 0 && destOrgId) {
         const destOrg = await Organization.findById(destOrgId)
-        const isAssigneeMember = destOrg?.members.some(
-          (m) => m.user.toString() === child.assignee?.toString()
-        )
-        if (!isAssigneeMember) {
-          updateFields.assignee = null
+        const memberIds = new Set(destOrg?.members.map((m) => m.user.toString()) || [])
+        const validAssignees = child.assignees.filter((a) => memberIds.has(a.toString()))
+        if (validAssignees.length !== child.assignees.length) {
+          updateFields.assignees = validAssignees
         }
       }
     }

@@ -129,7 +129,7 @@ export default defineEventHandler(async (event) => {
   const [tasks, total] = await Promise.all([
     Task.find(filter)
       .populate('project', 'name code')
-      .populate('assignee', 'name email avatar')
+      .populate('assignees', 'name email avatar')
       .populate('createdBy', 'name email avatar')
       .populate('milestone', 'name')
       .sort({ order: 1, createdAt: -1 })
@@ -159,7 +159,7 @@ export default defineEventHandler(async (event) => {
         description: t.description,
         status: t.status,
         priority: t.priority,
-        assignee: t.assignee,
+        assignees: t.assignees,
         dueDate: t.dueDate,
         project: t.project ? { id: (t.project as { _id: unknown })._id, name: (t.project as { name: string }).name, code: (t.project as { code: string }).code } : undefined,
         milestone: t.milestone ? { id: (t.milestone as { _id: unknown })._id, name: (t.milestone as { name: string }).name } : undefined,

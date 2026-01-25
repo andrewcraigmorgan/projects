@@ -189,15 +189,23 @@ function onDrop(event: DragEvent, status: Task['status']) {
             </div>
 
             <div
-              v-if="task.assignee"
+              v-if="task.assignees && task.assignees.length > 0"
               class="mt-2 flex items-center gap-1"
             >
-              <div
-                class="h-5 w-5 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-xs font-medium text-primary-700 dark:text-primary-300"
-              >
-                {{ task.assignee.name[0]?.toUpperCase() }}
+              <div class="flex -space-x-1">
+                <div
+                  v-for="(assignee, idx) in task.assignees.slice(0, 3)"
+                  :key="assignee._id"
+                  class="h-5 w-5 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-xs font-medium text-primary-700 dark:text-primary-300 border border-white dark:border-gray-800"
+                  :style="{ zIndex: 3 - idx }"
+                  :title="assignee.name"
+                >
+                  {{ assignee.name[0]?.toUpperCase() }}
+                </div>
               </div>
-              <span class="text-xs text-gray-500 dark:text-gray-400">{{ task.assignee.name }}</span>
+              <span class="text-xs text-gray-500 dark:text-gray-400">
+                {{ task.assignees.length === 1 ? task.assignees[0].name : `${task.assignees.length} assigned` }}
+              </span>
             </div>
           </div>
 
@@ -325,13 +333,25 @@ function onDrop(event: DragEvent, status: Task['status']) {
                   </span>
 
                   <div
-                    v-if="task.assignee"
+                    v-if="task.assignees && task.assignees.length > 0"
                     class="flex items-center gap-1 ml-auto"
                   >
-                    <div
-                      class="h-6 w-6 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-xs font-medium text-primary-700 dark:text-primary-300"
-                    >
-                      {{ task.assignee.name[0]?.toUpperCase() }}
+                    <div class="flex -space-x-1">
+                      <div
+                        v-for="(assignee, idx) in task.assignees.slice(0, 2)"
+                        :key="assignee._id"
+                        class="h-6 w-6 rounded-full bg-primary-100 dark:bg-primary-900 flex items-center justify-center text-xs font-medium text-primary-700 dark:text-primary-300 border border-white dark:border-gray-800"
+                        :style="{ zIndex: 2 - idx }"
+                        :title="assignee.name"
+                      >
+                        {{ assignee.name[0]?.toUpperCase() }}
+                      </div>
+                      <div
+                        v-if="task.assignees.length > 2"
+                        class="h-6 w-6 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[10px] font-medium text-gray-600 dark:text-gray-300 border border-white dark:border-gray-800"
+                      >
+                        +{{ task.assignees.length - 2 }}
+                      </div>
                     </div>
                   </div>
                 </div>

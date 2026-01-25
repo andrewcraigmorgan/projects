@@ -132,31 +132,42 @@ export default defineEventHandler(async (event) => {
     userByEmail.set(u.email?.toLowerCase() || '', u)
   }
 
-  // Find assignee by name (handles multiple names like "Andrew Morgan, Matthew Martin")
-  function findAssignee(assigneeName: string | null | undefined): any | null {
-    if (!assigneeName) return null
+  // Find assignees by name (handles multiple names like "Andrew Morgan, Matthew Martin")
+  function findAssignees(assigneeName: string | null | undefined): any[] {
+    if (!assigneeName) return []
 
-    // Try to split multiple names and use the first one
     const names = assigneeName.split(',').map((n) => n.trim())
+    const assignees: any[] = []
+    const seenIds = new Set<string>()
+
     for (const name of names) {
       const nameLower = name.toLowerCase()
+      let found: any | null = null
 
       // Try exact name match first
-      const byName = userByName.get(nameLower)
-      if (byName) return byName
+      found = userByName.get(nameLower)
 
       // Try email match
-      const byEmail = userByEmail.get(nameLower)
-      if (byEmail) return byEmail
+      if (!found) {
+        found = userByEmail.get(nameLower)
+      }
 
       // Try partial name match (first name or last name)
-      for (const [key, u] of userByName.entries()) {
-        if (key && (key.includes(nameLower) || nameLower.includes(key))) {
-          return u
+      if (!found) {
+        for (const [key, u] of userByName.entries()) {
+          if (key && (key.includes(nameLower) || nameLower.includes(key))) {
+            found = u
+            break
+          }
         }
       }
+
+      if (found && !seenIds.has(found._id.toString())) {
+        seenIds.add(found._id.toString())
+        assignees.push(found)
+      }
     }
-    return null
+    return assignees
   }
 
   // Collect unique milestone names per project
@@ -283,8 +294,8 @@ export default defineEventHandler(async (event) => {
         continue
       }
 
-      // Find assignee by name
-      const assignee = findAssignee(taskData.assigneeName)
+      // Find assignees by name
+      const assignees = findAssignees(taskData.assigneeName)
 
       // Find parent task
       let parentTask = null
@@ -349,7 +360,7 @@ export default defineEventHandler(async (event) => {
         priority: taskData.priority || undefined,
         dueDate,
         estimatedHours: taskData.estimatedHours || undefined,
-        assignee: assignee?._id || null,
+        assignees: assignees.map(a => a._id),
         parentTask: parentTask?._id || null,
         milestone: milestone?._id || null,
         tags: taskTags.length > 0 ? taskTags : undefined,

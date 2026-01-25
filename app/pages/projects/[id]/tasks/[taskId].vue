@@ -520,27 +520,33 @@ onMounted(async () => {
               </p>
             </div>
 
-            <!-- Assignee -->
-            <div v-if="task.assignee">
+            <!-- Assignees -->
+            <div v-if="task.assignees && task.assignees.length > 0">
               <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
-                Assignee
+                Assignees
               </label>
-              <div class="flex items-center gap-2 px-3 py-2">
-                <UiAvatar
-                  :name="task.assignee.name"
-                  :role="task.assignee.role"
-                  size="sm"
-                />
-                <span class="text-gray-900 dark:text-gray-100">{{ task.assignee.name }}</span>
-                <span
-                  v-if="task.assignee.role"
-                  class="text-xs px-1 py-0.5"
-                  :class="task.assignee.role === 'client'
-                    ? 'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300'
-                    : 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300'"
+              <div class="space-y-2 px-3 py-2">
+                <div
+                  v-for="assignee in task.assignees"
+                  :key="assignee._id"
+                  class="flex items-center gap-2"
                 >
-                  {{ task.assignee.role === 'client' ? 'Client' : 'Team' }}
-                </span>
+                  <UiAvatar
+                    :name="assignee.name"
+                    :role="assignee.role"
+                    size="sm"
+                  />
+                  <span class="text-gray-900 dark:text-gray-100">{{ assignee.name }}</span>
+                  <span
+                    v-if="assignee.role"
+                    class="text-xs px-1 py-0.5"
+                    :class="assignee.role === 'client'
+                      ? 'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300'
+                      : 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300'"
+                  >
+                    {{ assignee.role === 'client' ? 'Client' : 'Team' }}
+                  </span>
+                </div>
               </div>
             </div>
 
@@ -720,13 +726,22 @@ onMounted(async () => {
                   {{ subtask.priority }}
                 </span>
 
-                <!-- Assignee avatar -->
-                <UiAvatar
-                  v-if="subtask.assignee"
-                  :name="subtask.assignee.name"
-                  size="xs"
-                  class="shrink-0"
-                />
+                <!-- Assignee avatars -->
+                <div v-if="subtask.assignees && subtask.assignees.length > 0" class="flex -space-x-1 shrink-0">
+                  <UiAvatar
+                    v-for="assignee in subtask.assignees.slice(0, 2)"
+                    :key="assignee._id"
+                    :name="assignee.name"
+                    size="xs"
+                    class="border border-white dark:border-gray-800"
+                  />
+                  <div
+                    v-if="subtask.assignees.length > 2"
+                    class="w-5 h-5 rounded-full bg-gray-200 dark:bg-gray-700 flex items-center justify-center text-[10px] font-medium text-gray-600 dark:text-gray-300 border border-white dark:border-gray-800"
+                  >
+                    +{{ subtask.assignees.length - 2 }}
+                  </div>
+                </div>
 
                 <!-- Status badge -->
                 <span

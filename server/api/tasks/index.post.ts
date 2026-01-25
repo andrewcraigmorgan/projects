@@ -9,7 +9,7 @@ const createTaskSchema = z.object({
   description: z.string().max(10000).default(''),
   status: z.enum(['todo', 'awaiting_approval', 'open', 'in_review', 'done']).default('todo'),
   priority: z.enum(['low', 'medium', 'high']).optional(),
-  assignee: z.string().optional(),
+  assignees: z.array(z.string()).optional(),
   dueDate: z.string().datetime().optional(),
   parentTask: z.string().optional(),
 })
@@ -23,7 +23,7 @@ const createTaskSchema = z.object({
  * @bodyParam description string optional Task description
  * @bodyParam status string optional Task status (default: todo)
  * @bodyParam priority string optional Task priority (default: medium)
- * @bodyParam assignee string optional User ID to assign
+ * @bodyParam assignees string[] optional Array of User IDs to assign
  * @bodyParam dueDate string optional Due date (ISO 8601)
  * @bodyParam parentTask string optional Parent task ID for creating subtasks
  * @response 201 { "success": true, "data": { "task": {...} } }
@@ -100,7 +100,7 @@ export default defineEventHandler(async (event) => {
     createdBy: auth.userId,
   })
 
-  await task.populate('assignee', 'name email avatar')
+  await task.populate('assignees', 'name email avatar')
   await task.populate('createdBy', 'name email avatar')
 
   setResponseStatus(event, 201)
@@ -113,7 +113,7 @@ export default defineEventHandler(async (event) => {
         description: task.description,
         status: task.status,
         priority: task.priority,
-        assignee: task.assignee,
+        assignees: task.assignees,
         dueDate: task.dueDate,
         parentTask: task.parentTask,
         depth: task.depth,

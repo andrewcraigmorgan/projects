@@ -8,7 +8,7 @@ const updateTaskSchema = z.object({
   description: z.string().max(10000).optional(),
   status: z.enum(['todo', 'awaiting_approval', 'open', 'in_review', 'done']).optional(),
   priority: z.enum(['low', 'medium', 'high']).nullable().optional(),
-  assignee: z.string().nullable().optional(),
+  assignees: z.array(z.string()).optional(),
   dueDate: z.string().datetime().nullable().optional(),
   order: z.number().min(0).optional(),
 })
@@ -22,7 +22,7 @@ const updateTaskSchema = z.object({
  * @bodyParam description string optional Task description
  * @bodyParam status string optional Task status
  * @bodyParam priority string optional Task priority
- * @bodyParam assignee string optional User ID (null to unassign)
+ * @bodyParam assignees string[] optional Array of User IDs
  * @bodyParam dueDate string optional Due date (null to clear)
  * @bodyParam order number optional Position order
  * @response 200 { "success": true, "data": { "task": {...} } }
@@ -86,7 +86,7 @@ export default defineEventHandler(async (event) => {
     { $set: updateData },
     { new: true }
   )
-    .populate('assignee', 'name email avatar')
+    .populate('assignees', 'name email avatar')
     .populate('createdBy', 'name email avatar')
 
   // Get subtask count
@@ -102,7 +102,7 @@ export default defineEventHandler(async (event) => {
         description: updatedTask!.description,
         status: updatedTask!.status,
         priority: updatedTask!.priority,
-        assignee: updatedTask!.assignee,
+        assignees: updatedTask!.assignees,
         dueDate: updatedTask!.dueDate,
         parentTask: updatedTask!.parentTask,
         depth: updatedTask!.depth,

@@ -33,10 +33,12 @@ const TaskSchema = new Schema<TaskDocument>(
       type: String,
       enum: ['low', 'medium', 'high'],
     },
-    assignee: {
-      type: Schema.Types.ObjectId,
-      ref: 'User',
-    },
+    assignees: [
+      {
+        type: Schema.Types.ObjectId,
+        ref: 'User',
+      },
+    ],
     dueDate: {
       type: Date,
     },
@@ -90,13 +92,13 @@ TaskSchema.index({ project: 1, status: 1 })
 TaskSchema.index({ project: 1, parentTask: 1 })
 TaskSchema.index({ project: 1, taskNumber: -1 }) // For task number auto-increment and lookups
 TaskSchema.index({ path: 1 }) // For ancestor/descendant queries
-TaskSchema.index({ assignee: 1 })
+TaskSchema.index({ assignees: 1 })
 TaskSchema.index({ project: 1, order: 1 })
 
 // Additional indexes for load testing / scale
 TaskSchema.index({ project: 1, status: 1, priority: 1 }) // Filtered queries
 TaskSchema.index({ project: 1, dueDate: 1 }) // Date range queries
-TaskSchema.index({ project: 1, assignee: 1, status: 1 }) // Assigned task queries
+TaskSchema.index({ project: 1, assignees: 1, status: 1 }) // Assigned task queries
 TaskSchema.index({ project: 1, parentTask: 1, order: 1 }) // Hierarchical ordering
 TaskSchema.index({ project: 1, createdAt: -1 }) // Recent tasks
 TaskSchema.index({ createdBy: 1, createdAt: -1 }) // User's created tasks
