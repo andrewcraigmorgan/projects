@@ -1,13 +1,14 @@
 import { z } from 'zod'
 import { Task } from '../../models/Task'
 import { Project } from '../../models/Project'
+import { Organization } from '../../models/Organization'
 import { requireOrganizationMember } from '../../utils/tenant'
 
 const validStatuses = ['todo', 'awaiting_approval', 'open', 'in_review', 'done'] as const
 const validPriorities = ['low', 'medium', 'high'] as const
 
 const querySchema = z.object({
-  projectId: z.string(),
+  projectId: z.string().optional(),
   // Accept comma-separated status values for multi-select
   status: z.string().optional().transform((val) => {
     if (!val) return undefined
@@ -33,9 +34,9 @@ const querySchema = z.object({
 
 /**
  * @group Tasks
- * @description List tasks in a project
+ * @description List tasks. If projectId is provided, lists tasks for that project. Otherwise lists tasks across all accessible projects.
  * @authenticated
- * @queryParam projectId string required Project ID
+ * @queryParam projectId string optional Project ID (if omitted, returns tasks from all accessible projects)
  * @queryParam status string optional Filter by status (todo, in_progress, review, done)
  * @queryParam parentTask string optional Filter by parent task ID
  * @queryParam rootOnly boolean optional Only return root tasks (no parent)
@@ -57,20 +58,41 @@ export default defineEventHandler(async (event) => {
 
   const { projectId, status, priority, dueDateFrom, dueDateTo, milestone, parentTask, rootOnly, page, limit } = result.data
 
-  // Verify project access
-  const project = await Project.findById(projectId)
-  if (!project) {
+  const auth = event.context.auth
+  if (!auth) {
     throw createError({
-      statusCode: 404,
-      statusMessage: 'Not Found',
-      message: 'Project not found',
+      statusCode: 401,
+      statusMessage: 'Unauthorized',
     })
   }
 
-  await requireOrganizationMember(event, project.organization.toString())
-
   // Build query
-  const filter: Record<string, unknown> = { project: projectId }
+  const filter: Record<string, unknown> = {}
+
+  if (projectId) {
+    // Verify project access
+    const project = await Project.findById(projectId)
+    if (!project) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: 'Not Found',
+        message: 'Project not found',
+      })
+    }
+
+    await requireOrganizationMember(event, project.organization.toString())
+    filter.project = projectId
+  } else {
+    // Get all projects the user has access to
+    const userOrgs = await Organization.find({ 'members.user': auth.userId }).select('_id')
+    const orgIds = userOrgs.map((o) => o._id)
+
+    const accessibleProjects = await Project.find({
+      organization: { $in: orgIds },
+    }).select('_id')
+
+    filter.project = { $in: accessibleProjects.map((p) => p._id) }
+  }
 
   if (status && status.length > 0) {
     filter.status = status.length === 1 ? status[0] : { $in: status }
@@ -106,6 +128,7 @@ export default defineEventHandler(async (event) => {
 
   const [tasks, total] = await Promise.all([
     Task.find(filter)
+      .populate('project', 'name code')
       .populate('assignee', 'name email avatar')
       .populate('createdBy', 'name email avatar')
       .populate('milestone', 'name')
@@ -138,6 +161,7 @@ export default defineEventHandler(async (event) => {
         priority: t.priority,
         assignee: t.assignee,
         dueDate: t.dueDate,
+        project: t.project ? { id: (t.project as { _id: unknown })._id, name: (t.project as { name: string }).name, code: (t.project as { code: string }).code } : undefined,
         milestone: t.milestone ? { id: (t.milestone as { _id: unknown })._id, name: (t.milestone as { name: string }).name } : undefined,
         parentTask: t.parentTask,
         depth: t.depth,
