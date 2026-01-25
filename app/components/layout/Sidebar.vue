@@ -68,11 +68,12 @@ function isActive(href: string) {
     </div>
 
     <!-- Navigation -->
-    <nav class="flex-1 space-y-1 px-2 sm:px-3">
+    <nav class="flex-1 space-y-1 px-2 sm:px-3" aria-label="Main navigation">
       <NuxtLink
         v-for="item in navigation"
         :key="item.name"
         :to="item.href"
+        :aria-current="isActive(item.href) ? 'page' : undefined"
         :class="[
           isActive(item.href)
             ? 'bg-gradient-to-r from-primary-600/90 to-primary-500/90 text-white shadow-lg shadow-primary-500/20'
@@ -85,6 +86,7 @@ function isActive(href: string) {
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
+          aria-hidden="true"
         >
           <path
             v-if="item.icon === 'home'"

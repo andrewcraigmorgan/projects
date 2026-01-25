@@ -18,9 +18,10 @@ const currentPage = computed(() => {
 </script>
 
 <template>
-  <div class="flex items-center gap-1">
+  <nav class="flex items-center gap-1" aria-label="Project sections">
     <NuxtLink
       :to="`/projects/${projectId}/milestones`"
+      :aria-current="currentPage === 'milestones' ? 'page' : undefined"
       class="px-3 py-1.5 text-sm font-medium transition-colors"
       :class="currentPage === 'milestones'
         ? 'text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/30'
@@ -30,6 +31,7 @@ const currentPage = computed(() => {
     </NuxtLink>
     <NuxtLink
       :to="`/projects/${projectId}/tags`"
+      :aria-current="currentPage === 'tags' ? 'page' : undefined"
       class="px-3 py-1.5 text-sm font-medium transition-colors"
       :class="currentPage === 'tags'
         ? 'text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/30'
@@ -39,6 +41,7 @@ const currentPage = computed(() => {
     </NuxtLink>
     <NuxtLink
       :to="`/projects/${projectId}/members`"
+      :aria-current="currentPage === 'members' ? 'page' : undefined"
       class="px-3 py-1.5 text-sm font-medium transition-colors"
       :class="currentPage === 'members'
         ? 'text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/30'
@@ -46,5 +49,5 @@ const currentPage = computed(() => {
     >
       Members
     </NuxtLink>
-  </div>
+  </nav>
 </template>
