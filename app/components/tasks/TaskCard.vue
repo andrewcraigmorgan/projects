@@ -224,6 +224,7 @@ function onMilestoneChange(event: Event) {
         <div class="relative flex-shrink-0">
           <select
             :value="task.status"
+            aria-label="Task status"
             class="appearance-none pl-2 pr-6 py-1.5 sm:py-1 text-xs font-medium border-0 cursor-pointer focus:ring-1 focus:ring-primary-500 transition-colors min-h-[32px] sm:min-h-0 dark:[color-scheme:dark]"
             :class="statusBadgeClasses[task.status]"
             @click.stop
@@ -271,6 +272,7 @@ function onMilestoneChange(event: Event) {
             <div class="relative">
               <select
                 :value="task.priority || ''"
+                aria-label="Task priority"
                 class="appearance-none px-2 py-1 sm:py-0.5 pr-5 text-xs font-medium border-0 cursor-pointer focus:ring-1 focus:ring-primary-500 transition-colors min-h-[28px] sm:min-h-0 dark:[color-scheme:dark]"
                 :class="priorityBadgeClasses[task.priority || '']"
                 @click.stop
@@ -313,6 +315,7 @@ function onMilestoneChange(event: Event) {
             <div v-if="milestones.length" class="relative">
               <select
                 :value="task.milestone?.id || ''"
+                aria-label="Task milestone"
                 class="appearance-none px-2 py-1 sm:py-0.5 pr-5 text-xs font-medium bg-indigo-50 dark:bg-indigo-900/30 text-indigo-700 dark:text-indigo-300 border-0 cursor-pointer hover:bg-indigo-100 dark:hover:bg-indigo-900/50 focus:ring-1 focus:ring-indigo-500 transition-colors min-h-[28px] sm:min-h-0 dark:[color-scheme:dark]"
                 @click.stop
                 @change="onMilestoneChange"
@@ -394,15 +397,20 @@ function onMilestoneChange(event: Event) {
           <!-- Dropdown -->
           <div
             v-if="openAssigneeDropdown"
+            role="listbox"
+            aria-multiselectable="true"
+            aria-label="Select assignees"
             class="absolute z-20 mt-1 right-0 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 rounded shadow-lg max-h-60 overflow-auto"
             @click.stop
           >
             <div v-if="projectUsers.filter(u => u.role === 'team').length" class="py-1">
-              <div class="px-3 py-1 text-[10px] font-semibold text-gray-400 uppercase">Team</div>
+              <div class="px-3 py-1 text-[10px] font-semibold text-gray-400 uppercase" aria-hidden="true">Team</div>
               <button
                 v-for="user in projectUsers.filter(u => u.role === 'team')"
                 :key="user.id"
                 type="button"
+                role="option"
+                :aria-selected="task.assignees?.some(a => a._id === user.id)"
                 class="w-full px-3 py-1.5 text-left text-xs flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
                 @click="toggleAssignee(user.id)"
               >
@@ -413,11 +421,13 @@ function onMilestoneChange(event: Event) {
               </button>
             </div>
             <div v-if="projectUsers.filter(u => u.role === 'client').length" class="py-1 border-t border-gray-200 dark:border-gray-700">
-              <div class="px-3 py-1 text-[10px] font-semibold text-gray-400 uppercase">Client</div>
+              <div class="px-3 py-1 text-[10px] font-semibold text-gray-400 uppercase" aria-hidden="true">Client</div>
               <button
                 v-for="user in projectUsers.filter(u => u.role === 'client')"
                 :key="user.id"
                 type="button"
+                role="option"
+                :aria-selected="task.assignees?.some(a => a._id === user.id)"
                 class="w-full px-3 py-1.5 text-left text-xs flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
                 @click="toggleAssignee(user.id)"
               >
@@ -432,6 +442,8 @@ function onMilestoneChange(event: Event) {
                 v-for="user in projectUsers"
                 :key="user.id"
                 type="button"
+                role="option"
+                :aria-selected="task.assignees?.some(a => a._id === user.id)"
                 class="w-full px-3 py-1.5 text-left text-xs flex items-center gap-2 hover:bg-gray-100 dark:hover:bg-gray-700"
                 @click="toggleAssignee(user.id)"
               >

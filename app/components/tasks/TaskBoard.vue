@@ -66,7 +66,19 @@ const tasksByStatus = computed(() => {
 const draggedTask = ref<Task | null>(null)
 const dragOverColumn = ref<Task['status'] | null>(null)
 
+// Accessible status announcements for screen readers
+const statusAnnouncement = ref('')
+
+function announceStatus(message: string) {
+  statusAnnouncement.value = message
+  // Clear after announcement is read
+  setTimeout(() => {
+    statusAnnouncement.value = ''
+  }, 1000)
+}
+
 function onDragStart(event: DragEvent, task: Task) {
+  announceStatus(`Dragging task: ${task.title}`)
   draggedTask.value = task
   if (event.dataTransfer) {
     event.dataTransfer.effectAllowed = 'move'
@@ -88,6 +100,8 @@ function onDrop(event: DragEvent, status: Task['status']) {
   dragOverColumn.value = null
 
   if (draggedTask.value && draggedTask.value.status !== status) {
+    const column = columns.find(c => c.id === status)
+    announceStatus(`Moved task ${draggedTask.value.title} to ${column?.title || status}`)
     emit('update-status', draggedTask.value, status)
   }
 
@@ -96,16 +110,26 @@ function onDrop(event: DragEvent, status: Task['status']) {
 </script>
 
 <template>
+  <!-- Screen reader announcements for drag operations -->
+  <div
+    aria-live="polite"
+    aria-atomic="true"
+    class="sr-only"
+  >
+    {{ statusAnnouncement }}
+  </div>
+
   <!-- Desktop: Horizontal scrolling columns -->
-  <div class="hidden lg:flex gap-4 h-full overflow-x-auto pb-4">
-    <div
+  <div class="hidden lg:flex gap-4 h-full overflow-x-auto pb-4" role="region" aria-label="Task board columns">
+    <section
       v-for="column in columns"
       :key="column.id"
       class="flex-shrink-0 w-72"
+      :aria-label="`${column.title} column, ${tasksByStatus[column.id].length} tasks`"
     >
       <!-- Column Header -->
       <div class="flex items-center gap-2 mb-3">
-        <div class="h-3 w-3" :class="column.color" />
+        <div class="h-3 w-3" :class="column.color" aria-hidden="true" />
         <h3 class="font-medium text-gray-900 dark:text-gray-100">{{ column.title }}</h3>
         <span class="text-sm text-gray-500 dark:text-gray-400">
           {{ tasksByStatus[column.id].length }}
@@ -120,11 +144,12 @@ function onDrop(event: DragEvent, status: Task['status']) {
         @dragleave="onDragLeave"
         @drop="onDrop($event, column.id)"
       >
-        <div v-if="loading" class="text-center py-4">
+        <div v-if="loading" class="text-center py-4" role="status" aria-label="Loading tasks">
           <svg
             class="animate-spin h-6 w-6 mx-auto text-gray-400"
             fill="none"
             viewBox="0 0 24 24"
+            aria-hidden="true"
           >
             <circle
               class="opacity-25"
@@ -146,11 +171,15 @@ function onDrop(event: DragEvent, status: Task['status']) {
           <div
             v-for="task in tasksByStatus[column.id]"
             :key="task.id"
+            role="button"
+            tabindex="0"
             draggable="true"
-            class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 p-3 cursor-pointer hover:shadow-sm transition-all"
+            class="bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 p-3 cursor-pointer hover:shadow-sm transition-all focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2"
             :class="{ 'opacity-50': draggedTask?.id === task.id }"
+            :aria-label="`Task: ${task.title}. Draggable. Press Enter to open details.`"
             @dragstart="onDragStart($event, task)"
             @click="emit('select', task)"
+            @keydown.enter="emit('select', task)"
           >
             <div class="flex items-center gap-2 mb-1">
               <span class="text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-600 px-1">
@@ -235,16 +264,17 @@ function onDrop(event: DragEvent, status: Task['status']) {
           </div>
         </div>
       </div>
-    </div>
+    </section>
   </div>
 
   <!-- Mobile: Stacked collapsible columns -->
   <div class="lg:hidden space-y-3">
-    <div v-if="loading" class="text-center py-8">
+    <div v-if="loading" class="text-center py-8" role="status" aria-label="Loading tasks">
       <svg
         class="animate-spin h-8 w-8 mx-auto text-gray-400"
         fill="none"
         viewBox="0 0 24 24"
+        aria-hidden="true"
       >
         <circle
           class="opacity-25"
@@ -271,10 +301,12 @@ function onDrop(event: DragEvent, status: Task['status']) {
         <!-- Collapsible Header -->
         <button
           class="w-full flex items-center justify-between p-4 min-h-[52px] hover:bg-gray-50 dark:hover:bg-gray-700/50 transition-colors"
+          :aria-expanded="expandedColumns.has(column.id)"
+          :aria-controls="`column-content-${column.id}`"
           @click="toggleColumn(column.id)"
         >
           <div class="flex items-center gap-3">
-            <div class="h-3 w-3 flex-shrink-0" :class="column.color" />
+            <div class="h-3 w-3 flex-shrink-0" :class="column.color" aria-hidden="true" />
             <h3 class="font-medium text-gray-900 dark:text-gray-100">{{ column.title }}</h3>
             <span class="text-sm text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-2 py-0.5 rounded-full">
               {{ tasksByStatus[column.id].length }}
@@ -286,6 +318,7 @@ function onDrop(event: DragEvent, status: Task['status']) {
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
@@ -302,14 +335,19 @@ function onDrop(event: DragEvent, status: Task['status']) {
         >
           <div
             v-if="expandedColumns.has(column.id)"
+            :id="`column-content-${column.id}`"
             class="border-t border-gray-200 dark:border-gray-700 overflow-hidden"
           >
             <div class="p-3 space-y-2 bg-gray-50 dark:bg-gray-900">
               <div
                 v-for="task in tasksByStatus[column.id]"
                 :key="task.id"
-                class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 cursor-pointer active:bg-gray-50 dark:active:bg-gray-700 transition-colors"
+                role="button"
+                tabindex="0"
+                class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 cursor-pointer active:bg-gray-50 dark:active:bg-gray-700 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-inset"
+                :aria-label="`Task: ${task.title}. Press Enter to open details.`"
                 @click="emit('select', task)"
+                @keydown.enter="emit('select', task)"
               >
                 <div class="flex items-center gap-2 mb-2">
                   <span class="text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5">
