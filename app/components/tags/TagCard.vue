@@ -100,16 +100,18 @@ function handleDelete() {
               ref="nameInput"
               v-model="editedName"
               type="text"
+              aria-label="Tag name"
               class="flex-1 px-2 py-1 text-lg font-semibold bg-gray-50 dark:bg-gray-700 border border-gray-300 dark:border-gray-600 focus:ring-2 focus:ring-primary-500 focus:border-transparent"
               @keydown.enter="saveName"
               @keydown.escape="cancelEditName"
               @blur="saveName"
             />
           </div>
-          <h3
+          <button
             v-else
-            class="group/title text-lg font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 inline-flex items-center gap-2"
-            title="Click to edit"
+            type="button"
+            class="group/title text-lg font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 inline-flex items-center gap-2 text-left"
+            :aria-label="`Edit tag name: ${tag.name}`"
             @click.stop="startEditingName"
           >
             {{ tag.name }}
@@ -122,7 +124,7 @@ function handleDelete() {
             >
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
             </svg>
-          </h3>
+          </button>
         </div>
       </div>
 
@@ -130,6 +132,7 @@ function handleDelete() {
       <div class="mt-4 flex items-center justify-end text-xs text-gray-500 dark:text-gray-400">
         <button
           class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+          :aria-label="`Delete tag ${tag.name}`"
           @click="handleDelete"
         >
           Delete

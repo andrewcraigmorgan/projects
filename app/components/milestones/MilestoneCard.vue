@@ -109,10 +109,11 @@ function formatDate(dateString: string) {
               @blur="saveName"
             />
           </div>
-          <h3
-            v-else
-            class="group/title text-lg font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 inline-flex items-center gap-2"
-            title="Click to edit"
+          <button
+            v-if="!isEditingName"
+            type="button"
+            class="group/title text-lg font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 inline-flex items-center gap-2 text-left"
+            :aria-label="`Edit milestone name: ${milestone.name}`"
             @click.stop="startEditingName"
           >
             {{ milestone.name }}
@@ -125,7 +126,7 @@ function formatDate(dateString: string) {
             >
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
             </svg>
-          </h3>
+          </button>
 
           <!-- Description -->
           <p
@@ -141,9 +142,11 @@ function formatDate(dateString: string) {
           <div
             class="absolute left-2 top-1/2 -translate-y-1/2 h-2 w-2 rounded-full pointer-events-none"
             :class="statusOptions.find(s => s.value === milestone.status)?.color"
+            aria-hidden="true"
           />
           <select
             :value="milestone.status"
+            aria-label="Milestone status"
             class="appearance-none pl-5 pr-6 py-1 text-sm font-medium border-0 cursor-pointer focus:ring-1 focus:ring-primary-500 transition-colors"
             :class="statusColors[milestone.status]"
             @click.stop
@@ -172,8 +175,9 @@ function formatDate(dateString: string) {
       <!-- Dates row -->
       <div class="mt-4 flex items-center gap-4 flex-wrap">
         <div class="flex items-center gap-2">
-          <span class="text-xs text-gray-500 dark:text-gray-400">Start:</span>
+          <label :for="`milestone-${milestone.id}-start`" class="text-xs text-gray-500 dark:text-gray-400">Start:</label>
           <input
+            :id="`milestone-${milestone.id}-start`"
             type="date"
             :value="milestone.startDate.split('T')[0]"
             class="px-2 py-1 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 cursor-pointer"
@@ -182,8 +186,9 @@ function formatDate(dateString: string) {
           />
         </div>
         <div class="flex items-center gap-2">
-          <span class="text-xs text-gray-500 dark:text-gray-400">End:</span>
+          <label :for="`milestone-${milestone.id}-end`" class="text-xs text-gray-500 dark:text-gray-400">End:</label>
           <input
+            :id="`milestone-${milestone.id}-end`"
             type="date"
             :value="milestone.endDate.split('T')[0]"
             class="px-2 py-1 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 cursor-pointer"
@@ -235,6 +240,7 @@ function formatDate(dateString: string) {
           </NuxtLink>
           <button
             class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
+            :aria-label="`Delete milestone ${milestone.name}`"
             @click.stop="emit('delete', milestone.id)"
           >
             Delete

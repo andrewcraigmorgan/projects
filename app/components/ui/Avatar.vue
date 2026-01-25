@@ -39,11 +39,17 @@ const initial = computed(() => props.name?.[0]?.toUpperCase() || '?')
       class="rounded-full bg-cover bg-center"
       :class="sizeClasses"
       :style="{ backgroundImage: `url(${avatar})` }"
+      role="img"
+      :aria-label="`${name}${role ? ` (${role === 'client' ? 'Client' : 'Team'})` : ''}`"
+      :title="name"
     />
     <div
       v-else
       class="rounded-full flex items-center justify-center font-medium"
       :class="[sizeClasses, colorClasses]"
+      role="img"
+      :aria-label="`${name}${role ? ` (${role === 'client' ? 'Client' : 'Team'})` : ''}`"
+      :title="name"
     >
       {{ initial }}
     </div>
