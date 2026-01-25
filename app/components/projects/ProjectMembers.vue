@@ -125,11 +125,11 @@ onMounted(loadMembers)
         <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
           Team <span class="text-gray-400 dark:text-gray-500">({{ teamMembers.length }})</span>
         </h4>
-        <div class="space-y-1">
-          <div
+        <ul class="space-y-1" aria-label="Team members">
+          <li
             v-for="member in teamMembers"
             :key="member.user._id"
-            class="flex items-center gap-3 py-2 group"
+            class="flex items-center gap-3 py-2 group list-none"
           >
             <UiAvatar :name="member.user.name" :avatar="member.user.avatar" size="sm" role="team" />
             <div class="min-w-0 flex-1 flex items-center gap-2">
@@ -153,13 +153,14 @@ onMounted(loadMembers)
                 v-if="member.user._id !== authStore.user?.id"
                 class="text-xs text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 ml-2"
                 title="Remove member"
+                :aria-label="`Remove ${member.user.name}`"
                 @click="removeMember(member.user._id, member.user.name)"
               >
                 Remove
               </button>
             </div>
-          </div>
-        </div>
+          </li>
+        </ul>
       </div>
 
       <!-- Client Members -->
@@ -167,11 +168,11 @@ onMounted(loadMembers)
         <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">
           Clients <span class="text-gray-400 dark:text-gray-500">({{ clientMembers.length }})</span>
         </h4>
-        <div class="space-y-1">
-          <div
+        <ul class="space-y-1" aria-label="Client members">
+          <li
             v-for="member in clientMembers"
             :key="member.user._id"
-            class="flex items-center gap-3 py-2 group"
+            class="flex items-center gap-3 py-2 group list-none"
           >
             <UiAvatar :name="member.user.name" :avatar="member.user.avatar" size="sm" role="client" />
             <div class="min-w-0 flex-1 flex items-center gap-2">
@@ -194,13 +195,14 @@ onMounted(loadMembers)
               <button
                 class="text-xs text-gray-500 hover:text-red-600 dark:text-gray-400 dark:hover:text-red-400 ml-2"
                 title="Remove member"
+                :aria-label="`Remove ${member.user.name}`"
                 @click="removeMember(member.user._id, member.user.name)"
               >
                 Remove
               </button>
             </div>
-          </div>
-        </div>
+          </li>
+        </ul>
       </div>
 
       <!-- Empty state -->

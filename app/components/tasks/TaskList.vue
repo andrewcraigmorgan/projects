@@ -171,11 +171,12 @@ defineExpose({
 
 <template>
   <div class="space-y-2">
-    <div v-if="loading" class="text-center py-8">
+    <div v-if="loading" class="text-center py-8" role="status" aria-label="Loading tasks">
       <svg
         class="animate-spin h-8 w-8 mx-auto text-primary-600"
         fill="none"
         viewBox="0 0 24 24"
+        aria-hidden="true"
       >
         <circle
           class="opacity-25"
@@ -206,15 +207,16 @@ defineExpose({
     </template>
 
     <template v-else>
-      <div
-        v-for="task in tasks"
-        :key="task.id"
-        class="transition-transform duration-150"
-        :class="getDropIndicatorClass(task.id)"
-        @dragover="handleDragOver(task, $event)"
-        @dragleave="handleDragLeave"
-        @drop="handleDrop(task, $event)"
-      >
+      <ul class="space-y-2" role="list" aria-label="Task list">
+        <li
+          v-for="task in tasks"
+          :key="task.id"
+          class="transition-transform duration-150 list-none"
+          :class="getDropIndicatorClass(task.id)"
+          @dragover="handleDragOver(task, $event)"
+          @dragleave="handleDragLeave"
+          @drop="handleDrop(task, $event)"
+        >
         <TasksTaskCard
           :task="{ ...task, subtasks: loadedSubtasks.get(task.id) }"
           :depth="depth"
@@ -238,7 +240,8 @@ defineExpose({
             />
           </template>
         </TasksTaskCard>
-      </div>
+      </li>
+      </ul>
 
       <!-- Root drop zone (when dragging) -->
       <div

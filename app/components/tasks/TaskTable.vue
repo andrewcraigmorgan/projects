@@ -517,18 +517,20 @@ function getCellValue(task: Task, columnId: string): string {
   <template v-else>
     <!-- Desktop: Table view -->
     <div class="hidden lg:block">
-      <table class="w-full min-w-full border-collapse">
+      <table class="w-full min-w-full border-collapse" aria-label="Tasks list">
         <!-- Header -->
         <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900">
           <tr class="border-b border-gray-200 dark:border-gray-700">
             <!-- ID column (always visible) -->
-            <th class="w-24 px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
+            <th scope="col" class="w-24 px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider">
               ID
             </th>
             <!-- Dynamic columns -->
             <th
               v-for="column in visibleColumns"
               :key="column.id"
+              scope="col"
+              :aria-sort="column.sortable && sortColumn === column.id ? (sortDirection === 'asc' ? 'ascending' : 'descending') : undefined"
               class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
               :class="[column.width, column.sortable ? 'cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200' : '']"
               @click="column.sortable ? toggleSort(column.id) : null"
@@ -557,7 +559,7 @@ function getCellValue(task: Task, columnId: string): string {
               </div>
             </th>
             <!-- Config column -->
-            <th class="w-10 px-2 py-2 text-right relative">
+            <th scope="col" class="w-10 px-2 py-2 text-right relative">
               <button
                 ref="configButtonRef"
                 class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
