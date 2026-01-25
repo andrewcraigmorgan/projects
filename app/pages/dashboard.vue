@@ -113,12 +113,12 @@ async function createOrganization() {
         </div>
 
         <!-- Quick actions -->
-        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6">
+        <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-soft p-6">
           <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100 mb-4">Quick Actions</h3>
-          <div class="flex flex-wrap gap-4">
+          <div class="flex flex-wrap gap-3">
             <NuxtLink
               to="/projects"
-              class="inline-flex items-center px-4 py-2 bg-primary-50 text-primary-700 dark:bg-primary-900 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-800 transition-colors"
+              class="inline-flex items-center px-4 py-2.5 bg-primary-50 text-primary-700 dark:bg-primary-900/50 dark:text-primary-300 hover:bg-primary-100 dark:hover:bg-primary-900 rounded-lg font-medium transition-all duration-200 hover:shadow-md"
             >
               <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7v10a2 2 0 002 2h14a2 2 0 002-2V9a2 2 0 00-2-2h-6l-2-2H5a2 2 0 00-2 2z" />
@@ -128,7 +128,7 @@ async function createOrganization() {
             <a
               href="/docs"
               target="_blank"
-              class="inline-flex items-center px-4 py-2 bg-gray-50 text-gray-700 dark:bg-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-600 transition-colors"
+              class="inline-flex items-center px-4 py-2.5 bg-gray-50 text-gray-700 dark:bg-gray-700/50 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg font-medium transition-all duration-200 hover:shadow-md"
             >
               <svg class="h-5 w-5 mr-2" fill="none" viewBox="0 0 24 24" stroke="currentColor">
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />

@@ -54,12 +54,15 @@ function isActive(href: string) {
 
     <!-- Organization Selector -->
     <div class="px-3 sm:px-4 mb-4">
-      <UiSearchSelect
+      <UiSelect
         v-if="orgStore.organizations.length > 0"
         :model-value="orgStore.currentOrganization?.id"
-        :options="orgStore.organizations.map(o => ({ id: o.id, label: o.name }))"
+        :options="orgStore.organizations.map(o => ({ value: o.id, label: o.name }))"
         placeholder="Select organization..."
         search-placeholder="Search organizations..."
+        searchable
+        variant="dark"
+        size="md"
         @update:model-value="orgStore.setCurrentOrganization(orgStore.organizations.find(o => o.id === $event)!)"
       />
     </div>

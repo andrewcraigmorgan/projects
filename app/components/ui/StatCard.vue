@@ -11,21 +11,21 @@ const props = withDefaults(defineProps<Props>(), {
 
 const colorClasses = computed(() => {
   const colors = {
-    primary: 'bg-primary-100 dark:bg-primary-900 text-primary-600 dark:text-primary-400',
-    green: 'bg-green-100 dark:bg-green-900 text-green-600 dark:text-green-400',
-    blue: 'bg-blue-100 dark:bg-blue-900 text-blue-600 dark:text-blue-400',
-    orange: 'bg-orange-100 dark:bg-orange-900 text-orange-600 dark:text-orange-400',
-    purple: 'bg-purple-100 dark:bg-purple-900 text-purple-600 dark:text-purple-400',
+    primary: 'bg-gradient-to-br from-primary-50 to-primary-100 dark:from-primary-900/50 dark:to-primary-800/50 text-primary-600 dark:text-primary-400',
+    green: 'bg-gradient-to-br from-green-50 to-green-100 dark:from-green-900/50 dark:to-green-800/50 text-green-600 dark:text-green-400',
+    blue: 'bg-gradient-to-br from-blue-50 to-blue-100 dark:from-blue-900/50 dark:to-blue-800/50 text-blue-600 dark:text-blue-400',
+    orange: 'bg-gradient-to-br from-orange-50 to-orange-100 dark:from-orange-900/50 dark:to-orange-800/50 text-orange-600 dark:text-orange-400',
+    purple: 'bg-gradient-to-br from-purple-50 to-purple-100 dark:from-purple-900/50 dark:to-purple-800/50 text-purple-600 dark:text-purple-400',
   }
   return colors[props.color]
 })
 </script>
 
 <template>
-  <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6">
+  <div class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200/60 dark:border-gray-700/60 shadow-soft p-6 hover:shadow-md transition-shadow duration-200">
     <div class="flex items-center">
       <div
-        class="h-12 w-12 flex items-center justify-center"
+        class="h-12 w-12 rounded-xl flex items-center justify-center"
         :class="colorClasses"
       >
         <slot name="icon">
@@ -36,7 +36,7 @@ const colorClasses = computed(() => {
       </div>
       <div class="ml-4">
         <p class="text-sm font-medium text-gray-500 dark:text-gray-400">{{ label }}</p>
-        <p class="text-xl font-semibold text-gray-900 dark:text-gray-100">
+        <p class="text-xl font-bold text-gray-900 dark:text-gray-100">
           {{ value }}
         </p>
       </div>

@@ -526,7 +526,7 @@ function getCellValue(task: Task, columnId: string): string {
 
                 <!-- Status column -->
                 <template v-else-if="column.id === 'status'">
-                  <UiDropdown
+                  <UiSelect
                     :model-value="task.status"
                     :options="statusOptions"
                     colored-background
@@ -537,7 +537,7 @@ function getCellValue(task: Task, columnId: string): string {
 
                 <!-- Priority column -->
                 <template v-else-if="column.id === 'priority'">
-                  <UiDropdown
+                  <UiSelect
                     :model-value="task.priority || ''"
                     :options="priorityOptions"
                     placeholder="-"

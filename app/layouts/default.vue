@@ -35,7 +35,7 @@ function handleOverlayClick() {
 </script>
 
 <template>
-  <div class="flex h-screen bg-gray-50 dark:bg-gray-900">
+  <div class="flex h-screen bg-gradient-to-br from-gray-50 via-gray-100/50 to-gray-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
     <!-- Mobile overlay backdrop -->
     <Transition
       enter-active-class="transition-opacity duration-300"

@@ -26,13 +26,13 @@ const emit = defineEmits<{
 
 const inputClasses = computed(() => {
   const base =
-    'block w-full border px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-offset-0 transition-colors'
+    'block w-full border rounded-lg px-3.5 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-offset-0 transition-all duration-200 shadow-sm'
 
   if (props.error) {
-    return `${base} border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500 dark:border-red-600 dark:text-red-400 dark:placeholder-red-500 dark:bg-gray-800`
+    return `${base} border-red-300 text-red-900 placeholder-red-300 focus:border-red-500 focus:ring-red-500/20 dark:border-red-600 dark:text-red-400 dark:placeholder-red-500 dark:bg-gray-800`
   }
 
-  return `${base} border-gray-300 text-gray-900 placeholder-gray-400 focus:border-primary-500 focus:ring-primary-500 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500`
+  return `${base} border-gray-200 text-gray-900 placeholder-gray-400 hover:border-gray-300 focus:border-primary-500 focus:ring-primary-500/20 dark:border-gray-600 dark:bg-gray-800 dark:text-gray-100 dark:placeholder-gray-500 dark:hover:border-gray-500`
 })
 </script>
 

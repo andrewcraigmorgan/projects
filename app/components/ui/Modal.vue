@@ -73,16 +73,16 @@ function handleBackdropClick(event: MouseEvent) {
           >
             <div
               v-if="open"
-              class="w-full transform overflow-hidden bg-white dark:bg-gray-800 shadow-xl transition-all flex flex-col"
+              class="w-full transform overflow-hidden bg-white dark:bg-gray-800 shadow-2xl transition-all flex flex-col border border-gray-200/60 dark:border-gray-700/60"
               :class="[
                 sizeClasses,
-                isMobile ? 'rounded-t-2xl max-h-[90vh]' : 'rounded-none max-h-[85vh]'
+                isMobile ? 'rounded-t-2xl max-h-[90vh]' : 'rounded-2xl max-h-[85vh]'
               ]"
             >
               <!-- Header -->
               <div
                 v-if="title || isMobile"
-                class="flex items-center justify-between border-b border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0"
+                class="flex items-center justify-between border-b border-gray-100 dark:border-gray-700/60 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0 bg-gray-50/50 dark:bg-gray-800/50"
               >
                 <!-- Mobile drag handle indicator -->
                 <div v-if="isMobile" class="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
@@ -94,7 +94,7 @@ function handleBackdropClick(event: MouseEvent) {
 
                 <!-- Close button (always visible on mobile, optional on desktop) -->
                 <button
-                  class="p-2 -mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 transition-colors"
+                  class="p-2 -mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
                   :class="isMobile ? '' : 'hidden sm:block'"
                   aria-label="Close"
                   @click="emit('close')"
@@ -113,7 +113,7 @@ function handleBackdropClick(event: MouseEvent) {
               <!-- Footer -->
               <div
                 v-if="$slots.footer"
-                class="border-t border-gray-200 dark:border-gray-700 px-4 sm:px-6 py-3 sm:py-4 bg-gray-50 dark:bg-gray-900 flex-shrink-0"
+                class="border-t border-gray-100 dark:border-gray-700/60 px-4 sm:px-6 py-3 sm:py-4 bg-gray-50/50 dark:bg-gray-900/50 flex-shrink-0"
               >
                 <slot name="footer" />
               </div>
