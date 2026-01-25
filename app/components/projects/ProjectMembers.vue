@@ -93,8 +93,7 @@ onMounted(loadMembers)
 
 <template>
   <div>
-    <div class="flex items-center justify-between mb-4">
-      <h3 class="text-lg font-semibold text-gray-900 dark:text-gray-100">Members</h3>
+    <div class="flex items-center justify-end mb-4">
       <UiButton size="sm" @click="showInviteModal = true">
         Invite
       </UiButton>
@@ -110,9 +109,10 @@ onMounted(loadMembers)
         <h4 class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide mb-2">Owner</h4>
         <div class="flex items-center gap-3 py-2">
           <UiAvatar :name="owner.name" :avatar="owner.avatar" size="sm" role="team" />
-          <div class="min-w-0 flex-1">
-            <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ owner.name }}</p>
-            <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ owner.email }}</p>
+          <div class="min-w-0 flex-1 flex items-center gap-2">
+            <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ owner.name }}</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500">·</span>
+            <span class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ owner.email }}</span>
           </div>
           <span class="text-xs font-medium px-2 py-0.5 bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300">
             Owner
@@ -132,9 +132,10 @@ onMounted(loadMembers)
             class="flex items-center gap-3 py-2 group"
           >
             <UiAvatar :name="member.user.name" :avatar="member.user.avatar" size="sm" role="team" />
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ member.user.name }}</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ member.user.email }}</p>
+            <div class="min-w-0 flex-1 flex items-center gap-2">
+              <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ member.user.name }}</span>
+              <span class="text-xs text-gray-400 dark:text-gray-500">·</span>
+              <span class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ member.user.email }}</span>
             </div>
             <span class="text-xs font-medium px-2 py-0.5 bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300">
               Team
@@ -173,9 +174,10 @@ onMounted(loadMembers)
             class="flex items-center gap-3 py-2 group"
           >
             <UiAvatar :name="member.user.name" :avatar="member.user.avatar" size="sm" role="client" />
-            <div class="min-w-0 flex-1">
-              <p class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate">{{ member.user.name }}</p>
-              <p class="text-xs text-gray-500 dark:text-gray-400 truncate">{{ member.user.email }}</p>
+            <div class="min-w-0 flex-1 flex items-center gap-2">
+              <span class="text-sm font-medium text-gray-900 dark:text-gray-100">{{ member.user.name }}</span>
+              <span class="text-xs text-gray-400 dark:text-gray-500">·</span>
+              <span class="text-sm text-gray-500 dark:text-gray-400 truncate">{{ member.user.email }}</span>
             </div>
             <span class="text-xs font-medium px-2 py-0.5 bg-orange-100 text-orange-700 dark:bg-orange-900 dark:text-orange-300">
               Client

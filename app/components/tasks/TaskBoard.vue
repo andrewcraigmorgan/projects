@@ -154,8 +154,16 @@ function onDrop(event: DragEvent, status: Task['status']) {
           >
             <div class="flex items-center gap-2 mb-1">
               <span class="text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-600 px-1">
-                {{ projectCode || task.id.slice(0, 3).toUpperCase() }}-T{{ task.taskNumber ?? 0 }}
+                {{ projectCode || task.project?.code || task.id.slice(0, 3).toUpperCase() }}-T{{ task.taskNumber ?? 0 }}
               </span>
+              <NuxtLink
+                v-if="task.project && !projectId"
+                :to="`/projects/${task.project.id}`"
+                class="text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline"
+                @click.stop
+              >
+                {{ task.project.code }}
+              </NuxtLink>
             </div>
             <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
               {{ task.title }}
@@ -305,8 +313,16 @@ function onDrop(event: DragEvent, status: Task['status']) {
               >
                 <div class="flex items-center gap-2 mb-2">
                   <span class="text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5">
-                    {{ projectCode || task.id.slice(0, 3).toUpperCase() }}-T{{ task.taskNumber ?? 0 }}
+                    {{ projectCode || task.project?.code || task.id.slice(0, 3).toUpperCase() }}-T{{ task.taskNumber ?? 0 }}
                   </span>
+                  <NuxtLink
+                    v-if="task.project && !projectId"
+                    :to="`/projects/${task.project.id}`"
+                    class="text-xs font-medium text-primary-600 dark:text-primary-400 hover:underline"
+                    @click.stop
+                  >
+                    {{ task.project.code }}
+                  </NuxtLink>
                 </div>
                 <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
                   {{ task.title }}

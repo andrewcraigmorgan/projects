@@ -115,6 +115,7 @@ function handleContextMenu(task: Task, event: MouseEvent) {
 
 const availableColumns: Column[] = [
   { id: 'title', label: 'Title', width: 'flex-1' },
+  { id: 'project', label: 'Project', width: 'w-24' },
   { id: 'status', label: 'Status', width: 'w-28' },
   { id: 'priority', label: 'Priority', width: 'w-24' },
   { id: 'assignee', label: 'Assignee', width: 'w-32' },
@@ -328,7 +329,7 @@ function formatDateTime(dateStr: string | undefined): string {
 
 // Get short task ID
 function getShortId(task: Task): string {
-  const prefix = props.projectCode || task.id.slice(0, 3).toUpperCase()
+  const prefix = props.projectCode || task.project?.code || task.id.slice(0, 3).toUpperCase()
   const taskNum = task.taskNumber ?? 0
   return `${prefix}-T${taskNum}`
 }
@@ -338,6 +339,8 @@ function getCellValue(task: Task, columnId: string): string {
   switch (columnId) {
     case 'title':
       return task.title
+    case 'project':
+      return task.project?.code || '-'
     case 'status':
       return statusLabels[task.status] || task.status
     case 'priority':
@@ -506,6 +509,19 @@ function getCellValue(task: Task, columnId: string): string {
                       {{ task.title }}
                     </span>
                   </div>
+                </template>
+
+                <!-- Project column -->
+                <template v-else-if="column.id === 'project'">
+                  <NuxtLink
+                    v-if="task.project"
+                    :to="`/projects/${task.project.id}`"
+                    class="text-xs font-mono text-primary-600 dark:text-primary-400 hover:underline bg-gray-100 dark:bg-gray-700 px-1.5 py-0.5"
+                    @click.stop
+                  >
+                    {{ task.project.code }}
+                  </NuxtLink>
+                  <span v-else class="text-xs text-gray-400 dark:text-gray-500">-</span>
                 </template>
 
                 <!-- Status column -->
@@ -804,8 +820,18 @@ function getCellValue(task: Task, columnId: string): string {
             </div>
           </div>
 
-          <!-- Status, Priority, Assignee row -->
+          <!-- Status, Priority, Project row -->
           <div class="flex items-center gap-2 flex-wrap">
+            <!-- Project badge (when not in project context) -->
+            <NuxtLink
+              v-if="task.project && !projectId"
+              :to="`/projects/${task.project.id}`"
+              class="inline-flex items-center px-2 py-0.5 text-xs font-mono font-medium bg-gray-100 text-primary-600 dark:bg-gray-700 dark:text-primary-400"
+              @click.stop
+            >
+              {{ task.project.code }}
+            </NuxtLink>
+
             <!-- Status badge -->
             <span
               class="inline-flex items-center px-2 py-0.5 text-xs font-medium"

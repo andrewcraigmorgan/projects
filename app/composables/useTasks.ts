@@ -11,6 +11,7 @@ export interface Task {
   dueDate?: string
   estimatedHours?: number
   isExternal?: boolean
+  project?: { id: string; name: string; code: string }
   milestone?: { id: string; name: string }
   tags?: { id: string; name: string; color: string }[]
   parentTask?: string

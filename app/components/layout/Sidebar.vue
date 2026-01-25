@@ -13,6 +13,7 @@ const { isMobile } = useBreakpoints()
 
 const navigation = [
   { name: 'Dashboard', href: '/dashboard?from=nav', icon: 'home' },
+  { name: 'My Tasks', href: '/my-tasks', icon: 'clipboard-list' },
   { name: 'Projects', href: '/projects', icon: 'folder' },
   { name: 'Settings', href: '/settings', icon: 'cog' },
 ]
@@ -27,14 +28,21 @@ function isActive(href: string) {
 </script>
 
 <template>
-  <div class="flex h-full w-64 flex-col bg-gray-900">
+  <div class="flex h-full w-64 flex-col bg-gradient-to-b from-gray-900 via-gray-900 to-gray-950">
     <!-- Logo & Close Button -->
     <div class="flex h-16 items-center justify-between px-4 sm:px-6">
-      <h1 class="text-xl font-bold text-white">Projects</h1>
+      <div class="flex items-center gap-2">
+        <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/20">
+          <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
+          </svg>
+        </div>
+        <h1 class="text-xl font-bold text-white">Projects</h1>
+      </div>
       <!-- Mobile close button -->
       <button
         v-if="isMobile"
-        class="lg:hidden p-2 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors -mr-2"
+        class="lg:hidden p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors -mr-2"
         aria-label="Close sidebar"
         @click="emit('close')"
       >
@@ -64,9 +72,9 @@ function isActive(href: string) {
         :to="item.href"
         :class="[
           isActive(item.href)
-            ? 'bg-gray-800 text-white'
-            : 'text-gray-300 hover:bg-gray-800 hover:text-white',
-          'group flex items-center px-3 py-3 sm:py-2 text-sm font-medium transition-colors min-h-[44px]',
+            ? 'bg-gradient-to-r from-primary-600/90 to-primary-500/90 text-white shadow-lg shadow-primary-500/20'
+            : 'text-gray-300 hover:bg-white/5 hover:text-white',
+          'group flex items-center px-3 py-3 sm:py-2.5 text-sm font-medium rounded-lg transition-all duration-200 min-h-[44px]',
         ]"
       >
         <svg
@@ -81,6 +89,13 @@ function isActive(href: string) {
             stroke-linejoin="round"
             stroke-width="2"
             d="M3 12l2-2m0 0l7-7 7 7M5 10v10a1 1 0 001 1h3m10-11l2 2m-2-2v10a1 1 0 01-1 1h-3m-6 0a1 1 0 001-1v-4a1 1 0 011-1h2a1 1 0 011 1v4a1 1 0 001 1m-6 0h6"
+          />
+          <path
+            v-if="item.icon === 'clipboard-list'"
+            stroke-linecap="round"
+            stroke-linejoin="round"
+            stroke-width="2"
+            d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01"
           />
           <path
             v-if="item.icon === 'folder'"
@@ -102,10 +117,10 @@ function isActive(href: string) {
     </nav>
 
     <!-- User -->
-    <div class="border-t border-gray-800 p-3 sm:p-4">
-      <div class="flex items-center min-h-[44px]">
+    <div class="border-t border-gray-800/50 p-3 sm:p-4">
+      <div class="flex items-center min-h-[44px] p-2 rounded-lg bg-white/5">
         <div
-          class="h-9 w-9 rounded-full bg-primary-600 flex items-center justify-center text-white font-medium flex-shrink-0"
+          class="h-9 w-9 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white font-semibold flex-shrink-0 shadow-lg shadow-primary-500/20"
         >
           {{ authStore.user?.name?.[0]?.toUpperCase() || '?' }}
         </div>
@@ -118,7 +133,7 @@ function isActive(href: string) {
           </p>
         </div>
         <button
-          class="ml-2 p-2 text-gray-400 hover:text-white hover:bg-gray-800 transition-colors -mr-2"
+          class="ml-2 p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 -mr-2"
           title="Logout"
           @click="authStore.logout()"
         >

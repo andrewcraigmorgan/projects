@@ -21,6 +21,12 @@ const querySchema = z.object({
     const priorities = val.split(',').filter(p => validPriorities.includes(p as typeof validPriorities[number]))
     return priorities.length > 0 ? priorities : undefined
   }),
+  // Accept comma-separated assignee IDs for filtering by assignees
+  assignees: z.string().optional().transform((val) => {
+    if (!val) return undefined
+    const ids = val.split(',').filter(id => id.trim().length > 0)
+    return ids.length > 0 ? ids : undefined
+  }),
   // Date range filters for due date
   dueDateFrom: z.string().optional(),
   dueDateTo: z.string().optional(),
@@ -56,7 +62,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const { projectId, status, priority, dueDateFrom, dueDateTo, milestone, parentTask, rootOnly, page, limit } = result.data
+  const { projectId, status, priority, assignees, dueDateFrom, dueDateTo, milestone, parentTask, rootOnly, page, limit } = result.data
 
   const auth = event.context.auth
   if (!auth) {
@@ -100,6 +106,10 @@ export default defineEventHandler(async (event) => {
 
   if (priority && priority.length > 0) {
     filter.priority = priority.length === 1 ? priority[0] : { $in: priority }
+  }
+
+  if (assignees && assignees.length > 0) {
+    filter.assignees = { $in: assignees }
   }
 
   // Date range filter for due date
