@@ -15,6 +15,44 @@ const emit = defineEmits<{
 
 const { isMobile } = useBreakpoints()
 
+// Generate unique IDs for ARIA
+const titleId = useId()
+const contentId = useId()
+
+// Focus trap refs
+const modalRef = ref<HTMLElement | null>(null)
+const previouslyFocusedElement = ref<HTMLElement | null>(null)
+
+// Handle keyboard events
+function handleKeydown(event: KeyboardEvent) {
+  if (event.key === 'Escape') {
+    emit('close')
+  }
+}
+
+// Focus management
+watch(() => props.open, (isOpen) => {
+  if (isOpen) {
+    // Store the currently focused element
+    previouslyFocusedElement.value = document.activeElement as HTMLElement
+    // Focus the modal after it opens
+    nextTick(() => {
+      modalRef.value?.focus()
+    })
+    // Add keyboard listener
+    document.addEventListener('keydown', handleKeydown)
+  } else {
+    // Restore focus to previously focused element
+    previouslyFocusedElement.value?.focus()
+    // Remove keyboard listener
+    document.removeEventListener('keydown', handleKeydown)
+  }
+})
+
+onUnmounted(() => {
+  document.removeEventListener('keydown', handleKeydown)
+})
+
 const sizeClasses = computed(() => {
   if (isMobile.value) {
     // On mobile, always use full width bottom sheet
@@ -73,7 +111,13 @@ function handleBackdropClick(event: MouseEvent) {
           >
             <div
               v-if="open"
-              class="w-full transform overflow-hidden bg-white dark:bg-gray-800 shadow-2xl transition-all flex flex-col border border-gray-200/60 dark:border-gray-700/60"
+              ref="modalRef"
+              role="dialog"
+              aria-modal="true"
+              :aria-labelledby="title ? titleId : undefined"
+              :aria-describedby="contentId"
+              tabindex="-1"
+              class="w-full transform overflow-hidden bg-white dark:bg-gray-800 shadow-2xl transition-all flex flex-col border border-gray-200/60 dark:border-gray-700/60 focus:outline-none"
               :class="[
                 sizeClasses,
                 isMobile ? 'rounded-t-2xl max-h-[90vh]' : 'rounded-2xl max-h-[85vh]'
@@ -87,7 +131,7 @@ function handleBackdropClick(event: MouseEvent) {
                 <!-- Mobile drag handle indicator -->
                 <div v-if="isMobile" class="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
 
-                <h3 v-if="title" class="text-lg font-semibold text-gray-900 dark:text-gray-100">
+                <h3 v-if="title" :id="titleId" class="text-lg font-semibold text-gray-900 dark:text-gray-100">
                   {{ title }}
                 </h3>
                 <div v-else />
@@ -96,17 +140,17 @@ function handleBackdropClick(event: MouseEvent) {
                 <button
                   class="p-2 -mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
                   :class="isMobile ? '' : 'hidden sm:block'"
-                  aria-label="Close"
+                  aria-label="Close dialog"
                   @click="emit('close')"
                 >
-                  <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                     <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
                   </svg>
                 </button>
               </div>
 
               <!-- Content -->
-              <div class="px-4 sm:px-6 py-4 overflow-y-auto flex-1">
+              <div :id="contentId" class="px-4 sm:px-6 py-4 overflow-y-auto flex-1">
                 <slot />
               </div>
 
