@@ -19,6 +19,7 @@ const props = withDefaults(defineProps<Props>(), {
 
 const autoId = useId()
 const inputId = computed(() => props.id || autoId)
+const errorId = computed(() => `${inputId.value}-error`)
 
 const emit = defineEmits<{
   (e: 'update:modelValue', value: string): void
@@ -53,10 +54,13 @@ const inputClasses = computed(() => {
       :placeholder="placeholder"
       :disabled="disabled"
       :required="required"
+      :aria-required="required"
+      :aria-invalid="error ? 'true' : undefined"
+      :aria-describedby="error ? errorId : undefined"
       :class="inputClasses"
       @input="emit('update:modelValue', ($event.target as HTMLInputElement).value)"
     />
-    <p v-if="error" class="mt-1 text-sm text-red-600">
+    <p v-if="error" :id="errorId" class="mt-1 text-sm text-red-600" role="alert">
       {{ error }}
     </p>
   </div>

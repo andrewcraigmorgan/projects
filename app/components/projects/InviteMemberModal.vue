@@ -103,6 +103,7 @@ watch(() => props.open, (isOpen) => {
     <form @submit.prevent="sendInvitation" class="space-y-4">
       <div
         v-if="error"
+        role="alert"
         class="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 text-red-600 dark:text-red-400 px-4 py-3 text-sm"
       >
         {{ error }}
@@ -110,6 +111,8 @@ watch(() => props.open, (isOpen) => {
 
       <div
         v-if="success"
+        role="status"
+        aria-live="polite"
         class="bg-green-50 dark:bg-green-900/30 border border-green-200 dark:border-green-800 text-green-600 dark:text-green-400 px-4 py-3 text-sm"
       >
         {{ success }}
@@ -126,8 +129,9 @@ watch(() => props.open, (isOpen) => {
           />
         </div>
         <div class="w-32">
-          <label class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
+          <label for="invite-role" class="block text-sm font-medium text-gray-700 dark:text-gray-300 mb-1">Role</label>
           <select
+            id="invite-role"
             v-model="role"
             class="w-full px-3 py-2 bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 text-gray-900 dark:text-gray-100 text-sm focus:ring-1 focus:ring-primary-500 focus:border-primary-500 focus:outline-none dark:[color-scheme:dark]"
           >
@@ -154,8 +158,8 @@ watch(() => props.open, (isOpen) => {
         No pending invitations
       </div>
 
-      <div v-else class="space-y-2">
-        <div
+      <ul v-else class="space-y-2" aria-label="Pending invitations">
+        <li
           v-for="inv in invitations"
           :key="inv.id"
           class="flex items-center justify-between py-2 px-3 bg-gray-50 dark:bg-gray-800/50 border border-gray-100 dark:border-gray-700"
@@ -173,12 +177,13 @@ watch(() => props.open, (isOpen) => {
           </div>
           <button
             class="text-xs text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 flex-shrink-0 ml-3"
+            :aria-label="`Cancel invitation for ${inv.email}`"
             @click="cancelInvitation(inv.id)"
           >
             Cancel
           </button>
-        </div>
-      </div>
+        </li>
+      </ul>
     </div>
   </UiModal>
 </template>
