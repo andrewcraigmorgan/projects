@@ -33,7 +33,7 @@ function isActive(href: string) {
     <div class="flex h-16 items-center justify-between px-4 sm:px-6">
       <div class="flex items-center gap-2">
         <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/20">
-          <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
           </svg>
         </div>
@@ -46,7 +46,7 @@ function isActive(href: string) {
         aria-label="Close sidebar"
         @click="emit('close')"
       >
-        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
         </svg>
       </button>
@@ -138,9 +138,10 @@ function isActive(href: string) {
         <button
           class="ml-2 p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 -mr-2"
           title="Logout"
+          aria-label="Logout"
           @click="authStore.logout()"
         >
-          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+          <svg class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
             <path
               stroke-linecap="round"
               stroke-linejoin="round"

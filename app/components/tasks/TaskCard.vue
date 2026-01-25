@@ -174,9 +174,11 @@ function onMilestoneChange(event: Event) {
         <div
           v-if="!isMobile"
           class="flex-shrink-0 cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 transition-opacity text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300 hidden sm:block"
+          role="img"
+          aria-label="Drag to reorder"
           @mousedown.stop
         >
-          <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20">
+          <svg class="h-5 w-5" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
             <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
           </svg>
         </div>
@@ -185,6 +187,7 @@ function onMilestoneChange(event: Event) {
         <button
           class="flex-shrink-0 px-1.5 py-0.5 text-xs font-mono text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 transition-colors cursor-pointer min-h-[28px] flex items-center"
           :title="copied ? 'Copied!' : 'Click to copy ID'"
+          :aria-label="copied ? 'ID copied to clipboard' : `Copy task ID ${shortId}`"
           @click="copyId"
         >
           <span v-if="copied" class="text-green-600 dark:text-green-400">Copied!</span>
@@ -195,6 +198,8 @@ function onMilestoneChange(event: Event) {
         <button
           v-if="task.subtaskCount > 0"
           class="mt-0.5 p-1.5 sm:p-1 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors min-h-[28px] min-w-[28px] flex items-center justify-center"
+          :aria-expanded="expanded"
+          :aria-label="expanded ? 'Collapse subtasks' : `Expand ${task.subtaskCount} subtasks`"
           @click.stop="expanded = !expanded; emit('toggle-expand', task)"
         >
           <svg
@@ -203,6 +208,7 @@ function onMilestoneChange(event: Event) {
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path
               stroke-linecap="round"
@@ -236,6 +242,7 @@ function onMilestoneChange(event: Event) {
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
@@ -282,6 +289,7 @@ function onMilestoneChange(event: Event) {
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
+                aria-hidden="true"
               >
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
@@ -323,6 +331,7 @@ function onMilestoneChange(event: Event) {
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
+                aria-hidden="true"
               >
                 <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
               </svg>
@@ -353,6 +362,9 @@ function onMilestoneChange(event: Event) {
         <div class="relative flex-shrink-0">
           <button
             class="flex items-center gap-1.5 px-2 py-1.5 sm:py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 hover:bg-gray-200 dark:hover:bg-gray-600 cursor-pointer min-h-[32px] sm:min-h-0"
+            :aria-expanded="openAssigneeDropdown"
+            aria-haspopup="listbox"
+            :aria-label="`Assignees: ${task.assignees?.length ? (task.assignees.length === 1 ? task.assignees[0].name : `${task.assignees.length} assigned`) : 'Unassigned'}`"
             @click.stop="openAssigneeDropdown = !openAssigneeDropdown"
           >
             <div v-if="task.assignees && task.assignees.length > 0" class="flex -space-x-1">
@@ -374,7 +386,7 @@ function onMilestoneChange(event: Event) {
             <span class="text-gray-700 dark:text-gray-300">
               {{ task.assignees?.length ? (task.assignees.length === 1 ? task.assignees[0].name : `${task.assignees.length} assigned`) : 'Unassigned' }}
             </span>
-            <svg class="h-3 w-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="h-3 w-3 text-gray-500" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
             </svg>
           </button>
@@ -395,7 +407,7 @@ function onMilestoneChange(event: Event) {
                 @click="toggleAssignee(user.id)"
               >
                 <span class="flex-1 text-gray-900 dark:text-gray-100">{{ user.name }}</span>
-                <svg v-if="task.assignees?.some(a => a._id === user.id)" class="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg v-if="task.assignees?.some(a => a._id === user.id)" class="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
               </button>
@@ -410,7 +422,7 @@ function onMilestoneChange(event: Event) {
                 @click="toggleAssignee(user.id)"
               >
                 <span class="flex-1 text-gray-900 dark:text-gray-100">{{ user.name }}</span>
-                <svg v-if="task.assignees?.some(a => a._id === user.id)" class="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg v-if="task.assignees?.some(a => a._id === user.id)" class="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
               </button>
@@ -424,7 +436,7 @@ function onMilestoneChange(event: Event) {
                 @click="toggleAssignee(user.id)"
               >
                 <span class="flex-1 text-gray-900 dark:text-gray-100">{{ user.name }}</span>
-                <svg v-if="task.assignees?.some(a => a._id === user.id)" class="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg v-if="task.assignees?.some(a => a._id === user.id)" class="w-4 h-4 text-primary-600" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                 </svg>
               </button>

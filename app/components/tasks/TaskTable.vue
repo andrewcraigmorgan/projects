@@ -491,11 +491,12 @@ function getCellValue(task: Task, columnId: string): string {
 
 <template>
   <!-- Loading state -->
-  <div v-if="loading" class="text-center py-8">
+  <div v-if="loading" class="text-center py-8" role="status" aria-label="Loading tasks">
     <svg
       class="animate-spin h-8 w-8 mx-auto text-primary-600"
       fill="none"
       viewBox="0 0 24 24"
+      aria-hidden="true"
     >
       <circle
         class="opacity-25"
@@ -535,7 +536,7 @@ function getCellValue(task: Task, columnId: string): string {
               <div class="flex items-center gap-1">
                 <span>{{ column.label }}</span>
                 <!-- Sort indicator -->
-                <span v-if="column.sortable" class="inline-flex flex-col">
+                <span v-if="column.sortable" class="inline-flex flex-col" aria-hidden="true">
                   <svg
                     class="h-2 w-2 -mb-0.5"
                     :class="sortColumn === column.id && sortDirection === 'asc' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-300 dark:text-gray-600'"
@@ -561,9 +562,12 @@ function getCellValue(task: Task, columnId: string): string {
                 ref="configButtonRef"
                 class="p-1 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
                 title="Configure columns"
+                aria-label="Configure visible columns"
+                :aria-expanded="showColumnConfig"
+                aria-haspopup="true"
                 @click.stop="showColumnConfig = !showColumnConfig"
               >
-                <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <svg class="h-4 w-4 text-gray-500 dark:text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                   <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 6V4m0 2a2 2 0 100 4m0-4a2 2 0 110 4m-6 8a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4m6 6v10m6-2a2 2 0 100-4m0 4a2 2 0 110-4m0 4v2m0-6V4" />
                 </svg>
               </button>
@@ -628,9 +632,11 @@ function getCellValue(task: Task, columnId: string): string {
                   <div
                     v-if="enableDragDrop"
                     class="cursor-grab active:cursor-grabbing opacity-0 group-hover:opacity-100 hover:opacity-100 transition-opacity text-gray-400 dark:text-gray-500 hover:text-gray-600 dark:hover:text-gray-300"
+                    role="img"
+                    aria-label="Drag to reorder"
                     @mousedown.stop
                   >
-                    <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20">
+                    <svg class="h-4 w-4" fill="currentColor" viewBox="0 0 20 20" aria-hidden="true">
                       <path d="M7 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM7 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 2a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 8a2 2 0 1 0 0 4 2 2 0 0 0 0-4zM13 14a2 2 0 1 0 0 4 2 2 0 0 0 0-4z" />
                     </svg>
                   </div>
@@ -783,6 +789,7 @@ function getCellValue(task: Task, columnId: string): string {
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
+                            aria-hidden="true"
                           >
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                           </svg>
@@ -817,6 +824,7 @@ function getCellValue(task: Task, columnId: string): string {
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
+                            aria-hidden="true"
                           >
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                           </svg>
@@ -850,6 +858,7 @@ function getCellValue(task: Task, columnId: string): string {
                             fill="none"
                             viewBox="0 0 24 24"
                             stroke="currentColor"
+                            aria-hidden="true"
                           >
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" />
                           </svg>
@@ -877,7 +886,7 @@ function getCellValue(task: Task, columnId: string): string {
                     class="inline-flex items-center gap-1 text-xs text-primary-600 dark:text-primary-400 font-medium"
                   >
                     {{ task.subtaskCount }}
-                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                    <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
                       <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7" />
                     </svg>
                   </div>

@@ -406,6 +406,8 @@ onBeforeUnmount(() => {
     <div
       v-if="editable"
       class="flex flex-wrap items-center gap-1 p-2 border-b border-gray-200 dark:border-gray-700 bg-gray-50 dark:bg-gray-900"
+      role="toolbar"
+      aria-label="Text formatting"
     >
       <!-- Text formatting -->
       <button
@@ -413,9 +415,11 @@ onBeforeUnmount(() => {
         class="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
         :class="{ 'bg-gray-200 dark:bg-gray-700': editor?.isActive('bold') }"
         title="Bold"
+        aria-label="Bold"
+        :aria-pressed="editor?.isActive('bold')"
         @click="toggleBold"
       >
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 4h8a4 4 0 014 4 4 4 0 01-4 4H6z" />
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 12h9a4 4 0 014 4 4 4 0 01-4 4H6z" />
         </svg>
@@ -426,9 +430,11 @@ onBeforeUnmount(() => {
         class="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
         :class="{ 'bg-gray-200 dark:bg-gray-700': editor?.isActive('italic') }"
         title="Italic"
+        aria-label="Italic"
+        :aria-pressed="editor?.isActive('italic')"
         @click="toggleItalic"
       >
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 4h4m-2 0v16m4-16h-4m0 16h4" transform="skewX(-15)" />
         </svg>
       </button>
@@ -438,9 +444,11 @@ onBeforeUnmount(() => {
         class="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
         :class="{ 'bg-gray-200 dark:bg-gray-700': editor?.isActive('strike') }"
         title="Strikethrough"
+        aria-label="Strikethrough"
+        :aria-pressed="editor?.isActive('strike')"
         @click="toggleStrike"
       >
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 12h16M9 4v4m6-4v4M9 16v4m6-4v4" />
         </svg>
       </button>
@@ -450,6 +458,8 @@ onBeforeUnmount(() => {
         class="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors font-mono text-sm"
         :class="{ 'bg-gray-200 dark:bg-gray-700': editor?.isActive('code') }"
         title="Inline Code"
+        aria-label="Inline code"
+        :aria-pressed="editor?.isActive('code')"
         @click="toggleCode"
       >
         &lt;/&gt;
@@ -463,6 +473,8 @@ onBeforeUnmount(() => {
         class="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-bold"
         :class="{ 'bg-gray-200 dark:bg-gray-700': editor?.isActive('heading', { level: 1 }) }"
         title="Heading 1"
+        aria-label="Heading 1"
+        :aria-pressed="editor?.isActive('heading', { level: 1 })"
         @click="toggleHeading(1)"
       >
         H1
@@ -473,6 +485,8 @@ onBeforeUnmount(() => {
         class="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-bold"
         :class="{ 'bg-gray-200 dark:bg-gray-700': editor?.isActive('heading', { level: 2 }) }"
         title="Heading 2"
+        aria-label="Heading 2"
+        :aria-pressed="editor?.isActive('heading', { level: 2 })"
         @click="toggleHeading(2)"
       >
         H2
@@ -483,6 +497,8 @@ onBeforeUnmount(() => {
         class="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors text-sm font-bold"
         :class="{ 'bg-gray-200 dark:bg-gray-700': editor?.isActive('heading', { level: 3 }) }"
         title="Heading 3"
+        aria-label="Heading 3"
+        :aria-pressed="editor?.isActive('heading', { level: 3 })"
         @click="toggleHeading(3)"
       >
         H3
@@ -496,9 +512,11 @@ onBeforeUnmount(() => {
         class="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
         :class="{ 'bg-gray-200 dark:bg-gray-700': editor?.isActive('bulletList') }"
         title="Bullet List"
+        aria-label="Bullet list"
+        :aria-pressed="editor?.isActive('bulletList')"
         @click="toggleBulletList"
       >
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
         </svg>
       </button>
@@ -508,9 +526,11 @@ onBeforeUnmount(() => {
         class="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
         :class="{ 'bg-gray-200 dark:bg-gray-700': editor?.isActive('orderedList') }"
         title="Numbered List"
+        aria-label="Numbered list"
+        :aria-pressed="editor?.isActive('orderedList')"
         @click="toggleOrderedList"
       >
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M7 6h13M7 12h13M7 18h13M3 6h.01M3 12h.01M3 18h.01" />
         </svg>
       </button>
@@ -520,9 +540,11 @@ onBeforeUnmount(() => {
         class="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
         :class="{ 'bg-gray-200 dark:bg-gray-700': editor?.isActive('blockquote') }"
         title="Quote"
+        aria-label="Block quote"
+        :aria-pressed="editor?.isActive('blockquote')"
         @click="toggleBlockquote"
       >
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 10h.01M12 10h.01M16 10h.01M9 16H5a2 2 0 01-2-2V6a2 2 0 012-2h14a2 2 0 012 2v8a2 2 0 01-2 2h-4l-4 4z" />
         </svg>
       </button>
@@ -532,9 +554,11 @@ onBeforeUnmount(() => {
         class="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
         :class="{ 'bg-gray-200 dark:bg-gray-700': editor?.isActive('codeBlock') }"
         title="Code Block"
+        aria-label="Code block"
+        :aria-pressed="editor?.isActive('codeBlock')"
         @click="toggleCodeBlock"
       >
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 20l4-16m4 4l4 4-4 4M6 16l-4-4 4-4" />
         </svg>
       </button>
@@ -547,9 +571,11 @@ onBeforeUnmount(() => {
         class="p-1.5 hover:bg-gray-200 dark:hover:bg-gray-700 transition-colors"
         :class="{ 'bg-gray-200 dark:bg-gray-700': editor?.isActive('link') }"
         title="Add Link"
+        :aria-label="editor?.isActive('link') ? 'Remove link' : 'Add link'"
+        :aria-pressed="editor?.isActive('link')"
         @click="editor?.isActive('link') ? unsetLink() : setLink()"
       >
-        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13.828 10.172a4 4 0 00-5.656 0l-4 4a4 4 0 105.656 5.656l1.102-1.101m-.758-4.899a4 4 0 005.656 0l4-4a4 4 0 00-5.656-5.656l-1.1 1.1" />
         </svg>
       </button>
@@ -561,12 +587,14 @@ onBeforeUnmount(() => {
         :class="{ 'opacity-50': uploading }"
         :disabled="uploading"
         title="Upload Image"
+        :aria-label="uploading ? 'Uploading image' : 'Upload image'"
+        :aria-busy="uploading"
         @click="triggerImageUpload"
       >
-        <svg v-if="!uploading" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+        <svg v-if="!uploading" class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
           <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 16l4.586-4.586a2 2 0 012.828 0L16 16m-2-2l1.586-1.586a2 2 0 012.828 0L20 14m-6-6h.01M6 20h12a2 2 0 002-2V6a2 2 0 00-2-2H6a2 2 0 00-2 2v12a2 2 0 002 2z" />
         </svg>
-        <svg v-else class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24">
+        <svg v-else class="w-4 h-4 animate-spin" fill="none" viewBox="0 0 24 24" aria-hidden="true">
           <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4" />
           <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z" />
         </svg>
@@ -576,7 +604,8 @@ onBeforeUnmount(() => {
         ref="fileInput"
         type="file"
         accept="image/*"
-        class="hidden"
+        class="sr-only"
+        aria-label="Upload image file"
         @change="handleImageUpload"
       />
 

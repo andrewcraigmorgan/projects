@@ -43,12 +43,15 @@ const classes = computed(() => {
     :type="type"
     :class="classes"
     :disabled="disabled || loading"
+    :aria-disabled="disabled || loading"
+    :aria-busy="loading"
   >
     <svg
       v-if="loading"
       class="animate-spin -ml-1 mr-2 h-4 w-4"
       fill="none"
       viewBox="0 0 24 24"
+      aria-hidden="true"
     >
       <circle
         class="opacity-25"

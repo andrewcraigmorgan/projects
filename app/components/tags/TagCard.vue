@@ -66,6 +66,9 @@ function handleDelete() {
             class="w-8 h-8 rounded-full border-2 border-gray-200 dark:border-gray-600 hover:border-gray-400 dark:hover:border-gray-400 transition-colors focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 dark:focus:ring-offset-gray-800"
             :style="{ backgroundColor: tag.color }"
             title="Change color"
+            aria-label="Change tag color"
+            :aria-expanded="showColorPicker"
+            aria-haspopup="true"
             @click="showColorPicker = !showColorPicker"
           />
 
@@ -74,10 +77,13 @@ function handleDelete() {
             v-if="showColorPicker"
             class="absolute left-0 top-full mt-2 p-2 bg-white dark:bg-gray-700 border border-gray-200 dark:border-gray-600 shadow-lg z-10"
           >
-            <div class="grid grid-cols-3 gap-2">
+            <div class="grid grid-cols-3 gap-2" role="listbox" aria-label="Color options">
               <button
                 v-for="color in colors"
                 :key="color"
+                role="option"
+                :aria-selected="color === tag.color"
+                :aria-label="`Color ${color}`"
                 class="w-8 h-8 rounded-full border-2 transition-all focus:outline-none focus:ring-2 focus:ring-primary-500"
                 :class="color === tag.color ? 'border-gray-800 dark:border-gray-100 scale-110' : 'border-transparent hover:scale-110'"
                 :style="{ backgroundColor: color }"
@@ -112,6 +118,7 @@ function handleDelete() {
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
+              aria-hidden="true"
             >
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
             </svg>

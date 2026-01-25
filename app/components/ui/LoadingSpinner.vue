@@ -20,12 +20,13 @@ const sizeClasses = computed(() => {
 </script>
 
 <template>
-  <div :class="{ 'text-center py-8': center }">
+  <div :class="{ 'text-center py-8': center }" role="status" aria-label="Loading">
     <svg
       class="animate-spin text-primary-600"
       :class="[sizeClasses, { 'mx-auto': center }]"
       fill="none"
       viewBox="0 0 24 24"
+      aria-hidden="true"
     >
       <circle
         class="opacity-25"

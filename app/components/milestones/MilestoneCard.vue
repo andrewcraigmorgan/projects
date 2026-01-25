@@ -121,6 +121,7 @@ function formatDate(dateString: string) {
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
+              aria-hidden="true"
             >
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
             </svg>
@@ -161,6 +162,7 @@ function formatDate(dateString: string) {
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
+            aria-hidden="true"
           >
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
           </svg>
@@ -202,7 +204,14 @@ function formatDate(dateString: string) {
             <span class="text-gray-500">({{ progressPercentage }}%)</span>
           </span>
         </div>
-        <div class="w-full h-2 bg-gray-200 dark:bg-gray-700 overflow-hidden">
+        <div
+          class="w-full h-2 bg-gray-200 dark:bg-gray-700 overflow-hidden"
+          role="progressbar"
+          :aria-valuenow="progressPercentage"
+          aria-valuemin="0"
+          aria-valuemax="100"
+          :aria-label="`${progressPercentage}% complete`"
+        >
           <div
             class="h-full transition-all duration-300"
             :class="progressBarColor"
