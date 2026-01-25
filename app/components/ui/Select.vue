@@ -66,6 +66,9 @@ const buttonRef = ref<HTMLButtonElement | null>(null)
 const searchInputRef = ref<HTMLInputElement | null>(null)
 const dropdownStyle = ref({ top: '0px', left: '0px', minWidth: '180px' })
 
+// Generate unique IDs for ARIA
+const listboxId = useId()
+
 // Use click outside composable
 useClickOutside([containerRef, dropdownRef], () => {
   if (isOpen.value) {
@@ -364,6 +367,7 @@ function getColorClass(color?: string) {
         />
         <select
           :value="modelValue"
+          :aria-label="placeholder"
           class="appearance-none font-medium cursor-pointer focus:ring-1 focus:ring-primary-500 focus:outline-none transition-colors min-w-[70px]"
           :class="[
             sizeClasses.trigger,
@@ -391,6 +395,7 @@ function getColorClass(color?: string) {
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
+          aria-hidden="true"
         >
           <path
             stroke-linecap="round"
@@ -422,9 +427,10 @@ function getColorClass(color?: string) {
           <button
             type="button"
             class="hover:opacity-75"
+            :aria-label="`Remove ${opt.label}`"
             @click.stop="removeChip(opt.value)"
           >
-            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="w-3 h-3" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path
                 stroke-linecap="round"
                 stroke-linejoin="round"
@@ -447,6 +453,10 @@ function getColorClass(color?: string) {
         v-else
         ref="buttonRef"
         type="button"
+        role="combobox"
+        :aria-expanded="isOpen"
+        aria-haspopup="listbox"
+        :aria-controls="isOpen ? listboxId : undefined"
         class="relative flex items-center font-medium cursor-pointer focus:ring-1 focus:ring-primary-500 focus:outline-none transition-colors"
         :class="[
           sizeClasses.trigger,
@@ -475,6 +485,7 @@ function getColorClass(color?: string) {
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
+          aria-hidden="true"
         >
           <path
             stroke-linecap="round"
@@ -530,6 +541,7 @@ function getColorClass(color?: string) {
               v-model="search"
               type="text"
               :placeholder="creatable ? 'Search or create...' : searchPlaceholder"
+              :aria-label="creatable ? 'Search or create option' : 'Search options'"
               class="w-full px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
               :class="variantClasses.input"
               @click.stop
@@ -537,12 +549,14 @@ function getColorClass(color?: string) {
           </div>
 
           <!-- Options list -->
-          <div class="max-h-48 overflow-y-auto py-1">
+          <div :id="listboxId" class="max-h-48 overflow-y-auto py-1" role="listbox" :aria-multiselectable="multiple">
             <!-- Multi-select with checkboxes -->
             <template v-if="multiple">
               <label
                 v-for="option in filteredOptions"
                 :key="option.value"
+                role="option"
+                :aria-selected="selectedSet.has(option.value)"
                 class="flex items-center gap-2 px-3 py-1.5 cursor-pointer"
                 :class="variantClasses.optionHover"
               >
@@ -557,6 +571,7 @@ function getColorClass(color?: string) {
                   class="h-2 w-2 rounded-full flex-shrink-0"
                   :class="getColorClass(option.color)"
                   :style="getColorStyle(option.color)"
+                  aria-hidden="true"
                 />
                 <span class="text-sm" :class="variantClasses.optionText">
                   {{ option.label }}
@@ -570,6 +585,8 @@ function getColorClass(color?: string) {
                 v-for="option in filteredOptions"
                 :key="option.value"
                 type="button"
+                role="option"
+                :aria-selected="option.value === modelValue"
                 class="w-full text-left flex items-center gap-2"
                 :class="[
                   sizeClasses.option,
@@ -584,6 +601,7 @@ function getColorClass(color?: string) {
                   class="h-2 w-2 rounded-full flex-shrink-0"
                   :class="getColorClass(option.color)"
                   :style="getColorStyle(option.color)"
+                  aria-hidden="true"
                 />
                 <span class="truncate flex-1">{{ option.label }}</span>
                 <svg
@@ -592,6 +610,7 @@ function getColorClass(color?: string) {
                   fill="none"
                   viewBox="0 0 24 24"
                   stroke="currentColor"
+                  aria-hidden="true"
                 >
                   <path
                     stroke-linecap="round"
@@ -616,6 +635,7 @@ function getColorClass(color?: string) {
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"
+                aria-hidden="true"
               >
                 <path
                   stroke-linecap="round"
@@ -656,6 +676,7 @@ function getColorClass(color?: string) {
             v-model="search"
             type="text"
             :placeholder="searchPlaceholder"
+            aria-label="Search options"
             class="w-full px-2 py-1.5 text-sm focus:outline-none focus:ring-1 focus:ring-primary-500"
             :class="variantClasses.input"
             @click.stop
@@ -663,11 +684,13 @@ function getColorClass(color?: string) {
         </div>
 
         <!-- Options list -->
-        <div class="max-h-48 overflow-y-auto">
+        <div :id="listboxId" class="max-h-48 overflow-y-auto" role="listbox">
           <button
             v-for="option in filteredOptions"
             :key="option.value"
             type="button"
+            role="option"
+            :aria-selected="option.value === modelValue"
             class="w-full text-left flex items-center gap-2"
             :class="[
               sizeClasses.option,
@@ -682,6 +705,7 @@ function getColorClass(color?: string) {
               class="h-2 w-2 rounded-full flex-shrink-0"
               :class="getColorClass(option.color)"
               :style="getColorStyle(option.color)"
+              aria-hidden="true"
             />
             <span class="truncate flex-1">{{ option.label }}</span>
             <svg
@@ -690,6 +714,7 @@ function getColorClass(color?: string) {
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
+              aria-hidden="true"
             >
               <path
                 stroke-linecap="round"

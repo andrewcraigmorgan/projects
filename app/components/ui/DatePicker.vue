@@ -115,6 +115,9 @@ const isToday = computed(() => {
     <button
       ref="triggerRef"
       type="button"
+      :aria-expanded="isOpen"
+      aria-haspopup="true"
+      :aria-label="modelValue ? `Due date: ${formatDate(modelValue)}${isOverdue ? ', overdue' : ''}${isToday ? ', today' : ''}` : placeholder"
       class="inline-flex items-center gap-1.5 transition-colors"
       :class="[
         size === 'sm' ? 'text-xs px-2 py-1' : 'text-sm px-3 py-1.5',
@@ -128,7 +131,7 @@ const isToday = computed(() => {
       ]"
       @click.stop="isOpen = !isOpen"
     >
-      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+      <svg class="h-3.5 w-3.5" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
         <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
       </svg>
       <span>{{ modelValue ? formatDate(modelValue) : placeholder }}</span>
@@ -149,14 +152,14 @@ const isToday = computed(() => {
         class="absolute z-50 mt-1 left-0 w-48 bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 shadow-lg"
       >
         <!-- Quick options -->
-        <div class="py-1">
+        <div class="py-1" role="group" aria-label="Quick date options">
           <button
             type="button"
             class="w-full px-3 py-2 text-left text-sm text-gray-700 dark:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 flex items-center justify-between"
             @click="selectDate(getToday())"
           >
             <span>Today</span>
-            <span class="text-xs text-gray-400 dark:text-gray-500">{{ new Date().toLocaleDateString('en-US', { weekday: 'short' }) }}</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500" aria-hidden="true">{{ new Date().toLocaleDateString('en-US', { weekday: 'short' }) }}</span>
           </button>
           <button
             type="button"
@@ -164,7 +167,7 @@ const isToday = computed(() => {
             @click="selectDate(getTomorrow())"
           >
             <span>Tomorrow</span>
-            <span class="text-xs text-gray-400 dark:text-gray-500">{{ new Date(Date.now() + 86400000).toLocaleDateString('en-US', { weekday: 'short' }) }}</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500" aria-hidden="true">{{ new Date(Date.now() + 86400000).toLocaleDateString('en-US', { weekday: 'short' }) }}</span>
           </button>
           <button
             type="button"
@@ -172,7 +175,7 @@ const isToday = computed(() => {
             @click="selectDate(getNextWeek())"
           >
             <span>Next week</span>
-            <span class="text-xs text-gray-400 dark:text-gray-500">{{ new Date(Date.now() + 7 * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500" aria-hidden="true">{{ new Date(Date.now() + 7 * 86400000).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}</span>
           </button>
           <button
             type="button"
@@ -180,14 +183,15 @@ const isToday = computed(() => {
             @click="selectDate(getNextMonth())"
           >
             <span>Next month</span>
-            <span class="text-xs text-gray-400 dark:text-gray-500">{{ new Date(new Date().setMonth(new Date().getMonth() + 1)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}</span>
+            <span class="text-xs text-gray-400 dark:text-gray-500" aria-hidden="true">{{ new Date(new Date().setMonth(new Date().getMonth() + 1)).toLocaleDateString('en-US', { month: 'short', day: 'numeric' }) }}</span>
           </button>
         </div>
 
         <!-- Custom date picker -->
         <div class="border-t border-gray-200 dark:border-gray-700 px-3 py-2">
-          <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Custom date</label>
+          <label for="custom-date-input" class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Custom date</label>
           <input
+            id="custom-date-input"
             type="date"
             :value="modelValue?.slice(0, 10) || ''"
             class="w-full text-sm bg-white dark:bg-gray-900 border border-gray-300 dark:border-gray-600 px-2 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:border-primary-500 dark:[color-scheme:dark]"
@@ -202,7 +206,7 @@ const isToday = computed(() => {
             class="w-full px-3 py-2 text-left text-sm text-red-600 dark:text-red-400 hover:bg-red-50 dark:hover:bg-red-900/20 flex items-center gap-2"
             @click="clearDate"
           >
-            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
               <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
             </svg>
             <span>Clear date</span>
