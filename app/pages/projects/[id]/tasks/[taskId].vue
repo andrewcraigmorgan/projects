@@ -53,6 +53,20 @@ const showMoveModal = ref(false)
 const { tags: availableTags, fetchTags, createTag } = useTags(projectId)
 const selectedTags = ref<Tag[]>([])
 
+// Tag options for UiSelect (convert Tag[] to SelectOption[])
+const tagOptions = computed(() =>
+  availableTags.value.map(t => ({ value: t.id, label: t.name, color: t.color }))
+)
+
+// Selected tag IDs for UiSelect
+const selectedTagIds = computed({
+  get: () => selectedTags.value.map(t => t.id),
+  set: (ids: string[]) => {
+    const tags = ids.map(id => availableTags.value.find(t => t.id === id)).filter(Boolean) as Tag[]
+    handleTagsChange(tags)
+  }
+})
+
 // Description editing
 const isEditingDescription = ref(false)
 const editedDescription = ref('')
@@ -360,6 +374,11 @@ async function handleCreateTag(name: string) {
   }
 }
 
+// Handle tag creation from UiSelect
+async function handleTagCreate(name: string) {
+  await handleCreateTag(name)
+}
+
 // Copy ID
 const copied = ref(false)
 async function copyId() {
@@ -576,11 +595,14 @@ onMounted(async () => {
             <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-2">
               Tags
             </label>
-            <UiTagSelector
-              v-model="selectedTags"
-              :available-tags="availableTags"
-              :can-create-tags="true"
-              @create-tag="handleCreateTag"
+            <UiSelect
+              v-model="selectedTagIds"
+              :options="tagOptions"
+              multiple
+              show-chips
+              creatable
+              placeholder="Add tags..."
+              @create="handleTagCreate"
             />
           </div>
 

@@ -770,15 +770,19 @@ onMounted(async () => {
 
             <div class="h-4 w-px bg-gray-300 dark:bg-gray-600" />
 
-            <UiFilterDropdown
+            <UiSelect
               v-model="statusFilter"
               :options="statusOptions"
+              multiple
+              show-select-all
               label="Status"
               placeholder="Status"
             />
-            <UiFilterDropdown
+            <UiSelect
               v-model="priorityFilter"
               :options="priorityOptions"
+              multiple
+              show-select-all
               label="Priority"
               placeholder="Priority"
             />
@@ -857,17 +861,21 @@ onMounted(async () => {
           <!-- Status & Priority filters -->
           <div class="flex gap-3">
             <div class="flex-1">
-              <UiFilterDropdown
+              <UiSelect
                 v-model="statusFilter"
                 :options="statusOptions"
+                multiple
+                show-select-all
                 label="Status"
                 placeholder="Status"
               />
             </div>
             <div class="flex-1">
-              <UiFilterDropdown
+              <UiSelect
                 v-model="priorityFilter"
                 :options="priorityOptions"
+                multiple
+                show-select-all
                 label="Priority"
                 placeholder="Priority"
               />
