@@ -1,5 +1,6 @@
 import type { StorybookConfig } from '@storybook/vue3-vite';
 import vue from '@vitejs/plugin-vue';
+import AutoImport from 'unplugin-auto-import/vite';
 import { resolve, dirname } from 'path';
 import { fileURLToPath } from 'url';
 
@@ -18,6 +19,12 @@ const config: StorybookConfig = {
   viteFinal: async (config) => {
     config.plugins = config.plugins || [];
     config.plugins.push(vue());
+    config.plugins.push(
+      AutoImport({
+        imports: ['vue', 'vue-router'],
+        dts: false,
+      })
+    );
     config.resolve = config.resolve || {};
     config.resolve.alias = {
       ...config.resolve.alias,
