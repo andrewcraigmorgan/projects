@@ -384,7 +384,7 @@ function getCellValue(task: Task, columnId: string): string {
 
   <template v-else>
     <!-- Desktop: Table view -->
-    <div class="hidden lg:block overflow-x-auto">
+    <div class="hidden lg:block">
       <table class="w-full min-w-full border-collapse">
         <!-- Header -->
         <thead class="sticky top-0 z-10 bg-gray-50 dark:bg-gray-900">
