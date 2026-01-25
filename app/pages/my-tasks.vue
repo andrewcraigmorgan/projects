@@ -533,6 +533,7 @@ useHead({
         :tasks="tasks"
         :loading="tasksLoading"
         :enable-drag-drop="false"
+        storage-key="myTasks"
         @select="navigateToTask"
         @update-status="handleUpdateStatus"
         @update-priority="handleUpdatePriority"

@@ -5,7 +5,10 @@ interface Column {
   id: string
   label: string
   width?: string
+  sortable?: boolean
 }
+
+type SortDirection = 'asc' | 'desc' | null
 
 interface AssigneeOption {
   id: string
@@ -29,6 +32,7 @@ interface Props {
   parentTaskId?: string
   assigneeOptions?: AssigneeOption[]
   milestones?: MilestoneOption[]
+  storageKey?: string // Key prefix for localStorage (e.g., 'myTasks' or 'project')
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -39,6 +43,7 @@ const props = withDefaults(defineProps<Props>(), {
   parentTaskId: undefined,
   assigneeOptions: () => [],
   milestones: () => [],
+  storageKey: 'taskTable',
 })
 
 const emit = defineEmits<{
@@ -114,16 +119,16 @@ function handleContextMenu(task: Task, event: MouseEvent) {
 }
 
 const availableColumns: Column[] = [
-  { id: 'title', label: 'Title', width: 'flex-1' },
-  { id: 'project', label: 'Project', width: 'w-24' },
-  { id: 'status', label: 'Status', width: 'w-28' },
-  { id: 'priority', label: 'Priority', width: 'w-24' },
-  { id: 'assignee', label: 'Assignee', width: 'w-32' },
-  { id: 'milestone', label: 'Milestone', width: 'w-36' },
-  { id: 'dueDate', label: 'Due Date', width: 'w-28' },
-  { id: 'subtaskCount', label: 'Subtasks', width: 'w-20' },
-  { id: 'createdAt', label: 'Created', width: 'w-28' },
-  { id: 'updatedAt', label: 'Updated', width: 'w-28' },
+  { id: 'title', label: 'Title', width: 'flex-1', sortable: true },
+  { id: 'project', label: 'Project', width: 'w-24', sortable: true },
+  { id: 'status', label: 'Status', width: 'w-28', sortable: true },
+  { id: 'priority', label: 'Priority', width: 'w-24', sortable: true },
+  { id: 'assignee', label: 'Assignee', width: 'w-32', sortable: false },
+  { id: 'milestone', label: 'Milestone', width: 'w-36', sortable: true },
+  { id: 'dueDate', label: 'Due Date', width: 'w-28', sortable: true },
+  { id: 'subtaskCount', label: 'Subtasks', width: 'w-20', sortable: true },
+  { id: 'createdAt', label: 'Created', width: 'w-28', sortable: true },
+  { id: 'updatedAt', label: 'Updated', width: 'w-28', sortable: true },
 ]
 
 const defaultVisibleColumns = ['title', 'status', 'priority', 'assignee', 'dueDate']
@@ -133,7 +138,8 @@ const visibleColumnIds = ref<string[]>(defaultVisibleColumns)
 
 // Load from localStorage on mount
 onMounted(() => {
-  const saved = localStorage.getItem('taskTableColumns')
+  // Load column visibility
+  const saved = localStorage.getItem(columnsStorageKey.value)
   if (saved) {
     try {
       const parsed = JSON.parse(saved)
@@ -148,16 +154,140 @@ onMounted(() => {
       // Use default if parsing fails
     }
   }
+  // Load sort state
+  loadSortState()
 })
 
 // Save to localStorage when changed
 watch(visibleColumnIds, (value) => {
-  localStorage.setItem('taskTableColumns', JSON.stringify(value))
+  localStorage.setItem(columnsStorageKey.value, JSON.stringify(value))
 }, { deep: true })
 
 // Computed visible columns
 const visibleColumns = computed(() => {
   return availableColumns.filter(col => visibleColumnIds.value.includes(col.id))
+})
+
+// Sort state
+const sortColumn = ref<string | null>(null)
+const sortDirection = ref<SortDirection>(null)
+
+// Storage keys based on prop
+const columnsStorageKey = computed(() => `${props.storageKey}Columns`)
+const sortStorageKey = computed(() => `${props.storageKey}Sort`)
+
+// Load sort state from localStorage
+function loadSortState() {
+  const saved = localStorage.getItem(sortStorageKey.value)
+  if (saved) {
+    try {
+      const parsed = JSON.parse(saved)
+      if (parsed.column && (parsed.direction === 'asc' || parsed.direction === 'desc')) {
+        sortColumn.value = parsed.column
+        sortDirection.value = parsed.direction
+      }
+    } catch {
+      // Use default if parsing fails
+    }
+  }
+}
+
+// Save sort state to localStorage
+function saveSortState() {
+  if (sortColumn.value && sortDirection.value) {
+    localStorage.setItem(sortStorageKey.value, JSON.stringify({
+      column: sortColumn.value,
+      direction: sortDirection.value,
+    }))
+  } else {
+    localStorage.removeItem(sortStorageKey.value)
+  }
+}
+
+// Toggle sort on column click
+function toggleSort(columnId: string) {
+  const column = availableColumns.find(c => c.id === columnId)
+  if (!column?.sortable) return
+
+  if (sortColumn.value === columnId) {
+    // Cycle: asc -> desc -> none
+    if (sortDirection.value === 'asc') {
+      sortDirection.value = 'desc'
+    } else if (sortDirection.value === 'desc') {
+      sortColumn.value = null
+      sortDirection.value = null
+    }
+  } else {
+    sortColumn.value = columnId
+    sortDirection.value = 'asc'
+  }
+  saveSortState()
+}
+
+// Priority order for sorting
+const priorityOrder: Record<string, number> = {
+  high: 3,
+  medium: 2,
+  low: 1,
+}
+
+// Status order for sorting
+const statusOrder: Record<string, number> = {
+  todo: 1,
+  open: 2,
+  in_review: 3,
+  awaiting_approval: 4,
+  done: 5,
+}
+
+// Get sortable value for a task column
+function getSortValue(task: Task, columnId: string): string | number {
+  switch (columnId) {
+    case 'title':
+      return task.title.toLowerCase()
+    case 'project':
+      return task.project?.code?.toLowerCase() || ''
+    case 'status':
+      return statusOrder[task.status] || 0
+    case 'priority':
+      return priorityOrder[task.priority || ''] || 0
+    case 'milestone':
+      return task.milestone?.name?.toLowerCase() || ''
+    case 'dueDate':
+      return task.dueDate || ''
+    case 'subtaskCount':
+      return task.subtaskCount || 0
+    case 'createdAt':
+      return task.createdAt || ''
+    case 'updatedAt':
+      return task.updatedAt || ''
+    default:
+      return ''
+  }
+}
+
+// Sorted tasks computed
+const sortedTasks = computed(() => {
+  if (!sortColumn.value || !sortDirection.value) {
+    return props.tasks
+  }
+
+  const col = sortColumn.value
+  const dir = sortDirection.value
+
+  return [...props.tasks].sort((a, b) => {
+    const aVal = getSortValue(a, col)
+    const bVal = getSortValue(b, col)
+
+    let comparison = 0
+    if (typeof aVal === 'number' && typeof bVal === 'number') {
+      comparison = aVal - bVal
+    } else {
+      comparison = String(aVal).localeCompare(String(bVal))
+    }
+
+    return dir === 'desc' ? -comparison : comparison
+  })
 })
 
 // Column config dropdown state
@@ -401,9 +531,31 @@ function getCellValue(task: Task, columnId: string): string {
               v-for="column in visibleColumns"
               :key="column.id"
               class="px-3 py-2 text-left text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wider"
-              :class="column.width"
+              :class="[column.width, column.sortable ? 'cursor-pointer select-none hover:text-gray-700 dark:hover:text-gray-200' : '']"
+              @click="column.sortable ? toggleSort(column.id) : null"
             >
-              {{ column.label }}
+              <div class="flex items-center gap-1">
+                <span>{{ column.label }}</span>
+                <!-- Sort indicator -->
+                <span v-if="column.sortable" class="inline-flex flex-col">
+                  <svg
+                    class="h-2 w-2 -mb-0.5"
+                    :class="sortColumn === column.id && sortDirection === 'asc' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-300 dark:text-gray-600'"
+                    viewBox="0 0 8 4"
+                    fill="currentColor"
+                  >
+                    <path d="M4 0l4 4H0z" />
+                  </svg>
+                  <svg
+                    class="h-2 w-2"
+                    :class="sortColumn === column.id && sortDirection === 'desc' ? 'text-primary-600 dark:text-primary-400' : 'text-gray-300 dark:text-gray-600'"
+                    viewBox="0 0 8 4"
+                    fill="currentColor"
+                  >
+                    <path d="M4 4L0 0h8z" />
+                  </svg>
+                </span>
+              </div>
             </th>
             <!-- Config column -->
             <th class="w-10 px-2 py-2 text-right relative">
@@ -457,7 +609,7 @@ function getCellValue(task: Task, columnId: string): string {
 
           <template v-else>
             <tr
-              v-for="(task, index) in tasks"
+              v-for="(task, index) in sortedTasks"
               :key="task.id"
               class="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-all"
               :class="{
@@ -786,6 +938,44 @@ function getCellValue(task: Task, columnId: string): string {
 
     <!-- Mobile: Card list view -->
     <div class="lg:hidden space-y-2">
+      <!-- Mobile sort selector -->
+      <div v-if="tasks.length > 0" class="flex items-center justify-end gap-2 pb-2">
+        <span class="text-xs text-gray-500 dark:text-gray-400">Sort:</span>
+        <select
+          :value="sortColumn || ''"
+          class="text-xs bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-2 py-1 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none dark:[color-scheme:dark]"
+          @change="(e: Event) => {
+            const value = (e.target as HTMLSelectElement).value
+            if (value) {
+              sortColumn = value
+              sortDirection = sortDirection || 'asc'
+            } else {
+              sortColumn = null
+              sortDirection = null
+            }
+            saveSortState()
+          }"
+        >
+          <option value="">Default</option>
+          <option v-for="col in availableColumns.filter(c => c.sortable)" :key="col.id" :value="col.id">
+            {{ col.label }}
+          </option>
+        </select>
+        <button
+          v-if="sortColumn"
+          class="p-1 text-gray-500 dark:text-gray-400 hover:text-gray-700 dark:hover:text-gray-200"
+          :title="sortDirection === 'asc' ? 'Ascending' : 'Descending'"
+          @click="sortDirection = sortDirection === 'asc' ? 'desc' : 'asc'; saveSortState()"
+        >
+          <svg v-if="sortDirection === 'asc'" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 15l7-7 7 7" />
+          </svg>
+          <svg v-else class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7" />
+          </svg>
+        </button>
+      </div>
+
       <template v-if="tasks.length === 0 && !projectId">
         <div class="text-center py-8 text-gray-500 dark:text-gray-400">
           No tasks found
@@ -794,7 +984,7 @@ function getCellValue(task: Task, columnId: string): string {
 
       <template v-else>
         <div
-          v-for="task in tasks"
+          v-for="task in sortedTasks"
           :key="task.id"
           class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-4 cursor-pointer active:bg-gray-50 dark:active:bg-gray-700 transition-colors"
           @click="emit('select', task)"

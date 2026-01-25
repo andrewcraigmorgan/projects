@@ -454,6 +454,9 @@ onMounted(async () => {
           </p>
         </div>
       </template>
+      <template #actions>
+        <ProjectsProjectNav :project-id="projectId" />
+      </template>
     </LayoutHeader>
 
     <div class="p-6">
@@ -584,9 +587,12 @@ onMounted(async () => {
               <label class="block text-sm font-medium text-gray-500 dark:text-gray-400 mb-1">
                 Milestone
               </label>
-              <p class="px-3 py-2 text-indigo-700 dark:text-indigo-300">
+              <NuxtLink
+                :to="`/projects/${projectId}/milestones`"
+                class="block px-3 py-2 text-indigo-700 dark:text-indigo-300 hover:text-indigo-900 dark:hover:text-indigo-100 hover:underline"
+              >
                 {{ task.milestone.name }}
-              </p>
+              </NuxtLink>
             </div>
           </div>
 

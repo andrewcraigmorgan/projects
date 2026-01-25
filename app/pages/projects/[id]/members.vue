@@ -53,6 +53,9 @@ onMounted(loadProject)
           </p>
         </div>
       </template>
+      <template #actions>
+        <ProjectsProjectNav :project-id="projectId" />
+      </template>
     </LayoutHeader>
 
     <div class="p-4 sm:p-6 max-w-2xl">

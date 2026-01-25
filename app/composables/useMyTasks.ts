@@ -27,7 +27,7 @@ export function useMyTasks() {
 
     try {
       // Build URL with current user as assignee filter
-      let url = `/api/tasks?assignees=${authStore.user.id}&rootOnly=true`
+      let url = `/api/tasks?assignees=${authStore.user.id}`
 
       if (options.status) {
         const statusStr = Array.isArray(options.status) ? options.status.join(',') : options.status

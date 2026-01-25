@@ -673,29 +673,10 @@ onMounted(async () => {
       </template>
       <template #actions>
         <div class="flex items-center gap-2 sm:gap-3">
-          <!-- Milestones link - hidden on small mobile -->
-          <NuxtLink
-            :to="`/projects/${projectId}/milestones`"
-            class="hidden sm:block px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
-          >
-            Milestones
-          </NuxtLink>
-
-          <!-- Tags link - hidden on small mobile -->
-          <NuxtLink
-            :to="`/projects/${projectId}/tags`"
-            class="hidden sm:block px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
-          >
-            Tags
-          </NuxtLink>
-
-          <!-- Members link - hidden on small mobile -->
-          <NuxtLink
-            :to="`/projects/${projectId}/members`"
-            class="hidden sm:block px-3 py-1.5 text-sm font-medium text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 transition-colors"
-          >
-            Members
-          </NuxtLink>
+          <!-- Project navigation links - hidden on small mobile -->
+          <div class="hidden sm:block">
+            <ProjectsProjectNav :project-id="projectId" />
+          </div>
 
           <!-- Mobile: Filter toggle button -->
           <button
@@ -1104,6 +1085,7 @@ onMounted(async () => {
           :parent-task-id="currentParentId"
           :assignee-options="organizationMembers"
           :milestones="milestones"
+          storage-key="projectTasks"
           @select="handleTaskSelect"
           @update-status="handleUpdateStatus"
           @update-priority="handleUpdatePriority"

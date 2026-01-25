@@ -116,6 +116,7 @@ onMounted(async () => {
         </div>
       </template>
       <template #actions>
+        <ProjectsProjectNav :project-id="projectId" />
         <UiButton @click="showCreateModal = true">
           New Tag
         </UiButton>
