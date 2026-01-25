@@ -202,7 +202,7 @@ function updateUrlParams() {
 // Navigate to task detail page
 function navigateToTask(task: Task) {
   if (task.project) {
-    router.push(`/projects/${task.project.id}/tasks/${task.id}`)
+    router.push(`/projects/${task.project.id}/tasks/${task.id}?from=my-tasks`)
   }
 }
 

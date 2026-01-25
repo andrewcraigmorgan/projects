@@ -125,6 +125,11 @@ const backUrl = computed(() => {
   const from = route.query.from as string
   const parent = route.query.parent as string
 
+  // If coming from My Tasks, go back there
+  if (from === 'my-tasks') {
+    return '/my-tasks'
+  }
+
   const params = new URLSearchParams()
   if (from === 'list' || from === 'board') {
     params.set('view', from)
