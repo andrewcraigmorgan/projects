@@ -376,9 +376,7 @@ function onPriorityChange(task: Task, value: string) {
 }
 
 // Handle due date change
-function onDueDateChange(task: Task, event: Event) {
-  const input = event.target as HTMLInputElement
-  const value = input.value || null
+function onDueDateChange(task: Task, value: string | null) {
   emit('update-due-date', task, value)
 }
 
@@ -900,13 +898,13 @@ function getCellValue(task: Task, columnId: string): string {
 
                 <!-- Due date column -->
                 <template v-else-if="column.id === 'dueDate'">
-                  <input
-                    type="date"
-                    :value="task.dueDate?.slice(0, 10) || ''"
-                    class="text-xs bg-transparent border-0 p-0 text-gray-600 dark:text-gray-300 focus:ring-0 cursor-pointer hover:text-gray-900 dark:hover:text-gray-100 [color-scheme:light] dark:[color-scheme:dark]"
-                    @click.stop
-                    @change="onDueDateChange(task, $event)"
-                  />
+                  <div @click.stop>
+                    <UiDatePicker
+                      :model-value="task.dueDate?.slice(0, 10) || null"
+                      placeholder="-"
+                      @update:model-value="onDueDateChange(task, $event)"
+                    />
+                  </div>
                 </template>
 
                 <!-- Default text columns (dates, etc) -->
