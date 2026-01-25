@@ -13,6 +13,7 @@ interface Props {
   size?: 'sm' | 'md'
   variant?: 'default' | 'subtle'
   showDot?: boolean  // Show colored dot indicator
+  coloredBackground?: boolean  // Apply color as full background (badge style)
   searchableThreshold?: number  // Number of options before becoming searchable (default: 5)
 }
 
@@ -23,7 +24,32 @@ const props = withDefaults(defineProps<Props>(), {
   size: 'sm',
   variant: 'subtle',
   showDot: false,
+  coloredBackground: false,
   searchableThreshold: 5,
+})
+
+// Map background color classes to their badge-style equivalents
+const colorToBadgeClasses: Record<string, string> = {
+  'bg-gray-400': 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200',
+  'bg-gray-500': 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200',
+  'bg-yellow-400': 'bg-yellow-400 text-yellow-900 dark:bg-yellow-500 dark:text-yellow-900',
+  'bg-yellow-500': 'bg-yellow-400 text-yellow-900 dark:bg-yellow-500 dark:text-yellow-900',
+  'bg-blue-400': 'bg-blue-400 text-blue-900 dark:bg-blue-500 dark:text-blue-100',
+  'bg-blue-500': 'bg-blue-400 text-blue-900 dark:bg-blue-500 dark:text-blue-100',
+  'bg-purple-400': 'bg-purple-400 text-purple-900 dark:bg-purple-500 dark:text-purple-100',
+  'bg-purple-500': 'bg-purple-400 text-purple-900 dark:bg-purple-500 dark:text-purple-100',
+  'bg-green-400': 'bg-green-400 text-green-900 dark:bg-green-500 dark:text-green-100',
+  'bg-green-500': 'bg-green-400 text-green-900 dark:bg-green-500 dark:text-green-100',
+  'bg-red-400': 'bg-red-400 text-red-900 dark:bg-red-500 dark:text-red-100',
+  'bg-red-500': 'bg-red-400 text-red-900 dark:bg-red-500 dark:text-red-100',
+  'bg-orange-400': 'bg-orange-400 text-orange-900 dark:bg-orange-500 dark:text-orange-100',
+  'bg-orange-500': 'bg-orange-400 text-orange-900 dark:bg-orange-500 dark:text-orange-100',
+}
+
+// Get badge classes for colored background mode
+const badgeClasses = computed(() => {
+  if (!props.coloredBackground || !selectedOption.value?.color) return ''
+  return colorToBadgeClasses[selectedOption.value.color] || ''
 })
 
 const emit = defineEmits<{
@@ -128,14 +154,18 @@ onUnmounted(() => {
     <template v-if="!isSearchable">
       <div class="relative">
         <div
-          v-if="showDot && selectedOption?.color"
+          v-if="showDot && !coloredBackground && selectedOption?.color"
           class="absolute top-1/2 -translate-y-1/2 rounded-full pointer-events-none"
           :class="[sizeClasses.dot, selectedOption.color]"
         />
         <select
           :value="modelValue"
-          class="appearance-none font-medium cursor-pointer focus:ring-1 focus:ring-primary-500 focus:outline-none transition-colors text-gray-700 dark:text-gray-300 min-w-[70px]"
-          :class="[sizeClasses.trigger, sizeClasses.triggerPadding, variantClasses.trigger]"
+          class="appearance-none font-medium cursor-pointer focus:ring-1 focus:ring-primary-500 focus:outline-none transition-colors min-w-[70px]"
+          :class="[
+            sizeClasses.trigger,
+            coloredBackground ? 'pl-2 pr-5' : sizeClasses.triggerPadding,
+            coloredBackground && badgeClasses ? badgeClasses : [variantClasses.trigger, 'text-gray-700 dark:text-gray-300']
+          ]"
           @change="onNativeChange"
           @click.stop
         >
@@ -151,8 +181,8 @@ onUnmounted(() => {
           </option>
         </select>
         <svg
-          class="absolute top-1/2 -translate-y-1/2 text-gray-500 pointer-events-none"
-          :class="sizeClasses.chevron"
+          class="absolute top-1/2 -translate-y-1/2 pointer-events-none"
+          :class="[sizeClasses.chevron, coloredBackground ? 'text-current opacity-70' : 'text-gray-500']"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -166,19 +196,23 @@ onUnmounted(() => {
     <template v-else>
       <button
         type="button"
-        class="relative flex items-center font-medium cursor-pointer focus:ring-1 focus:ring-primary-500 focus:outline-none transition-colors text-gray-700 dark:text-gray-300"
-        :class="[sizeClasses.trigger, sizeClasses.triggerPadding, variantClasses.trigger]"
+        class="relative flex items-center font-medium cursor-pointer focus:ring-1 focus:ring-primary-500 focus:outline-none transition-colors"
+        :class="[
+          sizeClasses.trigger,
+          coloredBackground ? 'pl-2 pr-5' : sizeClasses.triggerPadding,
+          coloredBackground && badgeClasses ? badgeClasses : [variantClasses.trigger, 'text-gray-700 dark:text-gray-300']
+        ]"
         @click.stop="toggle"
       >
         <div
-          v-if="showDot && selectedOption?.color"
+          v-if="showDot && !coloredBackground && selectedOption?.color"
           class="absolute top-1/2 -translate-y-1/2 rounded-full"
           :class="[sizeClasses.dot, selectedOption.color]"
         />
         <span class="truncate">{{ selectedOption?.label || placeholder }}</span>
         <svg
-          class="absolute top-1/2 -translate-y-1/2 text-gray-500 transition-transform"
-          :class="[sizeClasses.chevron, { 'rotate-180': isOpen }]"
+          class="absolute top-1/2 -translate-y-1/2 transition-transform"
+          :class="[sizeClasses.chevron, { 'rotate-180': isOpen }, coloredBackground ? 'text-current opacity-70' : 'text-gray-500']"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"

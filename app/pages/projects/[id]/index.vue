@@ -136,11 +136,11 @@ const dueDateFrom = ref<string>('')
 const dueDateTo = ref<string>('')
 
 const statusOptions = [
-  { value: 'todo', label: 'To Do', color: 'bg-gray-400' },
-  { value: 'awaiting_approval', label: 'Awaiting', color: 'bg-yellow-400' },
-  { value: 'open', label: 'Open', color: 'bg-blue-400' },
-  { value: 'in_review', label: 'In Review', color: 'bg-purple-400' },
-  { value: 'done', label: 'Done', color: 'bg-green-500' },
+  { value: 'todo', label: 'To Do', color: 'bg-blue-400' },
+  { value: 'awaiting_approval', label: 'Awaiting', color: 'bg-orange-400' },
+  { value: 'open', label: 'Open', color: 'bg-green-400' },
+  { value: 'in_review', label: 'In Review', color: 'bg-yellow-400' },
+  { value: 'done', label: 'Done', color: 'bg-gray-400' },
 ]
 
 const priorityOptions = [

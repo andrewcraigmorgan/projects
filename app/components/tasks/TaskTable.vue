@@ -193,13 +193,13 @@ onUnmounted(() => {
   document.removeEventListener('click', handleClickOutside)
 })
 
-// Status display
+// Status display - colors optimized for badge-style backgrounds
 const statusOptions = [
-  { value: 'todo', label: 'To Do', color: 'bg-gray-400' },
-  { value: 'awaiting_approval', label: 'Awaiting', color: 'bg-yellow-400' },
-  { value: 'open', label: 'Open', color: 'bg-blue-400' },
-  { value: 'in_review', label: 'In Review', color: 'bg-purple-400' },
-  { value: 'done', label: 'Done', color: 'bg-green-500' },
+  { value: 'todo', label: 'To Do', color: 'bg-blue-400' },
+  { value: 'awaiting_approval', label: 'Awaiting', color: 'bg-orange-400' },
+  { value: 'open', label: 'Open', color: 'bg-green-400' },
+  { value: 'in_review', label: 'In Review', color: 'bg-yellow-400' },
+  { value: 'done', label: 'Done', color: 'bg-gray-400' },
 ]
 
 const statusLabels: Record<string, string> = {
@@ -211,11 +211,20 @@ const statusLabels: Record<string, string> = {
 }
 
 const statusColors: Record<string, string> = {
-  todo: 'bg-gray-400',
-  awaiting_approval: 'bg-yellow-400',
-  open: 'bg-blue-400',
-  in_review: 'bg-purple-400',
-  done: 'bg-green-500',
+  todo: 'bg-blue-400',
+  awaiting_approval: 'bg-orange-400',
+  open: 'bg-green-400',
+  in_review: 'bg-yellow-400',
+  done: 'bg-gray-400',
+}
+
+// Badge style classes for mobile display
+const statusBadgeClasses: Record<string, string> = {
+  todo: 'bg-blue-400 text-blue-900',
+  awaiting_approval: 'bg-orange-400 text-orange-900',
+  open: 'bg-green-400 text-green-900',
+  in_review: 'bg-yellow-400 text-yellow-900',
+  done: 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200',
 }
 
 // Handle status change
@@ -265,10 +274,11 @@ const priorityLabels: Record<string, string> = {
   high: 'High',
 }
 
-const priorityColors: Record<string, string> = {
-  low: 'text-gray-600 dark:text-gray-400',
-  medium: 'text-blue-600 dark:text-blue-400',
-  high: 'text-orange-600 dark:text-orange-400',
+// Badge style classes for priority display
+const priorityBadgeClasses: Record<string, string> = {
+  low: 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200',
+  medium: 'bg-blue-400 text-blue-900 dark:bg-blue-500 dark:text-blue-100',
+  high: 'bg-orange-400 text-orange-900 dark:bg-orange-500 dark:text-orange-100',
 }
 
 // Format date
@@ -477,7 +487,7 @@ function getCellValue(task: Task, columnId: string): string {
                   <UiDropdown
                     :model-value="task.status"
                     :options="statusOptions"
-                    show-dot
+                    colored-background
                     @click.stop
                     @update:model-value="onStatusChange(task, $event)"
                   />
@@ -489,7 +499,7 @@ function getCellValue(task: Task, columnId: string): string {
                     :model-value="task.priority || ''"
                     :options="priorityOptions"
                     placeholder="-"
-                    show-dot
+                    colored-background
                     @click.stop
                     @update:model-value="onPriorityChange(task, $event)"
                   />
@@ -649,22 +659,18 @@ function getCellValue(task: Task, columnId: string): string {
           <!-- Status, Priority, Assignee row -->
           <div class="flex items-center gap-2 flex-wrap">
             <!-- Status badge -->
-            <div class="flex items-center gap-1.5">
-              <div class="h-2 w-2 flex-shrink-0" :class="statusColors[task.status]" />
-              <span class="text-xs text-gray-600 dark:text-gray-400">
-                {{ statusLabels[task.status] }}
-              </span>
-            </div>
+            <span
+              class="inline-flex items-center px-2 py-0.5 text-xs font-medium"
+              :class="statusBadgeClasses[task.status]"
+            >
+              {{ statusLabels[task.status] }}
+            </span>
 
             <!-- Priority badge -->
             <span
               v-if="task.priority"
               class="inline-flex items-center px-2 py-0.5 text-xs font-medium"
-              :class="{
-                'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300': task.priority === 'low',
-                'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300': task.priority === 'medium',
-                'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300': task.priority === 'high',
-              }"
+              :class="priorityBadgeClasses[task.priority]"
             >
               {{ priorityLabels[task.priority] }}
             </span>

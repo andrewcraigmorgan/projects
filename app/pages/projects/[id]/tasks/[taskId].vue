@@ -74,22 +74,37 @@ const shortId = computed(() => {
   return `${prefix}-T${task.value.taskNumber ?? 0}`
 })
 
-// Status options
+// Status options with colors
 const statusOptions = [
-  { value: 'todo', label: 'To Do' },
-  { value: 'awaiting_approval', label: 'Awaiting Approval' },
-  { value: 'open', label: 'Open' },
-  { value: 'in_review', label: 'In Review' },
-  { value: 'done', label: 'Done' },
+  { value: 'todo', label: 'To Do', color: 'bg-blue-400' },
+  { value: 'awaiting_approval', label: 'Awaiting Approval', color: 'bg-orange-400' },
+  { value: 'open', label: 'Open', color: 'bg-green-400' },
+  { value: 'in_review', label: 'In Review', color: 'bg-yellow-400' },
+  { value: 'done', label: 'Done', color: 'bg-gray-400' },
 ]
 
-// Priority options
+const statusBadgeClasses: Record<string, string> = {
+  todo: 'bg-blue-400 text-blue-900',
+  awaiting_approval: 'bg-orange-400 text-orange-900',
+  open: 'bg-green-400 text-green-900',
+  in_review: 'bg-yellow-400 text-yellow-900',
+  done: 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200',
+}
+
+// Priority options with colors
 const priorityOptions = [
-  { value: '', label: 'No Priority' },
-  { value: 'low', label: 'Low' },
-  { value: 'medium', label: 'Medium' },
-  { value: 'high', label: 'High' },
+  { value: '', label: 'No Priority', color: 'bg-gray-400' },
+  { value: 'low', label: 'Low', color: 'bg-gray-400' },
+  { value: 'medium', label: 'Medium', color: 'bg-blue-400' },
+  { value: 'high', label: 'High', color: 'bg-orange-400' },
 ]
+
+const priorityBadgeClasses: Record<string, string> = {
+  '': 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400',
+  low: 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200',
+  medium: 'bg-blue-400 text-blue-900 dark:bg-blue-500 dark:text-blue-100',
+  high: 'bg-orange-400 text-orange-900 dark:bg-orange-500 dark:text-orange-100',
+}
 
 // Back navigation
 const backUrl = computed(() => {
@@ -466,7 +481,8 @@ onMounted(async () => {
               </label>
               <select
                 :value="task.status"
-                class="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:[color-scheme:dark]"
+                class="px-3 py-2 border-0 font-medium focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:[color-scheme:dark]"
+                :class="statusBadgeClasses[task.status]"
                 :disabled="saving"
                 @change="handleStatusChange"
               >
@@ -483,7 +499,8 @@ onMounted(async () => {
               </label>
               <select
                 :value="task.priority || ''"
-                class="px-3 py-2 border border-gray-300 dark:border-gray-600 bg-white dark:bg-gray-700 text-gray-900 dark:text-gray-100 focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:[color-scheme:dark]"
+                class="px-3 py-2 border-0 font-medium focus:ring-2 focus:ring-primary-500 focus:border-transparent dark:[color-scheme:dark]"
+                :class="priorityBadgeClasses[task.priority || '']"
                 :disabled="saving"
                 @change="handlePriorityChange"
               >
@@ -697,12 +714,8 @@ onMounted(async () => {
                 <!-- Priority badge -->
                 <span
                   v-if="subtask.priority"
-                  class="text-xs px-1.5 py-0.5 shrink-0"
-                  :class="{
-                    'bg-blue-50 text-blue-600 dark:bg-blue-900/50 dark:text-blue-300': subtask.priority === 'low',
-                    'bg-yellow-50 text-yellow-600 dark:bg-yellow-900/50 dark:text-yellow-300': subtask.priority === 'medium',
-                    'bg-red-50 text-red-600 dark:bg-red-900/50 dark:text-red-300': subtask.priority === 'high',
-                  }"
+                  class="text-xs px-1.5 py-0.5 shrink-0 font-medium capitalize"
+                  :class="priorityBadgeClasses[subtask.priority]"
                 >
                   {{ subtask.priority }}
                 </span>
@@ -717,14 +730,8 @@ onMounted(async () => {
 
                 <!-- Status badge -->
                 <span
-                  class="text-xs px-1.5 py-0.5 shrink-0"
-                  :class="{
-                    'bg-gray-100 text-gray-600 dark:bg-gray-600 dark:text-gray-300': subtask.status === 'todo',
-                    'bg-yellow-100 text-yellow-700 dark:bg-yellow-900 dark:text-yellow-300': subtask.status === 'awaiting_approval',
-                    'bg-blue-100 text-blue-700 dark:bg-blue-900 dark:text-blue-300': subtask.status === 'open',
-                    'bg-purple-100 text-purple-700 dark:bg-purple-900 dark:text-purple-300': subtask.status === 'in_review',
-                    'bg-green-100 text-green-700 dark:bg-green-900 dark:text-green-300': subtask.status === 'done',
-                  }"
+                  class="text-xs px-1.5 py-0.5 shrink-0 font-medium"
+                  :class="statusBadgeClasses[subtask.status]"
                 >
                   {{ statusOptions.find(s => s.value === subtask.status)?.label }}
                 </span>

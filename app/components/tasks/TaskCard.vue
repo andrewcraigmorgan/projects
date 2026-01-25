@@ -97,32 +97,33 @@ async function copyId(event: Event) {
 }
 
 const priorityOptions = [
-  { value: '', label: 'No Priority', color: 'text-gray-400' },
-  { value: 'low', label: 'Low', color: 'text-gray-600 dark:text-gray-300' },
-  { value: 'medium', label: 'Medium', color: 'text-blue-600 dark:text-blue-300' },
-  { value: 'high', label: 'High', color: 'text-orange-600 dark:text-orange-300' },
+  { value: '', label: 'No Priority', color: 'bg-gray-400' },
+  { value: 'low', label: 'Low', color: 'bg-gray-400' },
+  { value: 'medium', label: 'Medium', color: 'bg-blue-400' },
+  { value: 'high', label: 'High', color: 'bg-orange-400' },
 ] as const
 
-const priorityColors: Record<string, string> = {
-  low: 'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-300',
-  medium: 'bg-blue-100 text-blue-600 dark:bg-blue-900 dark:text-blue-300',
-  high: 'bg-orange-100 text-orange-600 dark:bg-orange-900 dark:text-orange-300',
+const priorityBadgeClasses: Record<string, string> = {
+  '': 'bg-gray-100 text-gray-500 dark:bg-gray-700 dark:text-gray-400',
+  low: 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200',
+  medium: 'bg-blue-400 text-blue-900 dark:bg-blue-500 dark:text-blue-100',
+  high: 'bg-orange-400 text-orange-900 dark:bg-orange-500 dark:text-orange-100',
 }
 
 const statusOptions = [
-  { value: 'todo', label: 'To Do', color: 'bg-gray-400' },
-  { value: 'awaiting_approval', label: 'Awaiting Approval', color: 'bg-yellow-400' },
-  { value: 'open', label: 'Open', color: 'bg-blue-400' },
-  { value: 'in_review', label: 'In Review', color: 'bg-purple-400' },
-  { value: 'done', label: 'Done', color: 'bg-green-500' },
+  { value: 'todo', label: 'To Do', color: 'bg-blue-400' },
+  { value: 'awaiting_approval', label: 'Awaiting Approval', color: 'bg-orange-400' },
+  { value: 'open', label: 'Open', color: 'bg-green-400' },
+  { value: 'in_review', label: 'In Review', color: 'bg-yellow-400' },
+  { value: 'done', label: 'Done', color: 'bg-gray-400' },
 ] as const
 
-const statusColors: Record<string, string> = {
-  todo: 'bg-gray-400',
-  awaiting_approval: 'bg-yellow-400',
-  open: 'bg-blue-400',
-  in_review: 'bg-purple-400',
-  done: 'bg-green-500',
+const statusBadgeClasses: Record<string, string> = {
+  todo: 'bg-blue-400 text-blue-900',
+  awaiting_approval: 'bg-orange-400 text-orange-900',
+  open: 'bg-green-400 text-green-900',
+  in_review: 'bg-yellow-400 text-yellow-900',
+  done: 'bg-gray-200 text-gray-700 dark:bg-gray-600 dark:text-gray-200',
 }
 
 function onStatusChange(event: Event) {
@@ -212,13 +213,10 @@ function onMilestoneChange(event: Event) {
 
         <!-- Status dropdown -->
         <div class="relative flex-shrink-0">
-          <div
-            class="absolute left-2 top-1/2 -translate-y-1/2 h-2 w-2 pointer-events-none"
-            :class="statusColors[task.status]"
-          />
           <select
             :value="task.status"
-            class="appearance-none pl-5 pr-6 py-1.5 sm:py-1 text-xs font-medium bg-gray-100 dark:bg-gray-700 text-gray-700 dark:text-gray-300 border-0 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-1 focus:ring-primary-500 transition-colors min-h-[32px] sm:min-h-0 dark:[color-scheme:dark]"
+            class="appearance-none pl-2 pr-6 py-1.5 sm:py-1 text-xs font-medium border-0 cursor-pointer focus:ring-1 focus:ring-primary-500 transition-colors min-h-[32px] sm:min-h-0 dark:[color-scheme:dark]"
+            :class="statusBadgeClasses[task.status]"
             @click.stop
             @change="onStatusChange"
           >
@@ -231,7 +229,7 @@ function onMilestoneChange(event: Event) {
             </option>
           </select>
           <svg
-            class="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-500 pointer-events-none"
+            class="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-current opacity-70 pointer-events-none"
             fill="none"
             viewBox="0 0 24 24"
             stroke="currentColor"
@@ -263,8 +261,8 @@ function onMilestoneChange(event: Event) {
             <div class="relative">
               <select
                 :value="task.priority || ''"
-                class="appearance-none px-2 py-1 sm:py-0.5 pr-5 text-xs font-medium bg-gray-100 dark:bg-gray-700 border-0 cursor-pointer hover:bg-gray-200 dark:hover:bg-gray-600 focus:ring-1 focus:ring-primary-500 transition-colors min-h-[28px] sm:min-h-0 dark:[color-scheme:dark]"
-                :class="task.priority ? priorityColors[task.priority] : 'text-gray-400 dark:text-gray-500'"
+                class="appearance-none px-2 py-1 sm:py-0.5 pr-5 text-xs font-medium border-0 cursor-pointer focus:ring-1 focus:ring-primary-500 transition-colors min-h-[28px] sm:min-h-0 dark:[color-scheme:dark]"
+                :class="priorityBadgeClasses[task.priority || '']"
                 @click.stop
                 @change="onPriorityChange"
               >
@@ -277,7 +275,7 @@ function onMilestoneChange(event: Event) {
                 </option>
               </select>
               <svg
-                class="absolute right-0.5 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-500 pointer-events-none"
+                class="absolute right-0.5 top-1/2 -translate-y-1/2 h-3 w-3 text-current opacity-70 pointer-events-none"
                 fill="none"
                 viewBox="0 0 24 24"
                 stroke="currentColor"

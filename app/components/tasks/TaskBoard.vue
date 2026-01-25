@@ -23,11 +23,11 @@ const emit = defineEmits<{
 const { isMobile } = useBreakpoints()
 
 const columns: { id: Task['status']; title: string; color: string }[] = [
-  { id: 'todo', title: 'To Do', color: 'bg-gray-400' },
-  { id: 'awaiting_approval', title: 'Awaiting Approval', color: 'bg-yellow-400' },
-  { id: 'open', title: 'Open', color: 'bg-blue-400' },
-  { id: 'in_review', title: 'In Review', color: 'bg-purple-400' },
-  { id: 'done', title: 'Done', color: 'bg-green-500' },
+  { id: 'todo', title: 'To Do', color: 'bg-blue-400' },
+  { id: 'awaiting_approval', title: 'Awaiting Approval', color: 'bg-orange-400' },
+  { id: 'open', title: 'Open', color: 'bg-green-400' },
+  { id: 'in_review', title: 'In Review', color: 'bg-yellow-400' },
+  { id: 'done', title: 'Done', color: 'bg-gray-400' },
 ]
 
 // Mobile expanded columns state
