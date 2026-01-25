@@ -94,6 +94,16 @@ export function useTasks(projectId: Ref<string>) {
     }
   }
 
+  // Convert YYYY-MM-DD to ISO 8601 datetime format
+  function toISODateTime(dateStr: string | undefined | null): string | null | undefined {
+    if (dateStr === null) return null
+    if (!dateStr) return undefined
+    // If already in ISO format, return as-is
+    if (dateStr.includes('T')) return dateStr
+    // Convert YYYY-MM-DD to ISO datetime (midnight UTC)
+    return `${dateStr}T00:00:00.000Z`
+  }
+
   async function createTask(data: {
     title: string
     description?: string
@@ -111,6 +121,7 @@ export function useTasks(projectId: Ref<string>) {
       body: {
         projectId: projectId.value,
         ...data,
+        dueDate: toISODateTime(data.dueDate),
       },
     })
 
@@ -136,7 +147,10 @@ export function useTasks(projectId: Ref<string>) {
       data: { task: Task }
     }>(`/api/tasks/${taskId}`, {
       method: 'PATCH',
-      body: data,
+      body: {
+        ...data,
+        dueDate: data.dueDate !== undefined ? toISODateTime(data.dueDate) : undefined,
+      },
     })
 
     if (response.success) {
