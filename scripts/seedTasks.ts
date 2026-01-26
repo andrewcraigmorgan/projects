@@ -908,7 +908,7 @@ async function createTaskWithSubtasks(
   const task = await Task.create({
     project: projectId,
     title: template.title,
-    description: template.description || `<p>Description for: ${template.title}</p>`,
+    description: template.description || '',
     status: randomItem(statuses),
     priority: randomItem(priorities),
     parentTask: parentTaskId,

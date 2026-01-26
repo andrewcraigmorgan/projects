@@ -319,7 +319,7 @@ onMounted(async () => {
                 </h2>
                 <div
                   v-if="milestone.description"
-                  class="prose prose-sm dark:prose-invert max-w-none text-gray-600 dark:text-gray-400 mt-2"
+                  class="milestone-description prose prose-sm prose-gray dark:prose-invert max-w-none mt-3"
                   v-html="milestone.description"
                 />
               </div>
@@ -478,3 +478,40 @@ onMounted(async () => {
     </UiModal>
   </div>
 </template>
+
+<style scoped>
+.milestone-description :deep(p) {
+  margin-bottom: 0.75em;
+  color: rgb(75 85 99);
+}
+
+.milestone-description :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.milestone-description :deep(ul) {
+  list-style-type: disc;
+  padding-left: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+.milestone-description :deep(ol) {
+  list-style-type: decimal;
+  padding-left: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+.milestone-description :deep(li) {
+  margin-bottom: 0.25em;
+  color: rgb(75 85 99);
+}
+
+.milestone-description :deep(strong) {
+  font-weight: 600;
+}
+
+:global(.dark) .milestone-description :deep(p),
+:global(.dark) .milestone-description :deep(li) {
+  color: rgb(156 163 175);
+}
+</style>

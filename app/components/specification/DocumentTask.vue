@@ -7,6 +7,9 @@ interface Props {
 }
 
 const props = defineProps<Props>()
+const route = useRoute()
+
+const projectId = computed(() => route.params.id as string)
 
 const priorityLabels: Record<string, string> = {
   low: 'Low',
@@ -14,53 +17,95 @@ const priorityLabels: Record<string, string> = {
   high: 'High',
   urgent: 'Urgent',
 }
+
+const statusLabels: Record<string, string> = {
+  todo: 'To Do',
+  open: 'Open',
+  in_progress: 'In Progress',
+  in_review: 'In Review',
+  done: 'Complete',
+  awaiting_approval: 'Awaiting Approval',
+}
+
+// Typography classes based on depth
+const titleClasses = computed(() => {
+  switch (props.depth) {
+    case 0:
+      return 'text-lg font-semibold text-gray-900 dark:text-gray-100'
+    case 1:
+      return 'text-base font-semibold text-gray-800 dark:text-gray-200'
+    case 2:
+      return 'text-sm font-medium text-gray-700 dark:text-gray-300'
+    default:
+      return 'text-sm font-normal text-gray-600 dark:text-gray-400'
+  }
+})
+
+const numberClasses = computed(() => {
+  switch (props.depth) {
+    case 0:
+      return 'text-lg font-semibold text-primary-600 dark:text-primary-400'
+    case 1:
+      return 'text-base font-semibold text-primary-500 dark:text-primary-400'
+    case 2:
+      return 'text-sm font-medium text-primary-500 dark:text-primary-400'
+    default:
+      return 'text-sm text-gray-500 dark:text-gray-400'
+  }
+})
+
+const containerClasses = computed(() => {
+  switch (props.depth) {
+    case 0:
+      return 'pb-6 border-b border-gray-200 dark:border-gray-700'
+    case 1:
+      return 'pb-4'
+    default:
+      return 'pb-2'
+  }
+})
+
+const taskUrl = computed(() => `/projects/${projectId.value}/tasks/${props.task.id}`)
 </script>
 
 <template>
-  <div
-    class="border-l-2 border-primary-300 dark:border-primary-700 pl-4"
-    :style="{ marginLeft: `${depth * 24}px` }"
-  >
+  <div :class="containerClasses" class="group relative">
     <!-- Task Header -->
-    <div class="flex items-start gap-3">
-      <!-- Task number bullet -->
-      <div class="mt-1 flex-shrink-0">
-        <span class="inline-flex items-center justify-center w-6 h-6 text-xs font-medium text-primary-700 dark:text-primary-300 bg-primary-100 dark:bg-primary-900/30 rounded-full">
-          {{ task.taskNumber }}
+    <div class="flex items-baseline gap-2">
+      <span :class="numberClasses">{{ task.taskNumber }}.</span>
+      <span :class="titleClasses">{{ task.title }}</span>
+
+      <!-- Hover actions -->
+      <span
+        class="opacity-0 group-hover:opacity-100 transition-opacity duration-150 ml-2 flex items-center gap-2"
+      >
+        <span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded">
+          {{ statusLabels[task.status] || task.status }}
+          <template v-if="task.priority && task.priority !== 'medium'">
+            &middot; {{ priorityLabels[task.priority] || task.priority }}
+          </template>
         </span>
-      </div>
-
-      <div class="flex-1 min-w-0">
-        <!-- Title -->
-        <h4 class="font-medium text-gray-900 dark:text-gray-100">{{ task.title }}</h4>
-
-        <!-- Priority badge (scope-relevant, not status) -->
-        <div v-if="task.priority && task.priority !== 'medium'" class="mt-1">
-          <span
-            class="px-2 py-0.5 text-xs font-medium"
-            :class="{
-              'bg-red-100 text-red-700 dark:bg-red-900/30 dark:text-red-300': task.priority === 'urgent' || task.priority === 'high',
-              'bg-gray-100 text-gray-600 dark:bg-gray-700 dark:text-gray-400': task.priority === 'low',
-            }"
-          >
-            {{ priorityLabels[task.priority] || task.priority }} Priority
-          </span>
-        </div>
-
-        <!-- Description - the main content for specification -->
-        <div
-          v-if="task.description"
-          class="mt-3 prose prose-sm dark:prose-invert max-w-none text-gray-700 dark:text-gray-300"
-          v-html="task.description"
-        />
-        <p v-else class="mt-2 text-sm text-gray-500 dark:text-gray-400 italic">
-          No description provided.
-        </p>
-      </div>
+        <NuxtLink
+          :to="taskUrl"
+          class="px-2 py-0.5 text-xs font-medium text-primary-600 dark:text-primary-400 bg-primary-50 dark:bg-primary-900/30 rounded hover:bg-primary-100 dark:hover:bg-primary-900/50 transition-colors"
+        >
+          Edit
+        </NuxtLink>
+      </span>
     </div>
 
+    <!-- Description - the main content for specification -->
+    <div
+      v-if="task.description"
+      class="task-description mt-2 prose prose-sm prose-gray dark:prose-invert max-w-none"
+      v-html="task.description"
+    />
+    <p v-else class="mt-1 text-sm text-gray-400 dark:text-gray-500 italic">
+      No description provided.
+    </p>
+
     <!-- Subtasks -->
-    <div v-if="task.subtasks && task.subtasks.length > 0" class="mt-4 space-y-4">
+    <div v-if="task.subtasks && task.subtasks.length > 0" class="mt-4 space-y-3">
       <SpecificationDocumentTask
         v-for="subtask in task.subtasks"
         :key="subtask.id"
@@ -70,3 +115,40 @@ const priorityLabels: Record<string, string> = {
     </div>
   </div>
 </template>
+
+<style scoped>
+.task-description :deep(p) {
+  margin-bottom: 0.75em;
+  color: rgb(75 85 99);
+}
+
+.task-description :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.task-description :deep(ul) {
+  list-style-type: disc;
+  padding-left: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+.task-description :deep(ol) {
+  list-style-type: decimal;
+  padding-left: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+.task-description :deep(li) {
+  margin-bottom: 0.25em;
+  color: rgb(75 85 99);
+}
+
+.task-description :deep(strong) {
+  font-weight: 600;
+}
+
+:global(.dark) .task-description :deep(p),
+:global(.dark) .task-description :deep(li) {
+  color: rgb(156 163 175);
+}
+</style>
