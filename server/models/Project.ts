@@ -77,19 +77,30 @@ ProjectSchema.index({ organization: 1, createdAt: -1 }) // Recent projects in or
 ProjectSchema.pre('save', async function (next) {
   if (this.isNew && !this.code) {
     // Generate code from project name (e.g., "My Project Name" -> "MPN")
-    const words = this.name.split(/\s+/).filter((w: string) => w.length > 0)
+    // Filter out non-alphanumeric "words" like hyphens or punctuation
+    const words = this.name
+      .split(/\s+/)
+      .filter((w: string) => w.length > 0 && /^[a-zA-Z0-9]/.test(w))
     let baseCode: string
 
-    if (words.length >= 2) {
-      // Use first letter of first two words plus first letter of last word
+    if (words.length >= 3) {
+      // Use first letter of first three words
       baseCode = words
         .slice(0, 3)
         .map((w: string) => w[0])
         .join('')
         .toUpperCase()
+    } else if (words.length === 2) {
+      // Use first letter of each word, plus second letter of first word
+      baseCode = (words[0][0] + words[0][1] + words[1][0]).toUpperCase()
     } else {
       // Use first 3 letters of single word
-      baseCode = this.name.substring(0, 3).toUpperCase()
+      baseCode = this.name.replace(/[^a-zA-Z0-9]/g, '').substring(0, 3).toUpperCase()
+    }
+
+    // Ensure we have at least 3 characters
+    while (baseCode.length < 3) {
+      baseCode += 'X'
     }
 
     // Ensure uniqueness within organization by appending number if needed
