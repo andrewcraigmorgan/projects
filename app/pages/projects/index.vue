@@ -124,37 +124,48 @@ async function handleCreate() {
       </UiEmptyState>
 
       <!-- Projects grid -->
-      <div v-else class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
-        <NuxtLink
-          v-for="project in projects"
-          :key="project.id"
-          :to="`/projects/${project.id}`"
-          class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 shadow-soft hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 group"
-        >
-          <div class="flex items-start justify-between">
-            <div>
-              <h3 class="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">{{ project.name }}</h3>
-              <p v-if="project.description" class="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
-                {{ project.description }}
-              </p>
+      <div v-else>
+        <div class="grid gap-5 md:grid-cols-2 lg:grid-cols-3">
+          <NuxtLink
+            v-for="project in projects"
+            :key="project.id"
+            :to="`/projects/${project.id}`"
+            class="bg-white dark:bg-gray-800 rounded-xl border border-gray-200/60 dark:border-gray-700/60 p-5 shadow-soft hover:shadow-md hover:border-gray-300 dark:hover:border-gray-600 transition-all duration-200 group"
+          >
+            <div class="flex items-start justify-between">
+              <div>
+                <h3 class="font-semibold text-gray-900 dark:text-gray-100 group-hover:text-primary-600 dark:group-hover:text-primary-400 transition-colors">{{ project.name }}</h3>
+                <p v-if="project.description" class="mt-1 text-sm text-gray-500 dark:text-gray-400 line-clamp-2">
+                  {{ project.description }}
+                </p>
+              </div>
+              <span
+                class="px-2.5 py-1 text-xs font-medium rounded-full"
+                :class="{
+                  'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300': project.status === 'active',
+                  'bg-gray-100 text-gray-700 dark:bg-gray-700/50 dark:text-gray-300': project.status === 'archived',
+                  'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300': project.status === 'completed',
+                }"
+              >
+                {{ project.status }}
+              </span>
             </div>
-            <span
-              class="px-2.5 py-1 text-xs font-medium rounded-full"
-              :class="{
-                'bg-green-100 text-green-700 dark:bg-green-900/50 dark:text-green-300': project.status === 'active',
-                'bg-gray-100 text-gray-700 dark:bg-gray-700/50 dark:text-gray-300': project.status === 'archived',
-                'bg-blue-100 text-blue-700 dark:bg-blue-900/50 dark:text-blue-300': project.status === 'completed',
-              }"
-            >
-              {{ project.status }}
-            </span>
-          </div>
 
-          <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700/50 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
-            <span>{{ project.memberCount }} member{{ project.memberCount !== 1 ? 's' : '' }}</span>
-            <span>Updated {{ new Date(project.updatedAt).toLocaleDateString() }}</span>
-          </div>
-        </NuxtLink>
+            <div class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700/50 flex items-center justify-between text-sm text-gray-500 dark:text-gray-400">
+              <span>{{ project.memberCount }} member{{ project.memberCount !== 1 ? 's' : '' }}</span>
+              <span>Updated {{ new Date(project.updatedAt).toLocaleDateString() }}</span>
+            </div>
+          </NuxtLink>
+        </div>
+
+        <!-- Pagination -->
+        <UiPagination
+          :current-page="projectsPage"
+          :total-pages="projectsTotalPages"
+          :total="projectsTotal"
+          :limit="projectsLimit"
+          @update:page="handlePageChange"
+        />
       </div>
     </div>
 
