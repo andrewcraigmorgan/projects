@@ -31,7 +31,7 @@ export function setup() {
 
   if (res.status === 200) {
     const body = JSON.parse(res.body)
-    return { adminToken: body.token }
+    return { adminToken: body.data.token }
   }
 
   console.error('Setup failed: Could not login as admin')
@@ -57,7 +57,7 @@ export default function (data) {
     'login returns token': (r) => {
       try {
         const body = JSON.parse(r.body)
-        return body.token !== undefined
+        return body.data?.token !== undefined
       } catch {
         return false
       }
@@ -71,7 +71,7 @@ export default function (data) {
     return
   }
 
-  const token = JSON.parse(loginRes.body).token
+  const token = JSON.parse(loginRes.body).data.token
   sleep(0.5)
 
   // Scenario 2: Get current user (/me)
@@ -86,7 +86,7 @@ export default function (data) {
     'me returns user data': (r) => {
       try {
         const body = JSON.parse(r.body)
-        return body.email === userEmail
+        return body.data?.user?.email === userEmail
       } catch {
         return false
       }

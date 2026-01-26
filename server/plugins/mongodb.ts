@@ -1,7 +1,19 @@
 import mongoose from 'mongoose'
 import { User } from '../models/User'
 import { Organization } from '../models/Organization'
+import { Project } from '../models/Project'
+import { Task } from '../models/Task'
+import { Comment } from '../models/Comment'
+import { Milestone } from '../models/Milestone'
+import { Tag } from '../models/Tag'
 import { hashPassword } from '../utils/auth'
+
+// Ensure all models are registered for populate operations
+void Project
+void Task
+void Comment
+void Milestone
+void Tag
 
 const DEFAULT_USER = {
   email: 'admin@admin.com',

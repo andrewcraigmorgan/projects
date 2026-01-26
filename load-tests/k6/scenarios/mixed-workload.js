@@ -50,50 +50,54 @@ function authenticate(userNum) {
   )
 
   if (res.status !== 200) return null
-  return JSON.parse(res.body).token
+  const body = JSON.parse(res.body)
+  return {
+    token: body.data.token,
+    organizationId: body.data.user.organizations[0],
+  }
 }
 
-function getRandomProject(token) {
-  const res = http.get(`${API_URL}/projects?limit=10`, {
-    headers: getAuthHeaders(token),
+function getRandomProject(auth) {
+  const res = http.get(`${API_URL}/projects?organizationId=${auth.organizationId}&limit=10`, {
+    headers: getAuthHeaders(auth.token),
   })
 
   if (res.status !== 200) return null
-  const projects = JSON.parse(res.body).projects || []
+  const projects = JSON.parse(res.body).data?.projects || []
   return projects.length > 0 ? projects[Math.floor(Math.random() * projects.length)] : null
 }
 
-function getRandomTask(token, projectId) {
+function getRandomTask(auth, projectId) {
   const res = http.get(`${API_URL}/tasks?projectId=${projectId}&limit=50`, {
-    headers: getAuthHeaders(token),
+    headers: getAuthHeaders(auth.token),
   })
 
   if (res.status !== 200) return null
-  const tasks = JSON.parse(res.body).tasks || []
+  const tasks = JSON.parse(res.body).data?.tasks || []
   return tasks.length > 0 ? tasks[Math.floor(Math.random() * tasks.length)] : null
 }
 
 // Reader behavior: mostly GET requests
 export function readerBehavior() {
   const userNum = (__VU % 100) + 1
-  const token = authenticate(userNum)
-  if (!token) {
+  const auth = authenticate(userNum)
+  if (!auth) {
     sleep(1)
     return
   }
 
-  const headers = getAuthHeaders(token)
+  const headers = getAuthHeaders(auth.token)
 
   group('Reader - Browse Projects', function () {
     const start = Date.now()
-    const res = http.get(`${API_URL}/projects`, { headers })
+    const res = http.get(`${API_URL}/projects?organizationId=${auth.organizationId}`, { headers })
     operationDuration.add(Date.now() - start)
     operationSuccess.add(check(res, { 'projects 200': (r) => r.status === 200 }) ? 1 : 0)
   })
 
   sleep(0.5)
 
-  const project = getRandomProject(token)
+  const project = getRandomProject(auth)
   if (!project) {
     sleep(1)
     return
@@ -111,7 +115,7 @@ export function readerBehavior() {
       const filter = filters[Math.floor(Math.random() * filters.length)]
 
       const start = Date.now()
-      const res = http.get(`${API_URL}/tasks?projectId=${project._id}${filter}&limit=50`, { headers })
+      const res = http.get(`${API_URL}/tasks?projectId=${project.id}${filter}&limit=50`, { headers })
       operationDuration.add(Date.now() - start)
       operationSuccess.add(check(res, { 'tasks 200': (r) => r.status === 200 }) ? 1 : 0)
 
@@ -120,10 +124,10 @@ export function readerBehavior() {
   })
 
   group('Reader - View Task Details', function () {
-    const task = getRandomTask(token, project._id)
+    const task = getRandomTask(auth, project.id)
     if (task) {
       const start = Date.now()
-      const res = http.get(`${API_URL}/tasks/${task._id}`, { headers })
+      const res = http.get(`${API_URL}/tasks/${task.id}`, { headers })
       operationDuration.add(Date.now() - start)
       operationSuccess.add(check(res, { 'task detail 200': (r) => r.status === 200 }) ? 1 : 0)
     }
@@ -135,14 +139,14 @@ export function readerBehavior() {
 // Active user behavior: create and update tasks
 export function activeUserBehavior() {
   const userNum = (__VU % 100) + 1
-  const token = authenticate(userNum)
-  if (!token) {
+  const auth = authenticate(userNum)
+  if (!auth) {
     sleep(1)
     return
   }
 
-  const headers = getAuthHeaders(token)
-  const project = getRandomProject(token)
+  const headers = getAuthHeaders(auth.token)
+  const project = getRandomProject(auth)
 
   if (!project) {
     sleep(1)
@@ -151,7 +155,7 @@ export function activeUserBehavior() {
 
   group('Active - Create Task', function () {
     const taskData = {
-      projectId: project._id,
+      projectId: project.id,
       title: `Active User Task ${Date.now()}-${__VU}`,
       description: 'Task created by active user during load test',
       status: 'todo',
@@ -164,21 +168,24 @@ export function activeUserBehavior() {
     operationSuccess.add(check(res, { 'create 201': (r) => r.status === 201 }) ? 1 : 0)
 
     if (res.status === 201) {
-      const task = JSON.parse(res.body)
-      sleep(0.5)
+      const body = JSON.parse(res.body)
+      const task = body.data?.task
+      if (task) {
+        sleep(0.5)
 
-      // Update the task
-      group('Active - Update Task', function () {
-        const updateData = {
-          status: 'open',
-          priority: 'high',
-        }
+        // Update the task
+        group('Active - Update Task', function () {
+          const updateData = {
+            status: 'open',
+            priority: 'high',
+          }
 
-        const start = Date.now()
-        const res = http.patch(`${API_URL}/tasks/${task._id}`, JSON.stringify(updateData), { headers })
-        operationDuration.add(Date.now() - start)
-        operationSuccess.add(check(res, { 'update 200': (r) => r.status === 200 }) ? 1 : 0)
-      })
+          const start = Date.now()
+          const res = http.patch(`${API_URL}/tasks/${task.id}`, JSON.stringify(updateData), { headers })
+          operationDuration.add(Date.now() - start)
+          operationSuccess.add(check(res, { 'update 200': (r) => r.status === 200 }) ? 1 : 0)
+        })
+      }
     }
   })
 
@@ -188,21 +195,21 @@ export function activeUserBehavior() {
 // Commenter behavior: view tasks and add comments
 export function commenterBehavior() {
   const userNum = (__VU % 100) + 1
-  const token = authenticate(userNum)
-  if (!token) {
+  const auth = authenticate(userNum)
+  if (!auth) {
     sleep(1)
     return
   }
 
-  const headers = getAuthHeaders(token)
-  const project = getRandomProject(token)
+  const headers = getAuthHeaders(auth.token)
+  const project = getRandomProject(auth)
 
   if (!project) {
     sleep(1)
     return
   }
 
-  const task = getRandomTask(token, project._id)
+  const task = getRandomTask(auth, project.id)
   if (!task) {
     sleep(1)
     return
@@ -210,7 +217,7 @@ export function commenterBehavior() {
 
   group('Commenter - View Task', function () {
     const start = Date.now()
-    const res = http.get(`${API_URL}/tasks/${task._id}`, { headers })
+    const res = http.get(`${API_URL}/tasks/${task.id}`, { headers })
     operationDuration.add(Date.now() - start)
     operationSuccess.add(check(res, { 'task 200': (r) => r.status === 200 }) ? 1 : 0)
   })
@@ -219,7 +226,7 @@ export function commenterBehavior() {
 
   group('Commenter - List Comments', function () {
     const start = Date.now()
-    const res = http.get(`${API_URL}/tasks/${task._id}/comments`, { headers })
+    const res = http.get(`${API_URL}/tasks/${task.id}/comments`, { headers })
     operationDuration.add(Date.now() - start)
     operationSuccess.add(check(res, { 'comments 200': (r) => r.status === 200 }) ? 1 : 0)
   })
@@ -232,7 +239,7 @@ export function commenterBehavior() {
     }
 
     const start = Date.now()
-    const res = http.post(`${API_URL}/tasks/${task._id}/comments`, JSON.stringify(commentData), { headers })
+    const res = http.post(`${API_URL}/tasks/${task.id}/comments`, JSON.stringify(commentData), { headers })
     operationDuration.add(Date.now() - start)
 
     if (check(res, { 'comment 201': (r) => r.status === 201 })) {

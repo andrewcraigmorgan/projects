@@ -230,7 +230,10 @@ async function createProjects(
           description: `Project ${projectNum} for load testing purposes`,
           status: 'active',
           owner: ownerId,
-          members: memberIds.slice(0, Math.min(10, memberIds.length)),
+          members: memberIds.slice(0, Math.min(10, memberIds.length)).map((id) => ({
+            user: id,
+            role: 'team' as const,
+          })),
         })
       }
 

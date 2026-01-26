@@ -60,6 +60,8 @@ function authenticate(userNum) {
       token: body.data.token,
       organizationId: body.data.user.organizations[0],
     }
+  } else {
+    console.error(`Auth failed: ${res.status} - ${res.body}`)
   }
 
   metrics.auth.success.add(0)
@@ -85,7 +87,7 @@ export function setup() {
   }
 
   const body = JSON.parse(projectsRes.body)
-  const projects = body.data?.projects || body.projects || []
+  const projects = body.data?.projects || []
   if (projects.length === 0) {
     console.error('SETUP FAILED: No projects found. Did you run the load test seeder?')
     return { ready: false }
@@ -94,7 +96,7 @@ export function setup() {
   console.log(`Setup complete. Found ${projects.length} projects.`)
   return {
     ready: true,
-    projectIds: projects.map((p) => p.id || p._id),
+    projectIds: projects.map((p) => p.id),
     organizationId: auth.organizationId,
   }
 }
@@ -127,11 +129,13 @@ export default function (data) {
   const projectsBody = JSON.parse(projectsRes.body)
   const projects = projectsBody.data?.projects || []
   if (projects.length === 0) {
+    console.error('No projects found for user')
     sleep(1)
     return
   }
 
-  const projectId = projects[Math.floor(Math.random() * projects.length)].id
+  const project = projects[Math.floor(Math.random() * projects.length)]
+  const projectId = project.id
 
   // Simulate realistic user journey
   const journey = Math.random()
@@ -200,17 +204,19 @@ function createTaskJourney(headers, projectId) {
       metrics.tasks.created.add(1)
 
       const createBody = JSON.parse(createRes.body)
-      const task = createBody.data?.task || createBody
-      sleep(0.5)
+      const task = createBody.data?.task
+      if (task) {
+        sleep(0.5)
 
-      // Update the task
-      const updateData = { status: 'open' }
-      const updateStart = Date.now()
-      const taskId = task.id || task._id
-      const updateRes = http.patch(`${API_URL}/tasks/${taskId}`, JSON.stringify(updateData), { headers })
-      metrics.tasks.updateDuration.add(Date.now() - updateStart)
-      metrics.tasks.success.add(updateRes.status === 200 ? 1 : 0)
+        // Update the task
+        const updateData = { status: 'open' }
+        const updateStart = Date.now()
+        const updateRes = http.patch(`${API_URL}/tasks/${task.id}`, JSON.stringify(updateData), { headers })
+        metrics.tasks.updateDuration.add(Date.now() - updateStart)
+        metrics.tasks.success.add(updateRes.status === 200 ? 1 : 0)
+      }
     } else {
+      console.error(`Task create failed: ${createRes.status} - ${createRes.body}`)
       metrics.tasks.success.add(0)
     }
   })
@@ -224,19 +230,20 @@ function commentJourney(headers, projectId) {
     const listRes = http.get(`${API_URL}/tasks?projectId=${projectId}&limit=10`, { headers })
 
     if (listRes.status !== 200) {
+      console.error(`Failed to list tasks for comments: ${listRes.status}`)
       metrics.comments.success.add(0)
       return
     }
 
     const tasksBody = JSON.parse(listRes.body)
-    const tasks = tasksBody.data?.tasks || tasksBody.tasks || []
+    const tasks = tasksBody.data?.tasks || []
     if (tasks.length === 0) {
+      console.error('No tasks found for commenting')
       metrics.comments.success.add(0)
       return
     }
 
     const task = tasks[Math.floor(Math.random() * tasks.length)]
-    const taskId = task.id || task._id
 
     // Add comment
     const commentData = {
@@ -244,13 +251,14 @@ function commentJourney(headers, projectId) {
     }
 
     const start = Date.now()
-    const res = http.post(`${API_URL}/tasks/${taskId}/comments`, JSON.stringify(commentData), { headers })
+    const res = http.post(`${API_URL}/tasks/${task.id}/comments`, JSON.stringify(commentData), { headers })
     metrics.comments.createDuration.add(Date.now() - start)
 
     if (res.status === 201) {
       metrics.comments.success.add(1)
       metrics.comments.created.add(1)
     } else {
+      console.error(`Comment create failed: ${res.status} - ${res.body}`)
       metrics.comments.success.add(0)
     }
   })

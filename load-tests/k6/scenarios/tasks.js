@@ -35,47 +35,51 @@ function authenticate(userNum) {
     return null
   }
 
-  return JSON.parse(res.body).token
+  const body = JSON.parse(res.body)
+  return {
+    token: body.data.token,
+    organizationId: body.data.user.organizations[0],
+  }
 }
 
-function getProjects(token) {
-  const res = http.get(`${API_URL}/projects`, {
+function getProjects(token, organizationId) {
+  const res = http.get(`${API_URL}/projects?organizationId=${organizationId}`, {
     headers: getAuthHeaders(token),
   })
 
   if (res.status !== 200) return []
   const body = JSON.parse(res.body)
-  return body.projects || []
+  return body.data?.projects || []
 }
 
 export function setup() {
   // Login as first user to get project list
-  const token = authenticate(1)
-  if (!token) {
+  const auth = authenticate(1)
+  if (!auth) {
     console.error('Setup failed: Could not authenticate')
-    return { projects: [] }
+    return { projects: [], organizationId: null }
   }
 
-  const projects = getProjects(token)
+  const projects = getProjects(auth.token, auth.organizationId)
   if (projects.length === 0) {
     console.error('Setup failed: No projects found')
   }
 
-  return { projectIds: projects.map((p) => p._id) }
+  return { projectIds: projects.map((p) => p.id), organizationId: auth.organizationId }
 }
 
 export default function (data) {
   const userNum = (__VU % 100) + 1
-  const token = authenticate(userNum)
+  const auth = authenticate(userNum)
 
-  if (!token || data.projectIds.length === 0) {
+  if (!auth || data.projectIds.length === 0) {
     sleep(1)
     return
   }
 
   // Pick a random project
   const projectId = data.projectIds[Math.floor(Math.random() * data.projectIds.length)]
-  const headers = getAuthHeaders(token)
+  const headers = getAuthHeaders(auth.token)
 
   group('Task Operations', function () {
     // 1. List tasks (most common operation - 60% of requests)
@@ -89,7 +93,7 @@ export default function (data) {
         'list returns array': (r) => {
           try {
             const body = JSON.parse(r.body)
-            return Array.isArray(body.tasks)
+            return Array.isArray(body.data?.tasks)
           } catch {
             return false
           }
@@ -141,8 +145,8 @@ export default function (data) {
           'create returns task': (r) => {
             try {
               const body = JSON.parse(r.body)
-              createdTaskId = body._id
-              return body._id !== undefined
+              createdTaskId = body.data?.task?.id
+              return createdTaskId !== undefined
             } catch {
               return false
             }
