@@ -107,6 +107,19 @@ function onDrop(event: DragEvent, status: Task['status']) {
 
   draggedTask.value = null
 }
+
+// Decode common HTML entities (for data imported with encoded entities)
+function decodeHtmlEntities(text: string): string {
+  if (!text) return text
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+}
 </script>
 
 <template>
@@ -195,7 +208,7 @@ function onDrop(event: DragEvent, status: Task['status']) {
               </NuxtLink>
             </div>
             <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-1">
-              {{ task.title }}
+              {{ decodeHtmlEntities(task.title) }}
             </h4>
 
             <div class="flex items-center gap-2">
@@ -363,7 +376,7 @@ function onDrop(event: DragEvent, status: Task['status']) {
                   </NuxtLink>
                 </div>
                 <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 mb-2">
-                  {{ task.title }}
+                  {{ decodeHtmlEntities(task.title) }}
                 </h4>
 
                 <div class="flex items-center gap-2 flex-wrap">

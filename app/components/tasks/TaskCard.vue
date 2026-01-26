@@ -155,6 +155,19 @@ function onMilestoneChange(event: Event) {
   const value = target.value || null
   emit('update-milestone', props.task.id, value)
 }
+
+// Decode common HTML entities (for data imported with encoded entities)
+function decodeHtmlEntities(text: string): string {
+  if (!text) return text
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+}
 </script>
 
 <template>
@@ -262,7 +275,7 @@ function onMilestoneChange(event: Event) {
             <h4
               class="text-sm font-medium text-gray-900 dark:text-gray-100"
             >
-              {{ task.title }}
+              {{ decodeHtmlEntities(task.title) }}
             </h4>
           </div>
 
