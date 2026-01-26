@@ -305,28 +305,28 @@ onMounted(async () => {
         >
           <!-- Milestone Header -->
           <div class="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
-            <div class="flex items-start justify-between">
-              <div class="flex-1">
-                <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
-                  <span class="text-primary-600 dark:text-primary-400">{{ index + 1 }}.</span>
-                  {{ milestone.name }}
-                  <span
-                    v-if="milestone.isLocked"
-                    class="ml-2 text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 px-2 py-1 font-medium"
-                  >
-                    ✓ Approved
-                  </span>
-                </h2>
-                <div
-                  v-if="milestone.description"
-                  class="milestone-description prose prose-sm prose-gray dark:prose-invert max-w-none mt-3"
-                  v-html="milestone.description"
-                />
+            <div>
+              <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                <span class="text-primary-600 dark:text-primary-400">{{ index + 1 }}.</span>
+                {{ milestone.name }}
+                <span
+                  v-if="milestone.isLocked"
+                  class="ml-2 text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 px-2 py-1 font-medium"
+                >
+                  ✓ Approved
+                </span>
+              </h2>
+              <div v-if="milestone.startDate || milestone.endDate" class="flex items-center gap-1.5 mt-2 text-sm text-gray-500 dark:text-gray-400">
+                <svg class="w-4 h-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M8 7V3m8 4V3m-9 8h10M5 21h14a2 2 0 002-2V7a2 2 0 00-2-2H5a2 2 0 00-2 2v12a2 2 0 002 2z" />
+                </svg>
+                <span>{{ formatDate(milestone.startDate) }} – {{ formatDate(milestone.endDate) }}</span>
               </div>
-              <div v-if="milestone.startDate || milestone.endDate" class="text-right text-sm text-gray-500 dark:text-gray-400 flex-shrink-0 ml-4">
-                <div v-if="milestone.startDate">Start: {{ formatDate(milestone.startDate) }}</div>
-                <div v-if="milestone.endDate">End: {{ formatDate(milestone.endDate) }}</div>
-              </div>
+              <div
+                v-if="milestone.description"
+                class="milestone-description prose prose-sm prose-gray dark:prose-invert max-w-none mt-3"
+                v-html="milestone.description"
+              />
             </div>
 
             <!-- Approval Status -->
@@ -512,6 +512,6 @@ onMounted(async () => {
 
 :global(.dark) .milestone-description :deep(p),
 :global(.dark) .milestone-description :deep(li) {
-  color: rgb(229 231 235); /* gray-200 for better readability in dark mode */
+  color: rgb(243 244 246); /* gray-100 for good contrast in dark mode */
 }
 </style>

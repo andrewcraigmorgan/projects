@@ -149,6 +149,6 @@ const taskUrl = computed(() => `/projects/${projectId.value}/tasks/${props.task.
 
 :global(.dark) .task-description :deep(p),
 :global(.dark) .task-description :deep(li) {
-  color: rgb(229 231 235); /* gray-200 for better readability in dark mode */
+  color: rgb(243 244 246); /* gray-100 for good contrast in dark mode */
 }
 </style>
