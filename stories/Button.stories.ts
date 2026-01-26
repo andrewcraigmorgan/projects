@@ -24,14 +24,22 @@ const meta: Meta<typeof Button> = {
       control: 'boolean',
       description: 'Disable the button',
     },
-    default: {
+    label: {
       control: 'text',
       description: 'Button label (slot content)',
     },
   },
   args: {
-    default: 'Button',
+    label: 'Button',
   },
+  render: (args) => ({
+    components: { Button },
+    setup() {
+      const { label, ...props } = args;
+      return { label, props };
+    },
+    template: `<Button v-bind="props">{{ label }}</Button>`,
+  }),
 };
 
 export default meta;
@@ -40,56 +48,56 @@ type Story = StoryObj<typeof meta>;
 export const Primary: Story = {
   args: {
     variant: 'primary',
-    default: 'Primary Button',
+    label: 'Primary Button',
   },
 };
 
 export const Secondary: Story = {
   args: {
     variant: 'secondary',
-    default: 'Secondary Button',
+    label: 'Secondary Button',
   },
 };
 
 export const Danger: Story = {
   args: {
     variant: 'danger',
-    default: 'Delete',
+    label: 'Delete',
   },
 };
 
 export const Ghost: Story = {
   args: {
     variant: 'ghost',
-    default: 'Ghost Button',
+    label: 'Ghost Button',
   },
 };
 
 export const Small: Story = {
   args: {
     size: 'sm',
-    default: 'Small',
+    label: 'Small',
   },
 };
 
 export const Large: Story = {
   args: {
     size: 'lg',
-    default: 'Large Button',
+    label: 'Large Button',
   },
 };
 
 export const Loading: Story = {
   args: {
     loading: true,
-    default: 'Loading...',
+    label: 'Loading...',
   },
 };
 
 export const Disabled: Story = {
   args: {
     disabled: true,
-    default: 'Disabled',
+    label: 'Disabled',
   },
 };
 
