@@ -7,6 +7,8 @@ export interface Milestone {
   startDate: string
   endDate: string
   status: 'pending' | 'active' | 'completed'
+  isLocked: boolean
+  lockedAt: string | null
   projectId: string
   taskStats: {
     total: number

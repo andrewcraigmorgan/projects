@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { Task } from '../../../models/Task'
 import { Project } from '../../../models/Project'
+import { Milestone } from '../../../models/Milestone'
 import { requireOrganizationMember } from '../../../utils/tenant'
 
 const updateTaskSchema = z.object({
@@ -11,6 +12,7 @@ const updateTaskSchema = z.object({
   assignees: z.array(z.string()).optional(),
   dueDate: z.string().datetime().nullable().optional(),
   order: z.number().min(0).optional(),
+  milestone: z.string().nullable().optional(),
 })
 
 /**
@@ -70,6 +72,44 @@ export default defineEventHandler(async (event) => {
 
   await requireOrganizationMember(event, project.organization.toString())
 
+  // Check if task's current milestone is locked
+  if (task.milestone) {
+    const currentMilestone = await Milestone.findById(task.milestone)
+    if (currentMilestone?.isLocked) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Forbidden',
+        message: 'Cannot modify a task in a locked milestone. The milestone has been signed off.',
+      })
+    }
+  }
+
+  // Check if trying to move to a locked milestone
+  if (result.data.milestone) {
+    const targetMilestone = await Milestone.findById(result.data.milestone)
+    if (!targetMilestone) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: 'Not Found',
+        message: 'Target milestone not found',
+      })
+    }
+    if (targetMilestone.project.toString() !== task.project.toString()) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Bad Request',
+        message: 'Milestone must belong to the same project',
+      })
+    }
+    if (targetMilestone.isLocked) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Forbidden',
+        message: 'Cannot move task to a locked milestone. The milestone has been signed off.',
+      })
+    }
+  }
+
   // Prepare update data
   const updateData: Record<string, unknown> = { ...result.data }
 
@@ -88,6 +128,7 @@ export default defineEventHandler(async (event) => {
   )
     .populate('assignees', 'name email avatar')
     .populate('createdBy', 'name email avatar')
+    .populate('milestone', 'name')
 
   // Get subtask count
   const subtaskCount = await Task.countDocuments({ parentTask: id })
@@ -105,6 +146,7 @@ export default defineEventHandler(async (event) => {
         assignees: updatedTask!.assignees,
         dueDate: updatedTask!.dueDate,
         parentTask: updatedTask!.parentTask,
+        milestone: updatedTask!.milestone,
         depth: updatedTask!.depth,
         order: updatedTask!.order,
         subtaskCount,

@@ -8,6 +8,9 @@ export interface IMilestone {
   startDate?: Date
   endDate?: Date
   status: 'pending' | 'active' | 'completed'
+  isLocked: boolean
+  lockedAt?: Date
+  lockedBy?: mongoose.Types.ObjectId
   createdAt: Date
   updatedAt: Date
 }
@@ -40,6 +43,17 @@ const MilestoneSchema = new Schema<MilestoneDocument>(
       type: String,
       enum: ['pending', 'active', 'completed'],
       default: 'active',
+    },
+    isLocked: {
+      type: Boolean,
+      default: false,
+    },
+    lockedAt: {
+      type: Date,
+    },
+    lockedBy: {
+      type: Schema.Types.ObjectId,
+      ref: 'User',
     },
   },
   {

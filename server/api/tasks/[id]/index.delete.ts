@@ -1,5 +1,6 @@
 import { Task } from '../../../models/Task'
 import { Project } from '../../../models/Project'
+import { Milestone } from '../../../models/Milestone'
 import { requireOrganizationMember } from '../../../utils/tenant'
 
 /**
@@ -40,6 +41,18 @@ export default defineEventHandler(async (event) => {
   }
 
   await requireOrganizationMember(event, project.organization.toString())
+
+  // Check if task's milestone is locked
+  if (task.milestone) {
+    const milestone = await Milestone.findById(task.milestone)
+    if (milestone?.isLocked) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Forbidden',
+        message: 'Cannot delete a task in a locked milestone. The milestone has been signed off.',
+      })
+    }
+  }
 
   // Delete task and all descendants using the path field
   // Tasks that have this task in their path are descendants

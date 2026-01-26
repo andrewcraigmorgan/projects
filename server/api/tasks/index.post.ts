@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { Task } from '../../models/Task'
 import { Project } from '../../models/Project'
+import { Milestone } from '../../models/Milestone'
 import { requireOrganizationMember } from '../../utils/tenant'
 
 const createTaskSchema = z.object({
@@ -12,6 +13,7 @@ const createTaskSchema = z.object({
   assignees: z.array(z.string()).optional(),
   dueDate: z.string().datetime().optional(),
   parentTask: z.string().optional(),
+  milestone: z.string().optional(),
 })
 
 /**
@@ -49,7 +51,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const { projectId, parentTask, dueDate, ...taskData } = result.data
+  const { projectId, parentTask, dueDate, milestone, ...taskData } = result.data
 
   // Verify project access
   const project = await Project.findById(projectId)
@@ -62,6 +64,32 @@ export default defineEventHandler(async (event) => {
   }
 
   await requireOrganizationMember(event, project.organization.toString())
+
+  // Check if milestone is locked
+  if (milestone) {
+    const milestoneDoc = await Milestone.findById(milestone)
+    if (!milestoneDoc) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: 'Not Found',
+        message: 'Milestone not found',
+      })
+    }
+    if (milestoneDoc.project.toString() !== projectId) {
+      throw createError({
+        statusCode: 400,
+        statusMessage: 'Bad Request',
+        message: 'Milestone must belong to the same project',
+      })
+    }
+    if (milestoneDoc.isLocked) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Forbidden',
+        message: 'Cannot create tasks in a locked milestone. The milestone has been signed off.',
+      })
+    }
+  }
 
   // If parent task specified, verify it exists and belongs to same project
   if (parentTask) {
@@ -96,12 +124,14 @@ export default defineEventHandler(async (event) => {
     ...taskData,
     dueDate: dueDate ? new Date(dueDate) : undefined,
     parentTask: parentTask || null,
+    milestone: milestone || null,
     order,
     createdBy: auth.userId,
   })
 
   await task.populate('assignees', 'name email avatar')
   await task.populate('createdBy', 'name email avatar')
+  await task.populate('milestone', 'name')
 
   setResponseStatus(event, 201)
   return {
@@ -116,6 +146,7 @@ export default defineEventHandler(async (event) => {
         assignees: task.assignees,
         dueDate: task.dueDate,
         parentTask: task.parentTask,
+        milestone: task.milestone,
         depth: task.depth,
         path: task.path,
         order: task.order,

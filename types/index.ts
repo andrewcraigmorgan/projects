@@ -183,3 +183,100 @@ export interface PaginatedResponse<T> {
   limit: number
   totalPages: number
 }
+
+// Milestone types
+export interface IMilestone {
+  _id: Types.ObjectId
+  project: Types.ObjectId
+  name: string
+  description?: string
+  startDate?: Date
+  endDate?: Date
+  status: 'pending' | 'active' | 'completed'
+  isLocked: boolean
+  lockedAt?: Date
+  lockedBy?: Types.ObjectId
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Specification types
+export interface IMilestoneSignoff {
+  _id: Types.ObjectId
+  milestone: Types.ObjectId
+  project: Types.ObjectId
+  signedBy: Types.ObjectId
+  signedAt: Date
+  signatureNotes?: string
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface ISpecificationApprover {
+  _id: Types.ObjectId
+  project: Types.ObjectId
+  user: Types.ObjectId
+  addedBy: Types.ObjectId
+  addedAt: Date
+  createdAt: Date
+  updatedAt: Date
+}
+
+export interface ISnapshotTask {
+  taskNumber: number
+  title: string
+  description: string
+  status: string
+  priority: string
+  assignees: string[]
+  dueDate?: Date
+  subtasks: ISnapshotTask[]
+}
+
+export interface ISnapshotSignoff {
+  userName: string
+  signedAt: Date
+  notes?: string
+}
+
+export interface ISnapshotData {
+  milestone: {
+    name: string
+    description?: string
+    startDate?: Date
+    endDate?: Date
+    status: string
+  }
+  tasks: ISnapshotTask[]
+  signoffs: ISnapshotSignoff[]
+  generatedAt: Date
+}
+
+export interface ISpecificationSnapshot {
+  _id: Types.ObjectId
+  project: Types.ObjectId
+  milestone: Types.ObjectId
+  version: number
+  snapshotData: ISnapshotData
+  createdBy: Types.ObjectId
+  createdAt: Date
+  updatedAt: Date
+}
+
+// Sign-off status for a milestone
+export type SignoffStatus = 'pending' | 'partial' | 'complete'
+
+export interface IMilestoneSignoffStatus {
+  status: SignoffStatus
+  totalApprovers: number
+  signedCount: number
+  approvers: Array<{
+    user: {
+      _id: Types.ObjectId
+      name: string
+      email: string
+    }
+    hasSigned: boolean
+    signedAt?: Date
+  }>
+}

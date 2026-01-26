@@ -109,24 +109,43 @@ function formatDate(dateString: string) {
               @blur="saveName"
             />
           </div>
-          <button
-            v-if="!isEditingName"
-            type="button"
-            class="group/title text-lg font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 inline-flex items-center gap-2 text-left"
-            :aria-label="`Edit milestone name: ${milestone.name}`"
-            @click.stop="startEditingName"
-          >
-            {{ milestone.name }}
+          <div v-if="!isEditingName" class="flex items-center gap-2">
+            <!-- Lock icon -->
             <svg
-              class="h-4 w-4 text-gray-400 opacity-0 group-hover/title:opacity-100 transition-opacity"
+              v-if="milestone.isLocked"
+              class="h-5 w-5 text-green-600 dark:text-green-400 flex-shrink-0"
               fill="none"
               viewBox="0 0 24 24"
               stroke="currentColor"
-              aria-hidden="true"
+              title="Milestone is locked (signed off)"
             >
-              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 15v2m-6 4h12a2 2 0 002-2v-6a2 2 0 00-2-2H6a2 2 0 00-2 2v6a2 2 0 002 2zm10-10V7a4 4 0 00-8 0v4h8z" />
             </svg>
-          </button>
+            <button
+              v-if="!milestone.isLocked"
+              type="button"
+              class="group/title text-lg font-semibold text-gray-900 dark:text-gray-100 cursor-pointer hover:text-primary-600 dark:hover:text-primary-400 inline-flex items-center gap-2 text-left"
+              :aria-label="`Edit milestone name: ${milestone.name}`"
+              @click.stop="startEditingName"
+            >
+              {{ milestone.name }}
+              <svg
+                class="h-4 w-4 text-gray-400 opacity-0 group-hover/title:opacity-100 transition-opacity"
+                fill="none"
+                viewBox="0 0 24 24"
+                stroke="currentColor"
+                aria-hidden="true"
+              >
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z" />
+              </svg>
+            </button>
+            <span
+              v-else
+              class="text-lg font-semibold text-gray-900 dark:text-gray-100"
+            >
+              {{ milestone.name }}
+            </span>
+          </div>
 
           <!-- Description -->
           <p
@@ -146,9 +165,13 @@ function formatDate(dateString: string) {
           />
           <select
             :value="milestone.status"
+            :disabled="milestone.isLocked"
             aria-label="Milestone status"
-            class="appearance-none pl-5 pr-6 py-1 text-sm font-medium border-0 cursor-pointer focus:ring-1 focus:ring-primary-500 transition-colors"
-            :class="statusColors[milestone.status]"
+            class="appearance-none pl-5 pr-6 py-1 text-sm font-medium border-0 focus:ring-1 focus:ring-primary-500 transition-colors"
+            :class="[
+              statusColors[milestone.status],
+              milestone.isLocked ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'
+            ]"
             @click.stop
             @change="onStatusChange"
           >
@@ -161,6 +184,7 @@ function formatDate(dateString: string) {
             </option>
           </select>
           <svg
+            v-if="!milestone.isLocked"
             class="absolute right-1 top-1/2 -translate-y-1/2 h-3 w-3 text-gray-500 pointer-events-none"
             fill="none"
             viewBox="0 0 24 24"
@@ -180,7 +204,9 @@ function formatDate(dateString: string) {
             :id="`milestone-${milestone.id}-start`"
             type="date"
             :value="milestone.startDate.split('T')[0]"
-            class="px-2 py-1 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 cursor-pointer"
+            :disabled="milestone.isLocked"
+            class="px-2 py-1 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500"
+            :class="milestone.isLocked ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'"
             @click.stop
             @change="onStartDateChange"
           />
@@ -191,11 +217,20 @@ function formatDate(dateString: string) {
             :id="`milestone-${milestone.id}-end`"
             type="date"
             :value="milestone.endDate.split('T')[0]"
-            class="px-2 py-1 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 cursor-pointer"
+            :disabled="milestone.isLocked"
+            class="px-2 py-1 text-sm bg-gray-50 dark:bg-gray-700 border border-gray-200 dark:border-gray-600 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500"
+            :class="milestone.isLocked ? 'cursor-not-allowed opacity-75' : 'cursor-pointer'"
             @click.stop
             @change="onEndDateChange"
           />
         </div>
+        <!-- Signed off badge -->
+        <span
+          v-if="milestone.isLocked"
+          class="inline-flex items-center px-2 py-0.5 text-xs font-medium bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-300"
+        >
+          Signed Off
+        </span>
       </div>
 
       <!-- Progress section -->
@@ -239,12 +274,20 @@ function formatDate(dateString: string) {
             View Tasks
           </NuxtLink>
           <button
+            v-if="!milestone.isLocked"
             class="text-red-500 hover:text-red-700 dark:text-red-400 dark:hover:text-red-300 transition-colors"
             :aria-label="`Delete milestone ${milestone.name}`"
             @click.stop="emit('delete', milestone.id)"
           >
             Delete
           </button>
+          <span
+            v-else
+            class="text-gray-400 dark:text-gray-500 cursor-not-allowed"
+            title="Cannot delete a locked milestone"
+          >
+            Delete
+          </span>
         </div>
       </div>
     </div>

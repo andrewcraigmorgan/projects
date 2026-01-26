@@ -64,6 +64,15 @@ export default defineEventHandler(async (event) => {
 
   await requireOrganizationMember(event, project.organization.toString())
 
+  // Check if milestone is locked
+  if (milestone.isLocked) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Forbidden',
+      message: 'Cannot modify a locked milestone. The milestone has been signed off.',
+    })
+  }
+
   // Update fields
   const { name, description, startDate, endDate, status } = result.data
 
@@ -101,6 +110,8 @@ export default defineEventHandler(async (event) => {
         startDate: milestone.startDate?.toISOString() || '',
         endDate: milestone.endDate?.toISOString() || '',
         status: milestone.status,
+        isLocked: milestone.isLocked || false,
+        lockedAt: milestone.lockedAt?.toISOString() || null,
         projectId: milestone.project.toString(),
         taskStats: { total, completed },
         createdAt: milestone.createdAt.toISOString(),

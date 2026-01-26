@@ -2,12 +2,14 @@ import { z } from 'zod'
 import { Task } from '../../../models/Task'
 import { Project } from '../../../models/Project'
 import { Organization } from '../../../models/Organization'
+import { Milestone } from '../../../models/Milestone'
 import { requireOrganizationMember } from '../../../utils/tenant'
 
 const moveTaskSchema = z.object({
   newParentTask: z.string().nullable(),
   newOrder: z.number().min(0).optional(),
   newProject: z.string().optional(),
+  newMilestone: z.string().nullable().optional(),
 })
 
 /**
@@ -42,7 +44,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const { newParentTask, newOrder, newProject } = result.data
+  const { newParentTask, newOrder, newProject, newMilestone } = result.data
 
   const task = await Task.findById(id)
   if (!task) {
@@ -64,6 +66,37 @@ export default defineEventHandler(async (event) => {
   }
 
   await requireOrganizationMember(event, sourceProject.organization.toString())
+
+  // Check if task's current milestone is locked
+  if (task.milestone) {
+    const currentMilestone = await Milestone.findById(task.milestone)
+    if (currentMilestone?.isLocked) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Forbidden',
+        message: 'Cannot move a task from a locked milestone. The milestone has been signed off.',
+      })
+    }
+  }
+
+  // Check if trying to move to a locked milestone
+  if (newMilestone) {
+    const targetMilestone = await Milestone.findById(newMilestone)
+    if (!targetMilestone) {
+      throw createError({
+        statusCode: 404,
+        statusMessage: 'Not Found',
+        message: 'Target milestone not found',
+      })
+    }
+    if (targetMilestone.isLocked) {
+      throw createError({
+        statusCode: 403,
+        statusMessage: 'Forbidden',
+        message: 'Cannot move task to a locked milestone. The milestone has been signed off.',
+      })
+    }
+  }
 
   // Handle cross-project move
   const isCrossProjectMove = newProject && newProject !== task.project.toString()
@@ -153,6 +186,11 @@ export default defineEventHandler(async (event) => {
   task.parentTask = newParentTask as unknown as typeof task.parentTask
   task.order = order
 
+  // Update milestone if specified
+  if (newMilestone !== undefined) {
+    task.milestone = newMilestone as unknown as typeof task.milestone
+  }
+
   // Handle cross-project move field clearing
   if (isCrossProjectMove && crossProjectMoveInfo) {
     // Update project
@@ -197,6 +235,7 @@ export default defineEventHandler(async (event) => {
 
   await task.populate('assignees', 'name email avatar')
   await task.populate('createdBy', 'name email avatar')
+  await task.populate('milestone', 'name')
 
   const subtaskCount = await Task.countDocuments({ parentTask: id })
 
@@ -213,6 +252,7 @@ export default defineEventHandler(async (event) => {
         assignees: task.assignees,
         dueDate: task.dueDate,
         parentTask: task.parentTask,
+        milestone: task.milestone,
         depth: task.depth,
         path: task.path,
         order: task.order,

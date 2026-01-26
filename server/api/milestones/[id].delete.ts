@@ -43,6 +43,15 @@ export default defineEventHandler(async (event) => {
 
   await requireOrganizationMember(event, project.organization.toString())
 
+  // Check if milestone is locked
+  if (milestone.isLocked) {
+    throw createError({
+      statusCode: 403,
+      statusMessage: 'Forbidden',
+      message: 'Cannot delete a locked milestone. The milestone has been signed off.',
+    })
+  }
+
   // Remove milestone reference from tasks
   await Task.updateMany({ milestone: milestoneId }, { $unset: { milestone: 1 } })
 

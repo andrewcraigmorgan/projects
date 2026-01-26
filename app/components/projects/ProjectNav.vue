@@ -10,6 +10,7 @@ const route = useRoute()
 // Determine which page is active
 const currentPage = computed(() => {
   const path = route.path
+  if (path.includes('/specification')) return 'specification'
   if (path.includes('/milestones')) return 'milestones'
   if (path.includes('/tags')) return 'tags'
   if (path.includes('/members')) return 'members'
@@ -48,6 +49,16 @@ const currentPage = computed(() => {
         : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'"
     >
       Members
+    </NuxtLink>
+    <NuxtLink
+      :to="`/projects/${projectId}/specification`"
+      :aria-current="currentPage === 'specification' ? 'page' : undefined"
+      class="px-3 py-1.5 text-sm font-medium transition-colors"
+      :class="currentPage === 'specification'
+        ? 'text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/30'
+        : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'"
+    >
+      Specification
     </NuxtLink>
   </nav>
 </template>

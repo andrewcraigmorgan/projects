@@ -59,6 +59,8 @@ export default defineEventHandler(async (event) => {
         startDate: m.startDate?.toISOString() || '',
         endDate: m.endDate?.toISOString() || '',
         status: m.status,
+        isLocked: m.isLocked || false,
+        lockedAt: m.lockedAt?.toISOString() || null,
         projectId: m.project.toString(),
         taskStats: { total, completed },
         createdAt: m.createdAt.toISOString(),
