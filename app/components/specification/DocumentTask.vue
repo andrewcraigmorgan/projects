@@ -177,21 +177,19 @@ const taskUrl = computed(() => `/projects/${projectId.value}/tasks/${props.task.
   font-weight: 600;
 }
 
-/* Strip all inline background colors and highlighting from imported content */
+/* Strip ALL inline styling from imported content */
 .task-description :deep(*) {
   background-color: transparent !important;
   background: transparent !important;
-}
-
-/* Strip inline text colors - use theme colors instead */
-.task-description :deep(span),
-.task-description :deep(font) {
   color: inherit !important;
 }
 
-/* Remove mark/highlight elements styling */
-.task-description :deep(mark) {
-  background-color: transparent !important;
-  color: inherit !important;
+/* Preserve link colors */
+.task-description :deep(a) {
+  color: rgb(var(--color-primary-500)) !important;
+}
+
+.task-description :deep(a:hover) {
+  color: rgb(var(--color-primary-600)) !important;
 }
 </style>

@@ -1,5 +1,25 @@
 import PDFDocument from 'pdfkit'
 
+// Decode HTML entities and strip HTML tags
+function stripHtmlAndDecode(text: string): string {
+  if (!text) return ''
+  return text
+    // Remove HTML tags
+    .replace(/<[^>]*>/g, '')
+    // Decode common HTML entities
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/&nbsp;/g, ' ')
+    // Normalize whitespace
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 interface TaskData {
   taskNumber: number
   title: string
@@ -117,15 +137,6 @@ export function generateSpecificationPdf(specification: SpecificationData): Prom
       .fillColor(grayColor)
       .text(`Generated: ${new Date(specification.generatedAt).toLocaleString()}`, { align: 'center' })
     doc.text(`Project Owner: ${specification.project.owner.name}`, { align: 'center' })
-
-    // Summary info
-    const totalMilestones = specification.milestones.length
-    let totalItems = specification.milestones.reduce((sum, m) => sum + m.taskStats.total, 0)
-    if (specification.unassignedTasks) {
-      totalItems += specification.unassignedTasks.taskStats.total
-    }
-    doc.moveDown(1)
-    doc.text(`${totalMilestones} Milestones | ${totalItems} Items`, { align: 'center' })
 
     // Approvers section on cover
     if (specification.approvers.length > 0) {
@@ -249,12 +260,13 @@ function renderMilestoneSection(
 
   // Milestone description
   if (milestone.description) {
-    // Strip HTML tags for PDF
-    const plainDesc = milestone.description.replace(/<[^>]*>/g, '')
-    doc.fontSize(12)
-      .fillColor(textColor)
-      .text(plainDesc, leftMargin, doc.y, { width: pageWidth - leftMargin })
-    doc.moveDown(0.5)
+    const plainDesc = stripHtmlAndDecode(milestone.description)
+    if (plainDesc) {
+      doc.fontSize(12)
+        .fillColor(textColor)
+        .text(plainDesc, leftMargin, doc.y, { width: pageWidth - leftMargin })
+      doc.moveDown(0.5)
+    }
   }
 
   // Approval status
@@ -330,10 +342,11 @@ function renderTaskList(
 
     // Task number and title with typography based on depth
     const fontStyle = typography.isBold ? 'Helvetica-Bold' : 'Helvetica'
+    const cleanTitle = stripHtmlAndDecode(task.title)
     doc.font(fontStyle)
       .fontSize(typography.fontSize)
       .fillColor(typography.titleColor)
-      .text(`${task.taskNumber}. ${task.title}`, leftMargin, doc.y, { width: 495 })
+      .text(`${task.taskNumber}. ${cleanTitle}`, leftMargin, doc.y, { width: 495 })
 
     // Reset to regular font
     doc.font('Helvetica')
