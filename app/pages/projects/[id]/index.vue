@@ -108,6 +108,13 @@ const {
   updateTask,
   getTaskWithSubtasks,
   moveTask,
+  // Pagination
+  page: tasksPage,
+  totalPages: tasksTotalPages,
+  total: tasksTotal,
+  limit: tasksLimit,
+  setPage: setTasksPage,
+  resetPagination: resetTasksPagination,
 } = useTasks(projectId)
 
 // Milestones
@@ -211,14 +218,18 @@ const hasActiveFilters = computed(() => {
   return true
 })
 
-// Get the names of the active milestone filters
-const activeMilestoneNames = computed(() => {
-  if (milestoneFilter.value.length === 0) return ''
-  const names = milestoneFilter.value
-    .map(id => milestones.value.find(m => m.id === id)?.name)
-    .filter(Boolean)
-  return names.join(', ')
+// Get the full milestone objects for active filters
+const activeMilestoneFilters = computed(() => {
+  if (milestoneFilter.value.length === 0) return []
+  return milestoneFilter.value
+    .map(id => milestones.value.find(m => m.id === id))
+    .filter(Boolean) as Array<{ id: string; name: string }>
 })
+
+// Remove a single milestone from the filter
+function removeMilestoneFilter(milestoneId: string) {
+  milestoneFilter.value = milestoneFilter.value.filter(id => id !== milestoneId)
+}
 
 // Clear all filters (reset to "All Open")
 function clearFilters() {
@@ -237,6 +248,7 @@ onMounted(() => {
   const urlMilestone = route.query.milestone as string
   const urlDueDateFrom = route.query.dueDateFrom as string
   const urlDueDateTo = route.query.dueDateTo as string
+  const urlPage = route.query.page as string
 
   if (urlView === 'list' || urlView === 'board') {
     viewMode.value = urlView
@@ -245,6 +257,14 @@ onMounted(() => {
     const saved = localStorage.getItem('taskViewMode')
     if (saved === 'list' || saved === 'board') {
       viewMode.value = saved
+    }
+  }
+
+  // Initialize page from URL
+  if (urlPage) {
+    const pageNum = parseInt(urlPage, 10)
+    if (!isNaN(pageNum) && pageNum >= 1) {
+      tasksPage.value = pageNum
     }
   }
 
@@ -288,8 +308,9 @@ watch(viewMode, (value) => {
   updateUrlParams()
 })
 
-// Update URL when filters change
+// Update URL when filters change - reset to page 1
 watch([statusFilter, priorityFilter, milestoneFilter, dueDateFrom, dueDateTo], () => {
+  resetTasksPagination()
   updateUrlParams()
   loadTasks()
 }, { deep: true })
@@ -308,8 +329,15 @@ function updateUrlParams() {
   if (milestoneFilter.value.length > 0) query.milestone = milestoneFilter.value.join(',')
   if (dueDateFrom.value) query.dueDateFrom = dueDateFrom.value
   if (dueDateTo.value) query.dueDateTo = dueDateTo.value
+  if (tasksPage.value > 1) query.page = String(tasksPage.value)
 
   router.replace({ query })
+}
+
+// Handle page change
+async function handlePageChange(newPage: number) {
+  await setTasksPage(newPage)
+  updateUrlParams()
 }
 
 // Modals
@@ -937,29 +965,43 @@ onMounted(async () => {
 
     <!-- Milestone Filter Banner -->
     <div
-      v-if="milestoneFilter.length > 0 && activeMilestoneNames"
+      v-if="milestoneFilter.length > 0 && activeMilestoneFilters.length > 0"
       class="bg-primary-50 dark:bg-primary-900/30 border-b border-primary-200 dark:border-primary-800"
     >
-      <div class="px-4 sm:px-6 py-3 flex items-center justify-between">
-        <div class="flex items-center gap-2">
+      <div class="px-4 sm:px-6 py-3 flex items-center justify-between gap-4">
+        <div class="flex items-center gap-2 flex-wrap min-w-0">
           <svg class="h-5 w-5 text-primary-600 dark:text-primary-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
           </svg>
-          <span class="text-sm text-primary-700 dark:text-primary-300">
-            Viewing tasks in {{ milestoneFilter.length === 1 ? 'milestone' : 'milestones' }}:
+          <span class="text-sm text-primary-700 dark:text-primary-300 flex-shrink-0">
+            {{ milestoneFilter.length === 1 ? 'Milestone:' : 'Milestones:' }}
           </span>
-          <span class="text-sm font-semibold text-primary-800 dark:text-primary-200">
-            {{ activeMilestoneNames }}
-          </span>
+          <!-- Individual milestone chips -->
+          <div class="flex flex-wrap gap-1.5">
+            <span
+              v-for="milestone in activeMilestoneFilters"
+              :key="milestone.id"
+              class="inline-flex items-center gap-1 px-2 py-0.5 rounded-full text-xs font-medium bg-primary-100 dark:bg-primary-800/50 text-primary-800 dark:text-primary-200"
+            >
+              {{ milestone.name }}
+              <button
+                class="ml-0.5 hover:bg-primary-200 dark:hover:bg-primary-700 rounded-full p-0.5 transition-colors"
+                title="Remove this milestone filter"
+                @click="removeMilestoneFilter(milestone.id)"
+              >
+                <svg class="h-3 w-3" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </span>
+          </div>
         </div>
         <button
-          class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 font-medium flex items-center gap-1"
+          v-if="milestoneFilter.length > 1"
+          class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 font-medium flex items-center gap-1 flex-shrink-0"
           @click="milestoneFilter = []"
         >
-          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
-            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
-          </svg>
-          Clear
+          Clear all
         </button>
       </div>
     </div>
@@ -1155,6 +1197,15 @@ onMounted(async () => {
           @task-created="loadTasks"
           @move-task="handleMoveTask"
           @context-menu="handleContextMenu"
+        />
+
+        <!-- Pagination -->
+        <UiPagination
+          :current-page="tasksPage"
+          :total-pages="tasksTotalPages"
+          :total="tasksTotal"
+          :limit="tasksLimit"
+          @update:page="handlePageChange"
         />
       </template>
     </div>

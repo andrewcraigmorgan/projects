@@ -31,6 +31,23 @@ export function useTasks(projectId: Ref<string>) {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
+  // Pagination state
+  const page = ref(1)
+  const totalPages = ref(1)
+  const total = ref(0)
+  const limit = ref(50)
+
+  // Store current filter options for pagination
+  const currentFilters = ref<{
+    status?: string | string[]
+    priority?: string | string[]
+    milestone?: string | string[]
+    dueDateFrom?: string
+    dueDateTo?: string
+    parentTask?: string
+    rootOnly?: boolean
+  }>({})
+
   async function fetchTasks(options: {
     status?: string | string[]
     priority?: string | string[]
@@ -39,12 +56,20 @@ export function useTasks(projectId: Ref<string>) {
     dueDateTo?: string
     parentTask?: string
     rootOnly?: boolean
+    page?: number
   } = {}) {
     loading.value = true
     error.value = null
 
+    // Store filters (excluding page) for pagination
+    const { page: requestedPage, ...filters } = options
+    currentFilters.value = filters
+
+    // Use requested page or current page
+    const pageNum = requestedPage ?? page.value
+
     try {
-      let url = `/api/tasks?projectId=${projectId.value}`
+      let url = `/api/tasks?projectId=${projectId.value}&page=${pageNum}&limit=${limit.value}`
       if (options.status) {
         const statusStr = Array.isArray(options.status) ? options.status.join(',') : options.status
         if (statusStr) url += `&status=${statusStr}`
@@ -64,17 +89,38 @@ export function useTasks(projectId: Ref<string>) {
 
       const response = await fetchApi<{
         success: boolean
-        data: { tasks: Task[] }
+        data: {
+          tasks: Task[]
+          total: number
+          page: number
+          totalPages: number
+        }
       }>(url)
 
       if (response.success) {
         tasks.value = response.data.tasks
+        total.value = response.data.total
+        page.value = response.data.page
+        totalPages.value = response.data.totalPages
       }
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to fetch tasks'
     } finally {
       loading.value = false
     }
+  }
+
+  async function setPage(newPage: number) {
+    if (newPage >= 1 && newPage <= totalPages.value && newPage !== page.value) {
+      page.value = newPage
+      await fetchTasks({ ...currentFilters.value, page: newPage })
+    }
+  }
+
+  function resetPagination() {
+    page.value = 1
+    totalPages.value = 1
+    total.value = 0
   }
 
   async function getTaskWithSubtasks(taskId: string): Promise<{
@@ -223,6 +269,14 @@ export function useTasks(projectId: Ref<string>) {
     tasks,
     loading,
     error,
+    // Pagination
+    page,
+    totalPages,
+    total,
+    limit,
+    setPage,
+    resetPagination,
+    // Methods
     fetchTasks,
     getTaskWithSubtasks,
     createTask,

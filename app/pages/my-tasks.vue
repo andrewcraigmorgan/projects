@@ -19,6 +19,13 @@ const {
   loading: tasksLoading,
   fetchTasks,
   updateTask,
+  // Pagination
+  page: tasksPage,
+  totalPages: tasksTotalPages,
+  total: tasksTotal,
+  limit: tasksLimit,
+  setPage: setTasksPage,
+  resetPagination: resetTasksPagination,
 } = useMyTasks()
 
 // Projects for filter dropdown

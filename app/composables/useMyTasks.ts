@@ -10,12 +10,28 @@ export function useMyTasks() {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
+  // Pagination state
+  const page = ref(1)
+  const totalPages = ref(1)
+  const total = ref(0)
+  const limit = ref(50)
+
+  // Store current filter options for pagination
+  const currentFilters = ref<{
+    status?: string | string[]
+    priority?: string | string[]
+    projectId?: string
+    dueDateFrom?: string
+    dueDateTo?: string
+  }>({})
+
   async function fetchTasks(options: {
     status?: string | string[]
     priority?: string | string[]
     projectId?: string
     dueDateFrom?: string
     dueDateTo?: string
+    page?: number
   } = {}) {
     if (!authStore.user?.id) {
       error.value = 'User not authenticated'
@@ -25,9 +41,16 @@ export function useMyTasks() {
     loading.value = true
     error.value = null
 
+    // Store filters (excluding page) for pagination
+    const { page: requestedPage, ...filters } = options
+    currentFilters.value = filters
+
+    // Use requested page or current page
+    const pageNum = requestedPage ?? page.value
+
     try {
       // Build URL with current user as assignee filter
-      let url = `/api/tasks?assignees=${authStore.user.id}`
+      let url = `/api/tasks?assignees=${authStore.user.id}&page=${pageNum}&limit=${limit.value}`
 
       if (options.status) {
         const statusStr = Array.isArray(options.status) ? options.status.join(',') : options.status
@@ -43,17 +66,38 @@ export function useMyTasks() {
 
       const response = await fetchApi<{
         success: boolean
-        data: { tasks: Task[] }
+        data: {
+          tasks: Task[]
+          total: number
+          page: number
+          totalPages: number
+        }
       }>(url)
 
       if (response.success) {
         tasks.value = response.data.tasks
+        total.value = response.data.total
+        page.value = response.data.page
+        totalPages.value = response.data.totalPages
       }
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to fetch tasks'
     } finally {
       loading.value = false
     }
+  }
+
+  async function setPage(newPage: number) {
+    if (newPage >= 1 && newPage <= totalPages.value && newPage !== page.value) {
+      page.value = newPage
+      await fetchTasks({ ...currentFilters.value, page: newPage })
+    }
+  }
+
+  function resetPagination() {
+    page.value = 1
+    totalPages.value = 1
+    total.value = 0
   }
 
   async function updateTask(
@@ -96,6 +140,14 @@ export function useMyTasks() {
     tasks,
     loading,
     error,
+    // Pagination
+    page,
+    totalPages,
+    total,
+    limit,
+    setPage,
+    resetPagination,
+    // Methods
     fetchTasks,
     updateTask,
   }

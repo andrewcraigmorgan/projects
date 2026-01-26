@@ -22,29 +22,65 @@ export function useProjects() {
   const loading = ref(false)
   const error = ref<string | null>(null)
 
-  async function fetchProjects(status?: string) {
+  // Pagination state
+  const page = ref(1)
+  const totalPages = ref(1)
+  const total = ref(0)
+  const limit = ref(20)
+
+  // Store current filter options for pagination
+  const currentStatus = ref<string | undefined>(undefined)
+
+  async function fetchProjects(status?: string, requestedPage?: number) {
     if (!orgStore.currentOrganization) return
 
     loading.value = true
     error.value = null
 
+    // Store status filter for pagination
+    currentStatus.value = status
+
+    // Use requested page or current page
+    const pageNum = requestedPage ?? page.value
+
     try {
-      let url = `/api/projects?organizationId=${orgStore.currentOrganization.id}`
+      let url = `/api/projects?organizationId=${orgStore.currentOrganization.id}&page=${pageNum}&limit=${limit.value}`
       if (status) url += `&status=${status}`
 
       const response = await fetchApi<{
         success: boolean
-        data: { projects: Project[] }
+        data: {
+          projects: Project[]
+          total: number
+          page: number
+          totalPages: number
+        }
       }>(url)
 
       if (response.success) {
         projects.value = response.data.projects
+        total.value = response.data.total
+        page.value = response.data.page
+        totalPages.value = response.data.totalPages
       }
     } catch (e) {
       error.value = e instanceof Error ? e.message : 'Failed to fetch projects'
     } finally {
       loading.value = false
     }
+  }
+
+  async function setPage(newPage: number) {
+    if (newPage >= 1 && newPage <= totalPages.value && newPage !== page.value) {
+      page.value = newPage
+      await fetchProjects(currentStatus.value, newPage)
+    }
+  }
+
+  function resetPagination() {
+    page.value = 1
+    totalPages.value = 1
+    total.value = 0
   }
 
   async function createProject(name: string, description = '') {
@@ -107,6 +143,14 @@ export function useProjects() {
     projects,
     loading,
     error,
+    // Pagination
+    page,
+    totalPages,
+    total,
+    limit,
+    setPage,
+    resetPagination,
+    // Methods
     fetchProjects,
     createProject,
     updateProject,
