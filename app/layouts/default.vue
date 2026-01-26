@@ -36,6 +36,14 @@ function handleOverlayClick() {
 
 <template>
   <div class="flex h-screen bg-gradient-to-br from-gray-50 via-gray-100/50 to-gray-50 dark:from-gray-900 dark:via-gray-900 dark:to-gray-950">
+    <!-- Skip navigation link for keyboard users -->
+    <a
+      href="#main-content"
+      class="sr-only focus:not-sr-only focus:absolute focus:top-4 focus:left-4 focus:z-[100] focus:px-4 focus:py-2 focus:bg-primary-600 focus:text-white focus:rounded-lg focus:shadow-lg focus:outline-none focus:ring-2 focus:ring-primary-400 focus:ring-offset-2"
+    >
+      Skip to main content
+    </a>
+
     <!-- Mobile overlay backdrop -->
     <Transition
       enter-active-class="transition-opacity duration-300"
@@ -61,7 +69,7 @@ function handleOverlayClick() {
     </aside>
 
     <!-- Main content -->
-    <main class="flex-1 overflow-auto w-full">
+    <main id="main-content" class="flex-1 overflow-auto w-full" tabindex="-1">
       <slot />
     </main>
   </div>

@@ -18,10 +18,20 @@ export default defineNuxtConfig({
       style: [
         {
           // Hide everything until CSS is loaded to prevent FOUC
+          // Also respect prefers-reduced-motion for users who prefer minimal animations
           innerHTML: `
             html { background: #111827; }
             html:not(.ready) body { opacity: 0; }
             html.ready body { opacity: 1; transition: opacity 0.1s; }
+
+            @media (prefers-reduced-motion: reduce) {
+              *, *::before, *::after {
+                animation-duration: 0.01ms !important;
+                animation-iteration-count: 1 !important;
+                transition-duration: 0.01ms !important;
+                scroll-behavior: auto !important;
+              }
+            }
           `,
         },
       ],

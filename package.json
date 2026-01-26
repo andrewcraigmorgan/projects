@@ -19,7 +19,8 @@
     "loadtest:load": "TEST_TYPE=load k6 run load-tests/k6/run-all.js",
     "loadtest:stress": "TEST_TYPE=stress k6 run load-tests/k6/run-all.js",
     "test:e2e": "playwright test",
-    "test:e2e:ui": "playwright test --ui"
+    "test:e2e:ui": "playwright test --ui",
+    "test:a11y": "playwright test e2e/accessibility.spec.ts"
   },
   "dependencies": {
     "@pinia/nuxt": "^0.11.3",
@@ -41,6 +42,7 @@
     "zod": "^3.24.0"
   },
   "devDependencies": {
+    "@axe-core/playwright": "^4.11.0",
     "@chromatic-com/storybook": "^5.0.0",
     "@nuxtjs/tailwindcss": "^6.14.0",
     "@playwright/test": "^1.58.0",
