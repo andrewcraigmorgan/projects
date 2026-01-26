@@ -119,7 +119,7 @@ const taskUrl = computed(() => `/projects/${projectId.value}/tasks/${props.task.
 <style scoped>
 .task-description :deep(p) {
   margin-bottom: 0.75em;
-  color: rgb(75 85 99);
+  color: rgb(31 41 55); /* gray-800 for better readability */
 }
 
 .task-description :deep(p:last-child) {
@@ -140,7 +140,7 @@ const taskUrl = computed(() => `/projects/${projectId.value}/tasks/${props.task.
 
 .task-description :deep(li) {
   margin-bottom: 0.25em;
-  color: rgb(75 85 99);
+  color: rgb(31 41 55); /* gray-800 for better readability */
 }
 
 .task-description :deep(strong) {
@@ -149,6 +149,6 @@ const taskUrl = computed(() => `/projects/${projectId.value}/tasks/${props.task.
 
 :global(.dark) .task-description :deep(p),
 :global(.dark) .task-description :deep(li) {
-  color: rgb(156 163 175);
+  color: rgb(229 231 235); /* gray-200 for better readability in dark mode */
 }
 </style>
