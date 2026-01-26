@@ -462,6 +462,19 @@ function getShortId(task: Task): string {
   return `${prefix}-T${taskNum}`
 }
 
+// Decode common HTML entities (for data imported with encoded entities)
+function decodeHtmlEntities(text: string): string {
+  if (!text) return text
+  return text
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+}
+
 // Get cell value
 function getCellValue(task: Task, columnId: string): string {
   switch (columnId) {
@@ -664,7 +677,7 @@ function getCellValue(task: Task, columnId: string): string {
                       Ext
                     </span>
                     <span class="text-sm font-medium text-gray-900 dark:text-gray-100 truncate max-w-md">
-                      {{ task.title }}
+                      {{ decodeHtmlEntities(task.title) }}
                     </span>
                   </div>
                 </template>
@@ -1013,7 +1026,7 @@ function getCellValue(task: Task, columnId: string): string {
                   Ext
                 </span>
                 <h4 class="text-sm font-medium text-gray-900 dark:text-gray-100 line-clamp-2">
-                  {{ task.title }}
+                  {{ decodeHtmlEntities(task.title) }}
                 </h4>
               </div>
             </div>

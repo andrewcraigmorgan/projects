@@ -13,6 +13,9 @@ const authStore = useAuthStore()
 
 const projectId = computed(() => route.params.id as string)
 
+// Milestone filter from URL
+const milestoneFilter = computed(() => route.query.milestone as string || '')
+
 // Project data
 const project = ref<{
   id: string
@@ -70,6 +73,38 @@ const totalTasks = computed(() => {
   }
   return total
 })
+
+// Filtered milestones based on URL param
+const filteredMilestones = computed(() => {
+  if (!specification.value) return []
+  if (!milestoneFilter.value) return specification.value.milestones
+  return specification.value.milestones.filter(m => m.id === milestoneFilter.value)
+})
+
+const filteredTotalTasks = computed(() => {
+  if (!specification.value) return 0
+  let total = filteredMilestones.value.reduce((sum, m) => sum + m.taskStats.total, 0)
+  // Include unassigned tasks only when not filtering by milestone
+  if (specification.value.unassignedTasks && !milestoneFilter.value) {
+    total += specification.value.unassignedTasks.taskStats.total
+  }
+  return total
+})
+
+// Get the name of the active milestone filter
+const activeMilestoneName = computed(() => {
+  if (!milestoneFilter.value || !specification.value) return ''
+  const milestone = specification.value.milestones.find(m => m.id === milestoneFilter.value)
+  return milestone?.name || ''
+})
+
+// Clear milestone filter
+function clearMilestoneFilter() {
+  navigateTo({
+    path: route.path,
+    query: { ...route.query, milestone: undefined },
+  })
+}
 
 // Fetch project
 async function loadProject() {
@@ -196,6 +231,35 @@ onMounted(async () => {
       </template>
     </LayoutHeader>
 
+    <!-- Milestone Filter Banner -->
+    <div
+      v-if="milestoneFilter && activeMilestoneName"
+      class="bg-primary-50 dark:bg-primary-900/30 border-b border-primary-200 dark:border-primary-800"
+    >
+      <div class="px-4 sm:px-6 py-3 flex items-center justify-between">
+        <div class="flex items-center gap-2">
+          <svg class="h-5 w-5 text-primary-600 dark:text-primary-400 flex-shrink-0" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
+          </svg>
+          <span class="text-sm text-primary-700 dark:text-primary-300">
+            Viewing milestone:
+          </span>
+          <span class="text-sm font-semibold text-primary-800 dark:text-primary-200">
+            {{ activeMilestoneName }}
+          </span>
+        </div>
+        <button
+          class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 font-medium flex items-center gap-1"
+          @click="clearMilestoneFilter"
+        >
+          <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+          Clear
+        </button>
+      </div>
+    </div>
+
     <div class="p-6">
       <!-- Error state -->
       <div v-if="projectError || specError" class="text-center py-12">
@@ -239,11 +303,11 @@ onMounted(async () => {
             </div>
             <div>
               <span class="text-gray-500 dark:text-gray-400">Milestones:</span>
-              <span class="ml-2 text-gray-900 dark:text-gray-100">{{ specification.milestones.length }}</span>
+              <span class="ml-2 text-gray-900 dark:text-gray-100">{{ filteredMilestones.length }}</span>
             </div>
             <div>
               <span class="text-gray-500 dark:text-gray-400">Total Items:</span>
-              <span class="ml-2 text-gray-900 dark:text-gray-100">{{ totalTasks }}</span>
+              <span class="ml-2 text-gray-900 dark:text-gray-100">{{ filteredTotalTasks }}</span>
             </div>
           </div>
 
@@ -267,7 +331,7 @@ onMounted(async () => {
           <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Table of Contents</h2>
           <nav class="space-y-2">
             <a
-              v-for="(milestone, index) in specification.milestones"
+              v-for="(milestone, index) in filteredMilestones"
               :key="milestone.id"
               :href="`#milestone-${milestone.id}`"
               class="flex items-center text-primary-600 dark:text-primary-400 hover:underline"
@@ -287,18 +351,18 @@ onMounted(async () => {
               </span>
             </a>
             <a
-              v-if="specification.unassignedTasks"
+              v-if="specification.unassignedTasks && !milestoneFilter"
               href="#unassigned-tasks"
               class="block text-primary-600 dark:text-primary-400 hover:underline"
             >
-              {{ specification.milestones.length + 1 }}. Additional Items
+              {{ filteredMilestones.length + 1 }}. Additional Items
             </a>
           </nav>
         </div>
 
         <!-- Milestone Sections -->
         <div
-          v-for="(milestone, index) in specification.milestones"
+          v-for="(milestone, index) in filteredMilestones"
           :id="`milestone-${milestone.id}`"
           :key="milestone.id"
           class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 mb-6"
@@ -366,13 +430,13 @@ onMounted(async () => {
 
         <!-- Unassigned Tasks / Additional Items -->
         <div
-          v-if="specification.unassignedTasks"
+          v-if="specification.unassignedTasks && !milestoneFilter"
           id="unassigned-tasks"
           class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 mb-6"
         >
           <div class="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
             <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
-              <span class="text-primary-600 dark:text-primary-400">{{ specification.milestones.length + 1 }}.</span>
+              <span class="text-primary-600 dark:text-primary-400">{{ filteredMilestones.length + 1 }}.</span>
               Additional Items
             </h2>
             <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
