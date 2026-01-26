@@ -6,14 +6,50 @@ definePageMeta({
   layout: 'default',
 })
 
+const route = useRoute()
+const router = useRouter()
 const orgStore = useOrganizationStore()
-const { projects, loading, fetchProjects, createProject } = useProjects()
+const {
+  projects,
+  loading,
+  fetchProjects,
+  createProject,
+  // Pagination
+  page: projectsPage,
+  totalPages: projectsTotalPages,
+  total: projectsTotal,
+  limit: projectsLimit,
+  setPage: setProjectsPage,
+} = useProjects()
 
 const showCreateModal = ref(false)
 const newProjectName = ref('')
 const newProjectDescription = ref('')
 const creating = ref(false)
 
+// Initialize page from URL
+onMounted(() => {
+  const urlPage = route.query.page as string
+  if (urlPage) {
+    const pageNum = parseInt(urlPage, 10)
+    if (!isNaN(pageNum) && pageNum >= 1) {
+      projectsPage.value = pageNum
+    }
+  }
+})
+
+// Update URL when page changes
+function updateUrlParams() {
+  const query: Record<string, string> = {}
+  if (projectsPage.value > 1) query.page = String(projectsPage.value)
+  router.replace({ query })
+}
+
+// Handle page change
+async function handlePageChange(newPage: number) {
+  await setProjectsPage(newPage)
+  updateUrlParams()
+}
 
 // Fetch projects when org changes
 watch(
