@@ -140,7 +140,7 @@ export default defineEventHandler(async (event) => {
       code: project.code,
       description: project.description,
       owner: {
-        name: (project.owner as any).name,
+        name: project.owner ? (project.owner as any).name || 'Unknown' : 'Unknown',
       },
     },
     generatedAt: new Date().toISOString(),

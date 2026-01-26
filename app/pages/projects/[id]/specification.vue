@@ -47,7 +47,6 @@ const {
 // UI state
 const downloadingPdf = ref(false)
 const showApproverModal = ref(false)
-const expandedMilestones = ref<Set<string>>(new Set())
 
 // Computed
 const isProjectOwner = computed(() => {
@@ -61,6 +60,15 @@ const clientMembers = computed(() => {
 
 const currentUserIsApprover = computed(() => {
   return approvers.value.some(a => a.user.id === authStore.user?.id)
+})
+
+const totalTasks = computed(() => {
+  if (!specification.value) return 0
+  let total = specification.value.milestones.reduce((sum, m) => sum + m.taskStats.total, 0)
+  if (specification.value.unassignedTasks) {
+    total += specification.value.unassignedTasks.taskStats.total
+  }
+  return total
 })
 
 // Fetch project
@@ -92,30 +100,10 @@ async function handleDownloadPdf() {
     await downloadPdf()
   } catch (e) {
     console.error('Failed to download PDF:', e)
+    alert('Failed to download PDF. Please try again.')
   } finally {
     downloadingPdf.value = false
   }
-}
-
-// Toggle milestone expansion
-function toggleMilestone(milestoneId: string) {
-  if (expandedMilestones.value.has(milestoneId)) {
-    expandedMilestones.value.delete(milestoneId)
-  } else {
-    expandedMilestones.value.add(milestoneId)
-  }
-}
-
-// Expand all milestones
-function expandAll() {
-  specification.value?.milestones.forEach(m => {
-    expandedMilestones.value.add(m.id)
-  })
-}
-
-// Collapse all milestones
-function collapseAll() {
-  expandedMilestones.value.clear()
 }
 
 // Add approver handler
@@ -123,6 +111,7 @@ async function handleAddApprover(userId: string) {
   try {
     await addApprover(userId)
     showApproverModal.value = false
+    await fetchSpecification() // Refresh to get updated approver counts
   } catch (e) {
     console.error('Failed to add approver:', e)
   }
@@ -132,7 +121,26 @@ async function handleAddApprover(userId: string) {
 async function handleRemoveApprover(userId: string) {
   if (confirm('Are you sure you want to remove this approver?')) {
     await removeApprover(userId)
+    await fetchSpecification() // Refresh to get updated approver counts
   }
+}
+
+// Format date helper
+function formatDate(dateStr: string | null) {
+  if (!dateStr) return '-'
+  return new Date(dateStr).toLocaleDateString('en-US', {
+    year: 'numeric',
+    month: 'long',
+    day: 'numeric',
+  })
+}
+
+// Strip HTML helper
+function stripHtml(html: string) {
+  if (!html) return ''
+  const tmp = document.createElement('div')
+  tmp.innerHTML = html
+  return tmp.textContent || tmp.innerText || ''
 }
 
 // Set page title
@@ -147,8 +155,6 @@ onMounted(async () => {
     fetchSpecification(),
     fetchApprovers(),
   ])
-  // Expand all milestones by default
-  expandAll()
 })
 </script>
 
@@ -181,6 +187,7 @@ onMounted(async () => {
           </UiButton>
           <UiButton
             v-if="isProjectOwner"
+            variant="secondary"
             @click="showApproverModal = true"
           >
             Manage Approvers
@@ -201,104 +208,189 @@ onMounted(async () => {
       <!-- Loading state -->
       <UiLoadingSpinner v-else-if="specLoading" />
 
-      <!-- Specification content -->
-      <div v-else-if="specification" class="space-y-6">
-        <!-- Header info -->
-        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6">
-          <div class="flex items-start justify-between">
+      <!-- Document content -->
+      <div v-else-if="specification" class="max-w-4xl mx-auto">
+        <!-- Cover / Title Section -->
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-8 mb-8">
+          <div class="text-center mb-8">
+            <h1 class="text-3xl font-bold text-gray-900 dark:text-gray-100 mb-2">
+              {{ specification.project.name }}
+            </h1>
+            <p class="text-lg text-gray-500 dark:text-gray-400">
+              Project Specification Document
+            </p>
+            <p class="text-sm text-gray-400 dark:text-gray-500 mt-2">
+              Code: {{ specification.project.code }}
+            </p>
+          </div>
+
+          <div v-if="specification.project.description" class="prose dark:prose-invert max-w-none mb-6">
+            <p class="text-gray-600 dark:text-gray-300">{{ specification.project.description }}</p>
+          </div>
+
+          <div class="grid grid-cols-2 gap-4 text-sm border-t border-gray-200 dark:border-gray-700 pt-6">
             <div>
-              <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
-                {{ specification.project.name }}
-              </h2>
-              <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
-                Code: {{ specification.project.code }} | Owner: {{ specification.project.owner.name }}
-              </p>
-              <p v-if="specification.project.description" class="text-gray-600 dark:text-gray-300 mt-2">
-                {{ specification.project.description }}
-              </p>
+              <span class="text-gray-500 dark:text-gray-400">Project Owner:</span>
+              <span class="ml-2 text-gray-900 dark:text-gray-100">{{ specification.project.owner.name }}</span>
             </div>
-            <div class="text-right text-sm text-gray-500 dark:text-gray-400">
-              <p>Generated: {{ new Date(specification.generatedAt).toLocaleString() }}</p>
-              <p class="mt-1">{{ specification.milestones.length }} milestones</p>
+            <div>
+              <span class="text-gray-500 dark:text-gray-400">Generated:</span>
+              <span class="ml-2 text-gray-900 dark:text-gray-100">{{ formatDate(specification.generatedAt) }}</span>
+            </div>
+            <div>
+              <span class="text-gray-500 dark:text-gray-400">Milestones:</span>
+              <span class="ml-2 text-gray-900 dark:text-gray-100">{{ specification.milestones.length }}</span>
+            </div>
+            <div>
+              <span class="text-gray-500 dark:text-gray-400">Total Items:</span>
+              <span class="ml-2 text-gray-900 dark:text-gray-100">{{ totalTasks }}</span>
             </div>
           </div>
 
-          <!-- Approvers summary -->
-          <div v-if="approvers.length > 0" class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-2">
-              Designated Approvers ({{ approvers.length }})
-            </h3>
+          <!-- Approvers -->
+          <div v-if="approvers.length > 0" class="mt-6 pt-6 border-t border-gray-200 dark:border-gray-700">
+            <h3 class="text-sm font-medium text-gray-700 dark:text-gray-300 mb-3">Designated Approvers</h3>
             <div class="flex flex-wrap gap-2">
               <span
                 v-for="approver in approvers"
                 :key="approver.id"
-                class="inline-flex items-center px-2.5 py-0.5 text-xs font-medium bg-blue-100 text-blue-800 dark:bg-blue-900/30 dark:text-blue-300"
+                class="inline-flex items-center px-3 py-1 text-sm bg-blue-50 text-blue-700 dark:bg-blue-900/30 dark:text-blue-300"
               >
                 {{ approver.user.name }}
               </span>
             </div>
           </div>
-          <div v-else class="mt-4 pt-4 border-t border-gray-200 dark:border-gray-700">
-            <p class="text-sm text-amber-600 dark:text-amber-400">
-              No approvers designated. Add client members as approvers to enable milestone sign-off.
-            </p>
-          </div>
         </div>
 
-        <!-- Controls -->
-        <div class="flex justify-between items-center">
-          <div class="flex gap-2">
-            <button
-              class="text-sm text-primary-600 dark:text-primary-400 hover:underline"
-              @click="expandAll"
+        <!-- Table of Contents -->
+        <div class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 mb-8">
+          <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 mb-4">Table of Contents</h2>
+          <nav class="space-y-2">
+            <a
+              v-for="(milestone, index) in specification.milestones"
+              :key="milestone.id"
+              :href="`#milestone-${milestone.id}`"
+              class="flex items-center text-primary-600 dark:text-primary-400 hover:underline"
             >
-              Expand All
-            </button>
-            <span class="text-gray-300 dark:text-gray-600">|</span>
-            <button
-              class="text-sm text-primary-600 dark:text-primary-400 hover:underline"
-              @click="collapseAll"
+              <span>{{ index + 1 }}. {{ milestone.name }}</span>
+              <span
+                v-if="milestone.isLocked"
+                class="ml-2 text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 px-2 py-0.5"
+              >
+                Approved
+              </span>
+              <span
+                v-else-if="milestone.signoffStatus.signedCount > 0"
+                class="ml-2 text-xs bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300 px-2 py-0.5"
+              >
+                {{ milestone.signoffStatus.signedCount }}/{{ milestone.signoffStatus.totalApprovers }} Signed
+              </span>
+            </a>
+            <a
+              v-if="specification.unassignedTasks"
+              href="#unassigned-tasks"
+              class="block text-primary-600 dark:text-primary-400 hover:underline"
             >
-              Collapse All
-            </button>
+              {{ specification.milestones.length + 1 }}. Additional Items
+            </a>
+          </nav>
+        </div>
+
+        <!-- Milestone Sections -->
+        <div
+          v-for="(milestone, index) in specification.milestones"
+          :id="`milestone-${milestone.id}`"
+          :key="milestone.id"
+          class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 mb-6"
+        >
+          <!-- Milestone Header -->
+          <div class="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
+            <div class="flex items-start justify-between">
+              <div class="flex-1">
+                <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100 flex items-center gap-2">
+                  <span class="text-primary-600 dark:text-primary-400">{{ index + 1 }}.</span>
+                  {{ milestone.name }}
+                  <span
+                    v-if="milestone.isLocked"
+                    class="ml-2 text-xs bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300 px-2 py-1 font-medium"
+                  >
+                    ✓ Approved
+                  </span>
+                </h2>
+                <div
+                  v-if="milestone.description"
+                  class="prose prose-sm dark:prose-invert max-w-none text-gray-600 dark:text-gray-400 mt-2"
+                  v-html="milestone.description"
+                />
+              </div>
+              <div v-if="milestone.startDate || milestone.endDate" class="text-right text-sm text-gray-500 dark:text-gray-400 flex-shrink-0 ml-4">
+                <div v-if="milestone.startDate">Start: {{ formatDate(milestone.startDate) }}</div>
+                <div v-if="milestone.endDate">End: {{ formatDate(milestone.endDate) }}</div>
+              </div>
+            </div>
+
+            <!-- Approval Status -->
+            <div v-if="approvers.length > 0" class="mt-4 pt-4 border-t border-gray-100 dark:border-gray-700/50">
+              <div class="flex items-center gap-3 flex-wrap">
+                <span class="text-sm font-medium text-gray-700 dark:text-gray-300">Approval Status:</span>
+                <span
+                  class="px-3 py-1 text-sm font-medium"
+                  :class="{
+                    'bg-green-100 text-green-700 dark:bg-green-900/30 dark:text-green-300': milestone.signoffStatus.status === 'complete',
+                    'bg-amber-100 text-amber-700 dark:bg-amber-900/30 dark:text-amber-300': milestone.signoffStatus.status === 'partial',
+                    'bg-gray-100 text-gray-700 dark:bg-gray-700 dark:text-gray-300': milestone.signoffStatus.status === 'pending',
+                  }"
+                >
+                  {{ milestone.signoffStatus.status === 'complete' ? 'Fully Approved' : milestone.signoffStatus.status === 'partial' ? `${milestone.signoffStatus.signedCount}/${milestone.signoffStatus.totalApprovers} Signed` : 'Pending Approval' }}
+                </span>
+                <div v-if="milestone.signoffStatus.signoffs.length > 0" class="text-sm text-gray-500 dark:text-gray-400">
+                  Signed by:
+                  <span v-for="(signoff, i) in milestone.signoffStatus.signoffs" :key="signoff.id">
+                    {{ signoff.signedBy.name }}{{ i < milestone.signoffStatus.signoffs.length - 1 ? ', ' : '' }}
+                  </span>
+                </div>
+              </div>
+            </div>
           </div>
+
+          <!-- Tasks List -->
+          <div v-if="milestone.tasks.length > 0" class="space-y-4">
+            <template v-for="task in milestone.tasks" :key="task.id">
+              <SpecificationDocumentTask :task="task" :depth="0" />
+            </template>
+          </div>
+          <p v-else class="text-gray-500 dark:text-gray-400 italic">
+            No tasks in this milestone.
+          </p>
         </div>
 
-        <!-- Milestones -->
-        <div class="space-y-4">
-          <SpecificationMilestoneSection
-            v-for="milestone in specification.milestones"
-            :key="milestone.id"
-            :milestone="milestone"
-            :expanded="expandedMilestones.has(milestone.id)"
-            :is-approver="currentUserIsApprover"
-            :is-project-owner="isProjectOwner"
-            @toggle="toggleMilestone(milestone.id)"
-            @refresh="fetchSpecification"
-          />
-        </div>
-
-        <!-- Unassigned tasks -->
+        <!-- Unassigned Tasks / Additional Items -->
         <div
           v-if="specification.unassignedTasks"
-          class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700"
+          id="unassigned-tasks"
+          class="bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 p-6 mb-6"
         >
-          <div class="px-4 py-3 border-b border-gray-200 dark:border-gray-700">
-            <h3 class="font-medium text-gray-900 dark:text-gray-100">
-              Unassigned Tasks
-              <span class="ml-2 text-sm text-gray-500 dark:text-gray-400">
-                ({{ specification.unassignedTasks.taskStats.completed }}/{{ specification.unassignedTasks.taskStats.total }} completed)
-              </span>
-            </h3>
+          <div class="border-b border-gray-200 dark:border-gray-700 pb-4 mb-4">
+            <h2 class="text-xl font-semibold text-gray-900 dark:text-gray-100">
+              <span class="text-primary-600 dark:text-primary-400">{{ specification.milestones.length + 1 }}.</span>
+              Additional Items
+            </h2>
+            <p class="text-sm text-gray-500 dark:text-gray-400 mt-1">
+              Items not yet assigned to a milestone phase
+            </p>
           </div>
-          <div class="divide-y divide-gray-100 dark:divide-gray-700">
-            <SpecificationTaskRow
-              v-for="task in specification.unassignedTasks.tasks"
-              :key="task.id"
-              :task="task"
-              :depth="0"
-            />
+
+          <div class="space-y-4">
+            <template v-for="task in specification.unassignedTasks.tasks" :key="task.id">
+              <SpecificationDocumentTask :task="task" :depth="0" />
+            </template>
           </div>
+        </div>
+
+        <!-- Footer -->
+        <div class="text-center text-sm text-gray-500 dark:text-gray-400 py-8">
+          <p>End of Specification Document</p>
+          <p class="mt-1">Generated on {{ formatDate(specification.generatedAt) }}</p>
         </div>
       </div>
     </div>

@@ -101,8 +101,9 @@ export function useSpecification(projectId: Ref<string>) {
       } else {
         error.value = 'Failed to load specification'
       }
-    } catch (e) {
-      error.value = 'Failed to load specification'
+    } catch (e: any) {
+      const message = e?.data?.message || e?.message || 'Failed to load specification'
+      error.value = message
       console.error('Error fetching specification:', e)
     } finally {
       loading.value = false

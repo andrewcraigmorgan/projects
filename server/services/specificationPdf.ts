@@ -104,6 +104,15 @@ export function generateSpecificationPdf(specification: SpecificationData): Prom
       .text(`Generated: ${new Date(specification.generatedAt).toLocaleString()}`, { align: 'center' })
     doc.text(`Project Owner: ${specification.project.owner.name}`, { align: 'center' })
 
+    // Summary info
+    const totalMilestones = specification.milestones.length
+    let totalItems = specification.milestones.reduce((sum, m) => sum + m.taskStats.total, 0)
+    if (specification.unassignedTasks) {
+      totalItems += specification.unassignedTasks.taskStats.total
+    }
+    doc.moveDown(1)
+    doc.text(`${totalMilestones} Milestones | ${totalItems} Items`, { align: 'center' })
+
     // Approvers section on cover
     if (specification.approvers.length > 0) {
       doc.moveDown(2)
@@ -126,24 +135,18 @@ export function generateSpecificationPdf(specification: SpecificationData): Prom
 
     let tocY = doc.y
     specification.milestones.forEach((milestone, index) => {
-      const signoffIcon = milestone.signoffStatus.status === 'complete' ? '[SIGNED]' :
-                          milestone.signoffStatus.status === 'partial' ? '[PARTIAL]' : ''
+      const approvalLabel = milestone.signoffStatus.status === 'complete' ? ' [Approved]' :
+                            milestone.signoffStatus.status === 'partial' ? ` [${milestone.signoffStatus.signedCount}/${milestone.signoffStatus.totalApprovers} Signed]` : ''
       doc.fontSize(12)
         .fillColor(textColor)
-        .text(`${index + 1}. ${milestone.name} ${signoffIcon}`, 70, tocY)
-      doc.fontSize(10)
-        .fillColor(grayColor)
-        .text(`${milestone.taskStats.completed}/${milestone.taskStats.total} tasks completed`, 90, tocY + 15)
-      tocY += 35
+        .text(`${index + 1}. ${milestone.name}${approvalLabel}`, 70, tocY)
+      tocY += 25
     })
 
     if (specification.unassignedTasks) {
       doc.fontSize(12)
         .fillColor(textColor)
-        .text(`${specification.milestones.length + 1}. Unassigned Tasks`, 70, tocY)
-      doc.fontSize(10)
-        .fillColor(grayColor)
-        .text(`${specification.unassignedTasks.taskStats.completed}/${specification.unassignedTasks.taskStats.total} tasks`, 90, tocY + 15)
+        .text(`${specification.milestones.length + 1}. Additional Items`, 70, tocY)
     }
 
     // Milestone Sections
@@ -164,12 +167,12 @@ export function generateSpecificationPdf(specification: SpecificationData): Prom
       doc.addPage()
       doc.fontSize(18)
         .fillColor(primaryColor)
-        .text('Unassigned Tasks')
+        .text('Additional Items')
       doc.moveDown()
 
       doc.fontSize(10)
         .fillColor(grayColor)
-        .text(`${specification.unassignedTasks.taskStats.completed} of ${specification.unassignedTasks.taskStats.total} tasks completed`)
+        .text('Items not yet assigned to a milestone phase')
       doc.moveDown()
 
       renderTaskList(doc, specification.unassignedTasks.tasks, 0, { textColor, grayColor, lightGray })
@@ -192,46 +195,51 @@ function renderMilestoneSection(
     .fillColor(primaryColor)
     .text(`${sectionNumber}. ${milestone.name}`)
 
-  // Lock indicator
+  // Approval indicator
   if (milestone.isLocked) {
     doc.fontSize(10)
       .fillColor(successColor)
-      .text('[LOCKED - Signed Off]')
+      .text('✓ Approved')
   }
 
   doc.moveDown(0.5)
 
-  // Milestone meta
+  // Milestone description
   doc.fontSize(10)
     .fillColor(grayColor)
 
   if (milestone.description) {
-    doc.text(milestone.description)
+    // Strip HTML tags for PDF
+    const plainDesc = milestone.description.replace(/<[^>]*>/g, '')
+    doc.fillColor(textColor)
+      .text(plainDesc)
     doc.moveDown(0.3)
   }
 
+  // Date range
   const dateRange = []
   if (milestone.startDate) dateRange.push(`Start: ${new Date(milestone.startDate).toLocaleDateString()}`)
   if (milestone.endDate) dateRange.push(`End: ${new Date(milestone.endDate).toLocaleDateString()}`)
   if (dateRange.length > 0) {
-    doc.text(dateRange.join(' | '))
+    doc.fillColor(grayColor)
+      .text(dateRange.join(' | '))
   }
 
-  doc.text(`Status: ${milestone.status} | ${milestone.taskStats.completed}/${milestone.taskStats.total} tasks completed`)
-
-  // Sign-off status
+  // Approval status
   doc.moveDown(0.5)
   const signoffColor = milestone.signoffStatus.status === 'complete' ? successColor :
                        milestone.signoffStatus.status === 'partial' ? warningColor : grayColor
+  const signoffLabel = milestone.signoffStatus.status === 'complete' ? 'Fully Approved' :
+                       milestone.signoffStatus.status === 'partial' ? `${milestone.signoffStatus.signedCount}/${milestone.signoffStatus.totalApprovers} Signed` : 'Pending Approval'
   doc.fillColor(signoffColor)
-    .text(`Sign-off: ${milestone.signoffStatus.signedCount}/${milestone.signoffStatus.totalApprovers} approvers signed`)
+    .text(`Approval Status: ${signoffLabel}`)
 
   // List signoffs
   if (milestone.signoffStatus.signoffs.length > 0) {
     doc.fontSize(9)
       .fillColor(grayColor)
     milestone.signoffStatus.signoffs.forEach(s => {
-      doc.text(`  - ${s.signedBy.name} signed on ${new Date(s.signedAt).toLocaleString()}${s.notes ? `: "${s.notes}"` : ''}`)
+      doc.text(`  Signed by ${s.signedBy.name} on ${new Date(s.signedAt).toLocaleString()}${s.notes ? `: "${s.notes}"` : ''}`)
     })
   }
 
@@ -244,18 +252,18 @@ function renderMilestoneSection(
     .stroke()
   doc.moveDown()
 
-  // Tasks
+  // Tasks / Scope Items
   if (milestone.tasks.length > 0) {
     doc.fontSize(12)
       .fillColor(textColor)
-      .text('Tasks')
+      .text('Scope Items')
     doc.moveDown(0.5)
 
     renderTaskList(doc, milestone.tasks, 0, { textColor, grayColor, lightGray })
   } else {
     doc.fontSize(10)
       .fillColor(grayColor)
-      .text('No tasks in this milestone')
+      .text('No items defined for this milestone')
   }
 }
 
@@ -274,39 +282,36 @@ function renderTaskList(
       doc.addPage()
     }
 
-    // Task number and title
-    const statusIcon = task.status === 'done' ? '[x]' : '[ ]'
+    // Task number bullet and title
     doc.fontSize(11)
       .fillColor(textColor)
-      .text(`${statusIcon} #${task.taskNumber}: ${task.title}`, indent, doc.y, { width: 545 - indent })
+      .text(`${task.taskNumber}. ${task.title}`, indent, doc.y, { width: 545 - indent })
 
-    // Task meta line
-    const metaParts = []
-    metaParts.push(`Status: ${task.status}`)
-    if (task.priority) metaParts.push(`Priority: ${task.priority}`)
-    if (task.assignees && task.assignees.length > 0) {
-      metaParts.push(`Assigned: ${task.assignees.map(a => a.name).join(', ')}`)
-    }
-    if (task.dueDate) {
-      metaParts.push(`Due: ${new Date(task.dueDate).toLocaleDateString()}`)
-    }
-
-    doc.fontSize(9)
-      .fillColor(grayColor)
-      .text(metaParts.join(' | '), indent + 20, doc.y, { width: 545 - indent - 20 })
-
-    // Description (truncated)
-    if (task.description) {
-      const desc = task.description.length > 200
-        ? task.description.substring(0, 200) + '...'
-        : task.description
-      // Strip HTML tags
-      const plainDesc = desc.replace(/<[^>]*>/g, '')
-      if (plainDesc.trim()) {
+    // Priority indicator (scope-relevant, not status)
+    if (task.priority && task.priority !== 'medium') {
+      const priorityLabel = task.priority === 'urgent' ? 'Urgent Priority' :
+                           task.priority === 'high' ? 'High Priority' :
+                           task.priority === 'low' ? 'Low Priority' : ''
+      if (priorityLabel) {
         doc.fontSize(9)
+          .fillColor(task.priority === 'urgent' || task.priority === 'high' ? '#dc2626' : grayColor)
+          .text(priorityLabel, indent + 20, doc.y, { width: 545 - indent - 20 })
+      }
+    }
+
+    // Description (the main content for specification)
+    if (task.description) {
+      // Strip HTML tags for PDF
+      const plainDesc = task.description.replace(/<[^>]*>/g, '')
+      if (plainDesc.trim()) {
+        doc.fontSize(10)
           .fillColor(grayColor)
           .text(plainDesc, indent + 20, doc.y, { width: 545 - indent - 20 })
       }
+    } else {
+      doc.fontSize(9)
+        .fillColor(grayColor)
+        .text('No description provided.', indent + 20, doc.y, { width: 545 - indent - 20 })
     }
 
     doc.moveDown(0.5)

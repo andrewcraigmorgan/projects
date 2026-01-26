@@ -158,9 +158,12 @@ export default defineEventHandler(async (event) => {
           name: project.name,
           code: project.code,
           description: project.description,
-          owner: {
-            id: (project.owner as any)._id?.toString(),
-            name: (project.owner as any).name,
+          owner: project.owner ? {
+            id: (project.owner as any)._id?.toString() || project.owner.toString(),
+            name: (project.owner as any).name || 'Unknown',
+          } : {
+            id: '',
+            name: 'Unknown',
           },
         },
         generatedAt: new Date().toISOString(),

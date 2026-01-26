@@ -1,6 +1,7 @@
 <script setup lang="ts">
 import type { SpecificationMilestone } from '~/composables/useSpecification'
 import { useMilestoneSignoff } from '~/composables/useSpecification'
+import { useAuthStore } from '~/stores/auth'
 
 interface Props {
   milestone: SpecificationMilestone
@@ -16,6 +17,7 @@ const emit = defineEmits<{
   refresh: []
 }>()
 
+const authStore = useAuthStore()
 const milestoneId = computed(() => props.milestone.id)
 const { signOff, revokeSignoff } = useMilestoneSignoff(milestoneId)
 
@@ -40,7 +42,7 @@ const signoffStatusColor = computed(() => {
 const canSignOff = computed(() => {
   return props.isApprover &&
          !props.milestone.isLocked &&
-         !props.milestone.signoffStatus.signoffs.some(s => s.signedBy.id === useAuthStore().user?.id)
+         !props.milestone.signoffStatus.signoffs.some(s => s.signedBy.id === authStore.user?.id)
 })
 
 const progressPercent = computed(() => {
