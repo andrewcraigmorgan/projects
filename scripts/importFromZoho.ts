@@ -132,7 +132,39 @@ function mapPriority(zohoPriority: string): string | undefined {
   return undefined
 }
 
-// Strip HTML tags and decode common HTML entities
+// Clean HTML: preserve safe tags (lists, paragraphs, etc.) but strip inline styles and dangerous elements
+function cleanHtml(text: string): string {
+  if (!text) return ''
+  return text
+    // Remove script and style tags entirely
+    .replace(/<script[^>]*>[\s\S]*?<\/script>/gi, '')
+    .replace(/<style[^>]*>[\s\S]*?<\/style>/gi, '')
+    // Remove all style attributes
+    .replace(/\s*style\s*=\s*["'][^"']*["']/gi, '')
+    // Remove color and font tags but keep content
+    .replace(/<\/?font[^>]*>/gi, '')
+    // Remove span tags but keep content (often used just for styling)
+    .replace(/<\/?span[^>]*>/gi, '')
+    // Remove class attributes
+    .replace(/\s*class\s*=\s*["'][^"']*["']/gi, '')
+    // Decode common HTML entities
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/&nbsp;/g, ' ')
+    // Clean up multiple consecutive br tags
+    .replace(/(<br\s*\/?>\s*){3,}/gi, '<br><br>')
+    // Clean up empty paragraphs
+    .replace(/<p>\s*<\/p>/gi, '')
+    .replace(/<div>\s*<\/div>/gi, '')
+    .trim()
+}
+
+// Strip ALL HTML tags for titles (plain text only)
 function stripHtmlAndDecode(text: string): string {
   if (!text) return ''
   return text
@@ -469,7 +501,7 @@ async function importFromZoho() {
       project: project._id,
       taskNumber,
       title: stripHtmlAndDecode(zohoTask.name),
-      description: stripHtmlAndDecode(zohoTask.description || ''),
+      description: cleanHtml(zohoTask.description || ''),
       status: mapStatus(zohoTask.status),
       priority: mapPriority(zohoTask.priority),
       dueDate,

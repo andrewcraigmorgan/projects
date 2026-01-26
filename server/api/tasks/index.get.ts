@@ -30,8 +30,12 @@ const querySchema = z.object({
   // Date range filters for due date
   dueDateFrom: z.string().optional(),
   dueDateTo: z.string().optional(),
-  // Milestone filter
-  milestone: z.string().optional(),
+  // Accept comma-separated milestone IDs for multi-select
+  milestone: z.string().optional().transform((val) => {
+    if (!val) return undefined
+    const ids = val.split(',').filter(id => id.trim().length > 0)
+    return ids.length > 0 ? ids : undefined
+  }),
   parentTask: z.string().optional(),
   rootOnly: z.coerce.boolean().default(false),
   page: z.coerce.number().min(1).default(1),
@@ -126,8 +130,8 @@ export default defineEventHandler(async (event) => {
     }
   }
 
-  if (milestone) {
-    filter.milestone = milestone
+  if (milestone && milestone.length > 0) {
+    filter.milestone = milestone.length === 1 ? milestone[0] : { $in: milestone }
   }
 
   if (parentTask) {

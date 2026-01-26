@@ -131,7 +131,7 @@ const viewMode = ref<'list' | 'board'>('list')
 // Filters (synced with URL) - now arrays for multi-select
 const statusFilter = ref<string[]>([])
 const priorityFilter = ref<string[]>([])
-const milestoneFilter = ref<string>('')
+const milestoneFilter = ref<string[]>([])
 const dueDateFrom = ref<string>('')
 const dueDateTo = ref<string>('')
 
@@ -204,25 +204,27 @@ function applyPreset(preset: typeof presets[0]) {
 // Computed: any filters different from "All Open" default
 const hasActiveFilters = computed(() => {
   const isDefault = arraysEqual(statusFilter.value.slice().sort(), defaultOpenStatuses.slice().sort())
-  const hasNoOtherFilters = priorityFilter.value.length === 0 && !milestoneFilter.value && !dueDateFrom.value && !dueDateTo.value
+  const hasNoOtherFilters = priorityFilter.value.length === 0 && milestoneFilter.value.length === 0 && !dueDateFrom.value && !dueDateTo.value
   if (isDefault && hasNoOtherFilters) {
     return false
   }
   return true
 })
 
-// Get the name of the active milestone filter
-const activeMilestoneName = computed(() => {
-  if (!milestoneFilter.value) return ''
-  const milestone = milestones.value.find(m => m.id === milestoneFilter.value)
-  return milestone?.name || ''
+// Get the names of the active milestone filters
+const activeMilestoneNames = computed(() => {
+  if (milestoneFilter.value.length === 0) return ''
+  const names = milestoneFilter.value
+    .map(id => milestones.value.find(m => m.id === id)?.name)
+    .filter(Boolean)
+  return names.join(', ')
 })
 
 // Clear all filters (reset to "All Open")
 function clearFilters() {
   statusFilter.value = [...defaultOpenStatuses]
   priorityFilter.value = []
-  milestoneFilter.value = ''
+  milestoneFilter.value = []
   dueDateFrom.value = ''
   dueDateTo.value = ''
 }
@@ -263,7 +265,7 @@ onMounted(() => {
     }
   }
   if (urlMilestone) {
-    milestoneFilter.value = urlMilestone
+    milestoneFilter.value = urlMilestone.split(',')
     hasUrlFilters = true
   }
   if (urlDueDateFrom) {
@@ -303,7 +305,7 @@ function updateUrlParams() {
   if (viewMode.value !== 'list') query.view = viewMode.value
   if (statusFilter.value.length > 0) query.status = statusFilter.value.join(',')
   if (priorityFilter.value.length > 0) query.priority = priorityFilter.value.join(',')
-  if (milestoneFilter.value) query.milestone = milestoneFilter.value
+  if (milestoneFilter.value.length > 0) query.milestone = milestoneFilter.value.join(',')
   if (dueDateFrom.value) query.dueDateFrom = dueDateFrom.value
   if (dueDateTo.value) query.dueDateTo = dueDateTo.value
 
@@ -419,12 +421,12 @@ async function loadTasks() {
   const filters = {
     status: statusFilter.value.length > 0 ? statusFilter.value : undefined,
     priority: priorityFilter.value.length > 0 ? priorityFilter.value : undefined,
-    milestone: milestoneFilter.value || undefined,
+    milestone: milestoneFilter.value.length > 0 ? milestoneFilter.value : undefined,
     dueDateFrom: dueDateFrom.value || undefined,
     dueDateTo: dueDateTo.value || undefined,
   }
 
-  if (milestoneFilter.value) {
+  if (milestoneFilter.value.length > 0) {
     // When filtering by milestone, show all tasks in that milestone (not just root)
     await fetchTasks(filters)
   } else if (currentParentId.value) {
@@ -777,15 +779,14 @@ onMounted(async () => {
             />
 
             <!-- Milestone filter -->
-            <select
+            <UiSelect
               v-model="milestoneFilter"
-              class="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none dark:[color-scheme:dark]"
-            >
-              <option value="">All Milestones</option>
-              <option v-for="m in milestoneOptions" :key="m.value" :value="m.value">
-                {{ m.label }}
-              </option>
-            </select>
+              :options="milestoneOptions"
+              multiple
+              show-select-all
+              label="Milestone"
+              placeholder="Milestone"
+            />
 
             <div class="h-4 w-px bg-gray-300 dark:bg-gray-600" />
 
@@ -884,16 +885,14 @@ onMounted(async () => {
 
           <!-- Milestone filter -->
           <div>
-            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Milestone</label>
-            <select
+            <UiSelect
               v-model="milestoneFilter"
-              class="w-full text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-3 py-2 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none dark:[color-scheme:dark]"
-            >
-              <option value="">All Milestones</option>
-              <option v-for="m in milestoneOptions" :key="m.value" :value="m.value">
-                {{ m.label }}
-              </option>
-            </select>
+              :options="milestoneOptions"
+              multiple
+              show-select-all
+              label="Milestone"
+              placeholder="Milestone"
+            />
           </div>
 
           <!-- Date range -->
@@ -938,7 +937,7 @@ onMounted(async () => {
 
     <!-- Milestone Filter Banner -->
     <div
-      v-if="milestoneFilter && activeMilestoneName"
+      v-if="milestoneFilter.length > 0 && activeMilestoneNames"
       class="bg-primary-50 dark:bg-primary-900/30 border-b border-primary-200 dark:border-primary-800"
     >
       <div class="px-4 sm:px-6 py-3 flex items-center justify-between">
@@ -947,15 +946,15 @@ onMounted(async () => {
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-3 7h3m-3 4h3m-6-4h.01M9 16h.01" />
           </svg>
           <span class="text-sm text-primary-700 dark:text-primary-300">
-            Viewing tasks in milestone:
+            Viewing tasks in {{ milestoneFilter.length === 1 ? 'milestone' : 'milestones' }}:
           </span>
           <span class="text-sm font-semibold text-primary-800 dark:text-primary-200">
-            {{ activeMilestoneName }}
+            {{ activeMilestoneNames }}
           </span>
         </div>
         <button
           class="text-sm text-primary-600 dark:text-primary-400 hover:text-primary-800 dark:hover:text-primary-200 font-medium flex items-center gap-1"
-          @click="milestoneFilter = ''"
+          @click="milestoneFilter = []"
         >
           <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
@@ -1096,7 +1095,7 @@ onMounted(async () => {
                   >
                     <div
                       v-if="currentParentTask.description"
-                      class="text-sm text-gray-600 dark:text-gray-400 prose prose-sm dark:prose-invert max-w-none [&_img]:max-h-48 [&_img]:object-contain"
+                      class="parent-task-description text-sm text-gray-600 dark:text-gray-400 prose prose-sm dark:prose-invert max-w-none [&_img]:max-h-48 [&_img]:object-contain"
                       v-html="currentParentTask.description"
                     />
                     <p
@@ -1195,3 +1194,48 @@ onMounted(async () => {
     </UiModal>
   </div>
 </template>
+
+<style scoped>
+/* Parent task description styling for lists and paragraphs */
+.parent-task-description :deep(p) {
+  margin-bottom: 0.75em;
+}
+
+.parent-task-description :deep(p:last-child) {
+  margin-bottom: 0;
+}
+
+.parent-task-description :deep(ul) {
+  list-style-type: disc;
+  padding-left: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+.parent-task-description :deep(ol) {
+  list-style-type: decimal;
+  padding-left: 1.5em;
+  margin-bottom: 0.75em;
+}
+
+.parent-task-description :deep(li) {
+  margin-bottom: 0.25em;
+}
+
+.parent-task-description :deep(br) {
+  display: block;
+  content: "";
+  margin-top: 0.5em;
+}
+
+/* Strip inline styling from imported content */
+.parent-task-description :deep(*) {
+  background-color: transparent !important;
+  background: transparent !important;
+  color: inherit !important;
+}
+
+/* Preserve link colors */
+.parent-task-description :deep(a) {
+  color: rgb(var(--color-primary-500)) !important;
+}
+</style>

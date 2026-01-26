@@ -353,9 +353,8 @@ function renderTaskList(
 
     // Description (the main content for specification)
     if (task.description) {
-      // Strip HTML tags for PDF
-      const plainDesc = task.description.replace(/<[^>]*>/g, '')
-      if (plainDesc.trim()) {
+      const plainDesc = stripHtmlAndDecode(task.description)
+      if (plainDesc) {
         doc.fontSize(11)
           .fillColor(grayColor)
           .text(plainDesc, leftMargin, doc.y, { width: 495 })
