@@ -69,7 +69,7 @@ const taskUrl = computed(() => `/projects/${projectId.value}/tasks/${props.task.
 </script>
 
 <template>
-  <div :class="containerClasses" class="group relative">
+  <div :class="containerClasses" class="group/task relative">
     <!-- Task Header -->
     <div class="flex items-baseline gap-2">
       <span :class="numberClasses">{{ task.taskNumber }}.</span>
@@ -77,7 +77,7 @@ const taskUrl = computed(() => `/projects/${projectId.value}/tasks/${props.task.
 
       <!-- Hover actions -->
       <span
-        class="opacity-0 group-hover:opacity-100 transition-opacity duration-150 ml-2 flex items-center gap-2"
+        class="opacity-0 group-hover/task:opacity-100 transition-opacity duration-150 ml-2 flex items-center gap-2"
       >
         <span class="px-2 py-0.5 text-xs text-gray-500 dark:text-gray-400 bg-gray-100 dark:bg-gray-700 rounded">
           {{ statusLabels[task.status] || task.status }}
