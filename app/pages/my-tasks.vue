@@ -564,6 +564,16 @@ useHead({
         @update-due-date="handleUpdateDueDate"
         @update-assignees="handleUpdateAssignees"
       />
+
+      <!-- Pagination -->
+      <UiPagination
+        v-if="tasks.length > 0"
+        :current-page="tasksPage"
+        :total-pages="tasksTotalPages"
+        :total="tasksTotal"
+        :limit="tasksLimit"
+        @update:page="handlePageChange"
+      />
     </div>
   </div>
 </template>
