@@ -117,12 +117,32 @@ const taskUrl = computed(() => `/projects/${projectId.value}/tasks/${props.task.
 </template>
 
 <style scoped>
+.task-description {
+  overflow-wrap: break-word;
+  word-wrap: break-word;
+  word-break: break-word;
+}
+
 .task-description :deep(p) {
   margin-bottom: 0.75em;
+  overflow-wrap: break-word;
+  word-wrap: break-word;
 }
 
 .task-description :deep(p:last-child) {
   margin-bottom: 0;
+}
+
+/* Collapse empty paragraphs and elements */
+.task-description :deep(p:empty),
+.task-description :deep(div:empty),
+.task-description :deep(span:empty) {
+  display: none;
+}
+
+/* Remove excessive line breaks */
+.task-description :deep(br + br) {
+  display: none;
 }
 
 .task-description :deep(ul) {
@@ -131,14 +151,26 @@ const taskUrl = computed(() => `/projects/${projectId.value}/tasks/${props.task.
   margin-bottom: 0.75em;
 }
 
+.task-description :deep(ul:last-child) {
+  margin-bottom: 0;
+}
+
 .task-description :deep(ol) {
   list-style-type: decimal;
   padding-left: 1.5em;
   margin-bottom: 0.75em;
 }
 
+.task-description :deep(ol:last-child) {
+  margin-bottom: 0;
+}
+
 .task-description :deep(li) {
   margin-bottom: 0.25em;
+}
+
+.task-description :deep(li:last-child) {
+  margin-bottom: 0;
 }
 
 .task-description :deep(strong) {

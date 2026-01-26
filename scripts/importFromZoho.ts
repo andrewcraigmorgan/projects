@@ -132,6 +132,26 @@ function mapPriority(zohoPriority: string): string | undefined {
   return undefined
 }
 
+// Strip HTML tags and decode common HTML entities
+function stripHtmlAndDecode(text: string): string {
+  if (!text) return ''
+  return text
+    // Remove HTML tags
+    .replace(/<[^>]*>/g, '')
+    // Decode common HTML entities
+    .replace(/&amp;/g, '&')
+    .replace(/&lt;/g, '<')
+    .replace(/&gt;/g, '>')
+    .replace(/&quot;/g, '"')
+    .replace(/&#39;/g, "'")
+    .replace(/&#x27;/g, "'")
+    .replace(/&#x2F;/g, '/')
+    .replace(/&nbsp;/g, ' ')
+    // Normalize whitespace
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
 // Prompt user for input
 function prompt(question: string): Promise<string> {
   const rl = readline.createInterface({
@@ -448,8 +468,8 @@ async function importFromZoho() {
     const newTask = await Task.create({
       project: project._id,
       taskNumber,
-      title: zohoTask.name,
-      description: zohoTask.description || '',
+      title: stripHtmlAndDecode(zohoTask.name),
+      description: stripHtmlAndDecode(zohoTask.description || ''),
       status: mapStatus(zohoTask.status),
       priority: mapPriority(zohoTask.priority),
       dueDate,

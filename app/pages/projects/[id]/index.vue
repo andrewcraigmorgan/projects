@@ -149,6 +149,14 @@ const priorityOptions = [
   { value: 'low', label: 'Low', color: 'bg-gray-400' },
 ]
 
+// Milestone options for filter dropdown
+const milestoneOptions = computed(() => {
+  return milestones.value.map(m => ({
+    value: m.id,
+    label: m.name,
+  }))
+})
+
 // Default "All Open" status filter (excludes 'done')
 const defaultOpenStatuses = ['todo', 'awaiting_approval', 'open', 'in_review']
 
@@ -768,6 +776,17 @@ onMounted(async () => {
               placeholder="Priority"
             />
 
+            <!-- Milestone filter -->
+            <select
+              v-model="milestoneFilter"
+              class="text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 px-3 py-1.5 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none dark:[color-scheme:dark]"
+            >
+              <option value="">All Milestones</option>
+              <option v-for="m in milestoneOptions" :key="m.value" :value="m.value">
+                {{ m.label }}
+              </option>
+            </select>
+
             <div class="h-4 w-px bg-gray-300 dark:bg-gray-600" />
 
             <!-- Date range with label -->
@@ -861,6 +880,20 @@ onMounted(async () => {
                 placeholder="Priority"
               />
             </div>
+          </div>
+
+          <!-- Milestone filter -->
+          <div>
+            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Milestone</label>
+            <select
+              v-model="milestoneFilter"
+              class="w-full text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 px-3 py-2 text-gray-700 dark:text-gray-300 focus:ring-1 focus:ring-primary-500 focus:outline-none dark:[color-scheme:dark]"
+            >
+              <option value="">All Milestones</option>
+              <option v-for="m in milestoneOptions" :key="m.value" :value="m.value">
+                {{ m.label }}
+              </option>
+            </select>
           </div>
 
           <!-- Date range -->
