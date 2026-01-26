@@ -33,6 +33,9 @@ interface Props {
   // Creation
   creatable?: boolean
   createLabel?: string
+
+  // Accessibility
+  ariaLabel?: string // Accessible name for the trigger button
 }
 
 const props = withDefaults(defineProps<Props>(), {
@@ -454,6 +457,7 @@ function getColorClass(color?: string) {
         ref="buttonRef"
         type="button"
         role="combobox"
+        :aria-label="ariaLabel || placeholder"
         :aria-expanded="isOpen"
         aria-haspopup="listbox"
         :aria-controls="isOpen ? listboxId : undefined"
