@@ -140,6 +140,7 @@ onMounted(() => {
   const urlProject = route.query.project as string
   const urlDueDateFrom = route.query.dueDateFrom as string
   const urlDueDateTo = route.query.dueDateTo as string
+  const urlPage = route.query.page as string
 
   if (urlView === 'list' || urlView === 'board') {
     viewMode.value = urlView
@@ -147,6 +148,14 @@ onMounted(() => {
     const saved = localStorage.getItem('myTasksViewMode')
     if (saved === 'list' || saved === 'board') {
       viewMode.value = saved
+    }
+  }
+
+  // Initialize page from URL
+  if (urlPage) {
+    const pageNum = parseInt(urlPage, 10)
+    if (!isNaN(pageNum) && pageNum >= 1) {
+      tasksPage.value = pageNum
     }
   }
 
@@ -189,8 +198,9 @@ watch(viewMode, (value) => {
   updateUrlParams()
 })
 
-// Update URL when filters change
+// Update URL when filters change - reset to page 1
 watch([statusFilter, priorityFilter, projectFilter, dueDateFrom, dueDateTo], () => {
+  resetTasksPagination()
   updateUrlParams()
   loadTasks()
 }, { deep: true })
@@ -203,7 +213,14 @@ function updateUrlParams() {
   if (projectFilter.value) query.project = projectFilter.value
   if (dueDateFrom.value) query.dueDateFrom = dueDateFrom.value
   if (dueDateTo.value) query.dueDateTo = dueDateTo.value
+  if (tasksPage.value > 1) query.page = String(tasksPage.value)
   router.replace({ query })
+}
+
+// Handle page change
+async function handlePageChange(newPage: number) {
+  await setTasksPage(newPage)
+  updateUrlParams()
 }
 
 // Navigate to task detail page
