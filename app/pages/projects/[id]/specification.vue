@@ -482,7 +482,6 @@ onMounted(async () => {
 <style scoped>
 .milestone-description :deep(p) {
   margin-bottom: 0.75em;
-  color: rgb(31 41 55); /* gray-800 for better readability */
 }
 
 .milestone-description :deep(p:last-child) {
@@ -503,15 +502,9 @@ onMounted(async () => {
 
 .milestone-description :deep(li) {
   margin-bottom: 0.25em;
-  color: rgb(31 41 55); /* gray-800 for better readability */
 }
 
 .milestone-description :deep(strong) {
   font-weight: 600;
-}
-
-:global(.dark) .milestone-description :deep(p),
-:global(.dark) .milestone-description :deep(li) {
-  color: rgb(243 244 246); /* gray-100 for good contrast in dark mode */
 }
 </style>
