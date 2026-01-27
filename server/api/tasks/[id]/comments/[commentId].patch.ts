@@ -3,6 +3,7 @@ import { Comment } from '../../../../models/Comment'
 import { Task } from '../../../../models/Task'
 import { Project } from '../../../../models/Project'
 import { requireOrganizationMember } from '../../../../utils/tenant'
+import { auditContext, createAuditLog } from '../../../../services/audit'
 
 const updateCommentSchema = z.object({
   content: z.string().min(1).max(50000),
@@ -106,11 +107,28 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Capture old content for audit log
+  const oldContent = comment.content
+
   // Update the comment
   comment.content = result.data.content
   await comment.save()
 
   await comment.populate('author', 'name email avatar')
+
+  // Create audit log
+  const ctx = await auditContext(event, {
+    organization: project.organization.toString(),
+    project: task.project.toString(),
+  })
+  await createAuditLog(ctx, {
+    action: 'update',
+    resourceType: 'comment',
+    resourceId: commentId,
+    resourceName: `Comment on ${task.title}`,
+    changes: [{ field: 'content', oldValue: oldContent, newValue: result.data.content }],
+    metadata: { taskId, taskTitle: task.title },
+  })
 
   return {
     success: true,
