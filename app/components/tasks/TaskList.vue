@@ -1,4 +1,5 @@
 <script setup lang="ts">
+import type { Ref } from 'vue'
 import type { Task } from '~/composables/useTasks'
 
 interface Props {
@@ -29,9 +30,33 @@ const emit = defineEmits<{
 const expandedTasks = ref<Set<string>>(new Set())
 const loadedSubtasks = ref<Map<string, Task[]>>(new Map())
 
-// Drag-and-drop state
-const draggedTask = ref<Task | null>(null)
-const dropTarget = ref<{ taskId: string; position: 'above' | 'below' | 'inside' } | null>(null)
+// Drag-and-drop state - shared across all nested TaskLists via provide/inject
+// Root level (depth === 0) provides the state, nested levels inject it
+const DRAG_STATE_KEY = 'taskListDragState'
+
+interface DragState {
+  draggedTask: Ref<Task | null>
+  dropTarget: Ref<{ taskId: string; position: 'above' | 'below' | 'inside' } | null>
+}
+
+// Create local refs
+const localDraggedTask = ref<Task | null>(null)
+const localDropTarget = ref<{ taskId: string; position: 'above' | 'below' | 'inside' } | null>(null)
+
+// At root level, provide state; at nested levels, inject from parent
+const injectedState = props.depth > 0 ? inject<DragState | null>(DRAG_STATE_KEY, null) : null
+
+// Use injected state if available (nested), otherwise use local state (root)
+const draggedTask = injectedState?.draggedTask ?? localDraggedTask
+const dropTarget = injectedState?.dropTarget ?? localDropTarget
+
+// At root level, provide state to children
+if (props.depth === 0) {
+  provide<DragState>(DRAG_STATE_KEY, {
+    draggedTask: localDraggedTask,
+    dropTarget: localDropTarget,
+  })
+}
 
 async function toggleExpand(task: Task) {
   if (expandedTasks.value.has(task.id)) {
