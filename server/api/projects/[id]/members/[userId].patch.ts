@@ -1,6 +1,8 @@
 import { z } from 'zod'
 import { Project } from '../../../../models/Project'
+import { User } from '../../../../models/User'
 import { requireOrganizationMember } from '../../../../utils/tenant'
+import { auditContext, createAuditLog } from '../../../../services/audit'
 
 const updateSchema = z.object({
   role: z.enum(['team', 'client']),
@@ -46,8 +48,23 @@ export default defineEventHandler(async (event) => {
     throw createError({ statusCode: 404, message: 'Member not found in project' })
   }
 
+  const oldRole = (member as any).role
   ;(member as any).role = role
   await project.save()
+
+  // Create audit log for role change
+  const targetUser = await User.findById(userId).select('name email')
+  const ctx = await auditContext(event, {
+    organization: project.organization.toString(),
+    project: projectId,
+  })
+  await createAuditLog(ctx, {
+    action: 'change_role',
+    resourceType: 'member',
+    resourceId: userId,
+    resourceName: targetUser?.name || targetUser?.email || userId,
+    changes: [{ field: 'role', oldValue: oldRole, newValue: role }],
+  })
 
   return {
     success: true,

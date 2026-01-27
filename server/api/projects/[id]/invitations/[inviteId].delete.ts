@@ -1,6 +1,7 @@
 import { Project } from '../../../../models/Project'
 import { Invitation } from '../../../../models/Invitation'
 import { requireOrganizationMember } from '../../../../utils/tenant'
+import { auditContext, createAuditLog } from '../../../../services/audit'
 
 export default defineEventHandler(async (event) => {
   const projectId = getRouterParam(event, 'id')
@@ -18,7 +19,8 @@ export default defineEventHandler(async (event) => {
   // Verify caller is an org member
   await requireOrganizationMember(event, project.organization.toString())
 
-  const invitation = await Invitation.findOneAndDelete({
+  // Get invitation before deletion for audit log
+  const invitation = await Invitation.findOne({
     _id: inviteId,
     project: projectId,
     status: 'pending',
@@ -27,6 +29,21 @@ export default defineEventHandler(async (event) => {
   if (!invitation) {
     throw createError({ statusCode: 404, message: 'Invitation not found' })
   }
+
+  // Create audit log before deletion
+  const ctx = await auditContext(event, {
+    organization: project.organization.toString(),
+    project: projectId,
+  })
+  await createAuditLog(ctx, {
+    action: 'delete',
+    resourceType: 'invitation',
+    resourceId: inviteId,
+    resourceName: invitation.email,
+    metadata: { email: invitation.email, role: invitation.role },
+  })
+
+  await invitation.deleteOne()
 
   return {
     success: true,

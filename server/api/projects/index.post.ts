@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { Project } from '../../models/Project'
 import { requireOrganizationMember } from '../../utils/tenant'
+import { auditContext, createAuditLog } from '../../services/audit'
 
 const createProjectSchema = z.object({
   organizationId: z.string(),
@@ -54,6 +55,18 @@ export default defineEventHandler(async (event) => {
   })
 
   await project.populate('owner', 'name email avatar')
+
+  // Create audit log
+  const ctx = await auditContext(event, {
+    organization: organizationId,
+    project: project._id.toString(),
+  })
+  await createAuditLog(ctx, {
+    action: 'create',
+    resourceType: 'project',
+    resourceId: project._id.toString(),
+    resourceName: project.name,
+  })
 
   setResponseStatus(event, 201)
   return {

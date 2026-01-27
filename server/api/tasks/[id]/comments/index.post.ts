@@ -3,6 +3,7 @@ import { Comment } from '../../../../models/Comment'
 import { Task } from '../../../../models/Task'
 import { Project } from '../../../../models/Project'
 import { requireOrganizationMember } from '../../../../utils/tenant'
+import { auditContext, createAuditLog } from '../../../../services/audit'
 
 const createCommentSchema = z.object({
   content: z.string().min(1).max(50000),
@@ -81,6 +82,19 @@ export default defineEventHandler(async (event) => {
   })
 
   await comment.populate('author', 'name email avatar')
+
+  // Create audit log
+  const ctx = await auditContext(event, {
+    organization: project.organization.toString(),
+    project: task.project.toString(),
+  })
+  await createAuditLog(ctx, {
+    action: 'create',
+    resourceType: 'comment',
+    resourceId: comment._id.toString(),
+    resourceName: `Comment on ${task.title}`,
+    metadata: { taskId, taskTitle: task.title },
+  })
 
   setResponseStatus(event, 201)
   return {

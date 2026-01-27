@@ -3,6 +3,7 @@ import { Milestone } from '../../models/Milestone'
 import { Project } from '../../models/Project'
 import { Task } from '../../models/Task'
 import { requireOrganizationMember } from '../../utils/tenant'
+import { auditContext, createAuditLog, computeChanges } from '../../services/audit'
 
 const bodySchema = z.object({
   name: z.string().min(1).optional(),
@@ -73,6 +74,9 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Capture old state for audit logging
+  const oldState = milestone.toObject()
+
   // Update fields
   const { name, description, startDate, endDate, status } = result.data
 
@@ -93,6 +97,29 @@ export default defineEventHandler(async (event) => {
   }
 
   await milestone.save()
+
+  // Create audit log with changes
+  const changes = computeChanges(oldState, milestone.toObject(), [
+    'name',
+    'description',
+    'startDate',
+    'endDate',
+    'status',
+  ])
+
+  if (changes.length > 0) {
+    const ctx = await auditContext(event, {
+      organization: project.organization.toString(),
+      project: milestone.project.toString(),
+    })
+    await createAuditLog(ctx, {
+      action: 'update',
+      resourceType: 'milestone',
+      resourceId: milestoneId,
+      resourceName: milestone.name,
+      changes,
+    })
+  }
 
   // Get task stats
   const [total, completed] = await Promise.all([

@@ -1,6 +1,8 @@
 import { Project } from '../../../../models/Project'
+import { User } from '../../../../models/User'
 import { SpecificationApprover } from '../../../../models/SpecificationApprover'
 import { requireOrganizationMember } from '../../../../utils/tenant'
+import { auditContext, createAuditLog } from '../../../../services/audit'
 
 /**
  * @group Specification
@@ -42,6 +44,9 @@ export default defineEventHandler(async (event) => {
 
   await requireOrganizationMember(event, project.organization.toString())
 
+  // Get user info before deletion for audit log
+  const user = await User.findById(userId).select('name email')
+
   const approver = await SpecificationApprover.findOneAndDelete({
     project: projectId,
     user: userId,
@@ -54,6 +59,19 @@ export default defineEventHandler(async (event) => {
       message: 'Approver not found',
     })
   }
+
+  // Create audit log
+  const ctx = await auditContext(event, {
+    organization: project.organization.toString(),
+    project: projectId,
+  })
+  await createAuditLog(ctx, {
+    action: 'remove_approver',
+    resourceType: 'approver',
+    resourceId: approver._id.toString(),
+    resourceName: user?.name || user?.email || userId,
+    metadata: { userId },
+  })
 
   return {
     success: true,

@@ -280,3 +280,68 @@ export interface IMilestoneSignoffStatus {
     signedAt?: Date
   }>
 }
+
+// Audit Log types
+export type AuditAction =
+  | 'create'
+  | 'update'
+  | 'delete'
+  | 'status_change'
+  | 'move'
+  | 'lock'
+  | 'unlock'
+  | 'signoff'
+  | 'revoke_signoff'
+  | 'add_member'
+  | 'remove_member'
+  | 'change_role'
+  | 'invite'
+  | 'accept_invite'
+  | 'add_approver'
+  | 'remove_approver'
+
+export type AuditResourceType =
+  | 'task'
+  | 'project'
+  | 'milestone'
+  | 'comment'
+  | 'tag'
+  | 'organization'
+  | 'invitation'
+  | 'api_key'
+  | 'approver'
+  | 'member'
+  | 'signoff'
+
+export interface IAuditActor {
+  userId: Types.ObjectId
+  email: string
+  name: string
+  authMethod?: 'session' | 'api_key'
+}
+
+export interface IAuditResource {
+  type: AuditResourceType
+  id: Types.ObjectId
+  name?: string
+}
+
+export interface IAuditChange {
+  field: string
+  oldValue?: unknown
+  newValue?: unknown
+}
+
+export interface IAuditLog {
+  _id: Types.ObjectId
+  actor: IAuditActor
+  action: AuditAction
+  resource: IAuditResource
+  organization: Types.ObjectId
+  project?: Types.ObjectId
+  changes?: IAuditChange[]
+  metadata?: Record<string, unknown>
+  ip?: string
+  userAgent?: string
+  createdAt: Date
+}

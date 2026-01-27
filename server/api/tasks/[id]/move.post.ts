@@ -4,6 +4,7 @@ import { Project } from '../../../models/Project'
 import { Organization } from '../../../models/Organization'
 import { Milestone } from '../../../models/Milestone'
 import { requireOrganizationMember } from '../../../utils/tenant'
+import { auditContext, createAuditLog } from '../../../services/audit'
 
 const moveTaskSchema = z.object({
   newParentTask: z.string().nullable(),
@@ -238,6 +239,23 @@ export default defineEventHandler(async (event) => {
   await task.populate('milestone', 'name')
 
   const subtaskCount = await Task.countDocuments({ parentTask: id })
+
+  // Create audit log for move action
+  const ctx = await auditContext(event, {
+    organization: destinationProject.organization.toString(),
+    project: task.project.toString(),
+  })
+  await createAuditLog(ctx, {
+    action: 'move',
+    resourceType: 'task',
+    resourceId: id,
+    resourceName: task.title,
+    metadata: {
+      newParentTask,
+      newOrder: order,
+      ...(crossProjectMoveInfo && { crossProjectMove: crossProjectMoveInfo }),
+    },
+  })
 
   return {
     success: true,

@@ -2,6 +2,7 @@ import { Task } from '../../../models/Task'
 import { Project } from '../../../models/Project'
 import { Milestone } from '../../../models/Milestone'
 import { requireOrganizationMember } from '../../../utils/tenant'
+import { auditContext, createAuditLog } from '../../../services/audit'
 
 /**
  * @group Tasks
@@ -53,6 +54,18 @@ export default defineEventHandler(async (event) => {
       })
     }
   }
+
+  // Create audit log before deletion
+  const ctx = await auditContext(event, {
+    organization: project.organization.toString(),
+    project: task.project.toString(),
+  })
+  await createAuditLog(ctx, {
+    action: 'delete',
+    resourceType: 'task',
+    resourceId: id,
+    resourceName: task.title,
+  })
 
   // Delete task and all descendants using the path field
   // Tasks that have this task in their path are descendants

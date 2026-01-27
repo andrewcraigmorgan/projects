@@ -2,6 +2,7 @@ import { Milestone } from '../../../../models/Milestone'
 import { Project } from '../../../../models/Project'
 import { MilestoneSignoff } from '../../../../models/MilestoneSignoff'
 import { requireOrganizationMember } from '../../../../utils/tenant'
+import { auditContext, createAuditLog } from '../../../../services/audit'
 
 /**
  * @group Specification
@@ -74,6 +75,25 @@ export default defineEventHandler(async (event) => {
     })
   }
 
+  // Create audit context before deletion
+  const ctx = await auditContext(event, {
+    organization: project.organization.toString(),
+    project: project._id.toString(),
+  })
+
+  // Audit log for revoked signoff
+  await createAuditLog(ctx, {
+    action: 'revoke_signoff',
+    resourceType: 'signoff',
+    resourceId: signoffId,
+    resourceName: milestone.name,
+    metadata: {
+      milestoneId,
+      milestoneName: milestone.name,
+      signedBy: signoff.signedBy.toString(),
+    },
+  })
+
   await signoff.deleteOne()
 
   // Unlock the milestone since a sign-off was revoked
@@ -84,6 +104,14 @@ export default defineEventHandler(async (event) => {
     milestone.lockedBy = undefined
     await milestone.save()
     milestoneUnlocked = true
+
+    // Audit log for milestone unlock
+    await createAuditLog(ctx, {
+      action: 'unlock',
+      resourceType: 'milestone',
+      resourceId: milestoneId,
+      resourceName: milestone.name,
+    })
   }
 
   return {

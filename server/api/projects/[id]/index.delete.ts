@@ -1,6 +1,7 @@
 import { Project } from '../../../models/Project'
 import { Task } from '../../../models/Task'
 import { requireOrganizationMember } from '../../../utils/tenant'
+import { auditContext, createAuditLog } from '../../../services/audit'
 
 /**
  * @group Projects
@@ -34,6 +35,18 @@ export default defineEventHandler(async (event) => {
     'owner',
     'admin',
   ])
+
+  // Create audit log before deletion
+  const ctx = await auditContext(event, {
+    organization: project.organization.toString(),
+    project: id,
+  })
+  await createAuditLog(ctx, {
+    action: 'delete',
+    resourceType: 'project',
+    resourceId: id,
+    resourceName: project.name,
+  })
 
   // Delete all tasks in the project
   await Task.deleteMany({ project: id })

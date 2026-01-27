@@ -7,6 +7,7 @@ import { MilestoneSignoff } from '../../../../models/MilestoneSignoff'
 import { SpecificationApprover } from '../../../../models/SpecificationApprover'
 import { SpecificationSnapshot } from '../../../../models/SpecificationSnapshot'
 import { requireOrganizationMember } from '../../../../utils/tenant'
+import { auditContext, createAuditLog } from '../../../../services/audit'
 
 const bodySchema = z.object({
   notes: z.string().optional(),
@@ -106,6 +107,23 @@ export default defineEventHandler(async (event) => {
     signatureNotes: result.data.notes || '',
   })
 
+  // Create audit log for signoff
+  const ctx = await auditContext(event, {
+    organization: project.organization.toString(),
+    project: project._id.toString(),
+  })
+  await createAuditLog(ctx, {
+    action: 'signoff',
+    resourceType: 'signoff',
+    resourceId: signoff._id.toString(),
+    resourceName: milestone.name,
+    metadata: {
+      milestoneId,
+      milestoneName: milestone.name,
+      notes: result.data.notes,
+    },
+  })
+
   // Check if all approvers have now signed off
   const totalApprovers = await SpecificationApprover.countDocuments({ project: project._id })
   const totalSignoffs = await MilestoneSignoff.countDocuments({ milestone: milestoneId })
@@ -119,6 +137,18 @@ export default defineEventHandler(async (event) => {
     milestone.lockedBy = currentUser._id
     await milestone.save()
     milestoneNowLocked = true
+
+    // Audit log for milestone lock
+    await createAuditLog(ctx, {
+      action: 'lock',
+      resourceType: 'milestone',
+      resourceId: milestoneId,
+      resourceName: milestone.name,
+      metadata: {
+        totalApprovers,
+        totalSignoffs,
+      },
+    })
 
     // Create a snapshot of the milestone's tasks
     await createMilestoneSnapshot(milestone, project, currentUser._id)

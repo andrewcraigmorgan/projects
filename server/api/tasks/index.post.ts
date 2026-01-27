@@ -3,6 +3,7 @@ import { Task } from '../../models/Task'
 import { Project } from '../../models/Project'
 import { Milestone } from '../../models/Milestone'
 import { requireOrganizationMember } from '../../utils/tenant'
+import { auditContext, createAuditLog } from '../../services/audit'
 
 const createTaskSchema = z.object({
   projectId: z.string(),
@@ -132,6 +133,18 @@ export default defineEventHandler(async (event) => {
   await task.populate('assignees', 'name email avatar')
   await task.populate('createdBy', 'name email avatar')
   await task.populate('milestone', 'name')
+
+  // Create audit log
+  const ctx = await auditContext(event, {
+    organization: project.organization.toString(),
+    project: projectId,
+  })
+  await createAuditLog(ctx, {
+    action: 'create',
+    resourceType: 'task',
+    resourceId: task._id.toString(),
+    resourceName: task.title,
+  })
 
   setResponseStatus(event, 201)
   return {

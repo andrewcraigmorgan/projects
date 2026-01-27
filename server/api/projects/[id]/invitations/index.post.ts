@@ -5,6 +5,7 @@ import { User } from '../../../../models/User'
 import { generateSecureToken } from '../../../../utils/auth'
 import { sendProjectInvitation } from '../../../../utils/email'
 import { requireOrganizationMember } from '../../../../utils/tenant'
+import { auditContext, createAuditLog } from '../../../../services/audit'
 
 const APP_URL = process.env.NUXT_PUBLIC_APP_URL || 'http://localhost:3000'
 
@@ -87,6 +88,19 @@ export default defineEventHandler(async (event) => {
     inviterName: inviter?.name || 'A team member',
     role,
     acceptUrl,
+  })
+
+  // Create audit log
+  const ctx = await auditContext(event, {
+    organization: project.organization.toString(),
+    project: projectId,
+  })
+  await createAuditLog(ctx, {
+    action: 'invite',
+    resourceType: 'invitation',
+    resourceId: invitation._id.toString(),
+    resourceName: email,
+    metadata: { email, role },
   })
 
   return {

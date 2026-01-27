@@ -2,6 +2,7 @@ import { Milestone } from '../../models/Milestone'
 import { Project } from '../../models/Project'
 import { Task } from '../../models/Task'
 import { requireOrganizationMember } from '../../utils/tenant'
+import { auditContext, createAuditLog } from '../../services/audit'
 
 /**
  * @group Milestones
@@ -51,6 +52,18 @@ export default defineEventHandler(async (event) => {
       message: 'Cannot delete a locked milestone. The milestone has been signed off.',
     })
   }
+
+  // Create audit log before deletion
+  const ctx = await auditContext(event, {
+    organization: project.organization.toString(),
+    project: milestone.project.toString(),
+  })
+  await createAuditLog(ctx, {
+    action: 'delete',
+    resourceType: 'milestone',
+    resourceId: milestoneId,
+    resourceName: milestone.name,
+  })
 
   // Remove milestone reference from tasks
   await Task.updateMany({ milestone: milestoneId }, { $unset: { milestone: 1 } })

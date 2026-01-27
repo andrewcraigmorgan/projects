@@ -1,6 +1,7 @@
 import { z } from 'zod'
 import { Project } from '../../../models/Project'
 import { requireOrganizationMember } from '../../../utils/tenant'
+import { auditContext, createAuditLog, computeChanges } from '../../../services/audit'
 
 const updateProjectSchema = z.object({
   name: z.string().min(1).max(200).optional(),
@@ -52,6 +53,9 @@ export default defineEventHandler(async (event) => {
   // Verify membership in the project's organization
   await requireOrganizationMember(event, project.organization.toString())
 
+  // Capture old state for audit logging
+  const oldState = project.toObject()
+
   // Update project
   const updatedProject = await Project.findByIdAndUpdate(
     id,
@@ -60,6 +64,27 @@ export default defineEventHandler(async (event) => {
   )
     .populate('owner', 'name email avatar')
     .populate('members.user', 'name email avatar')
+
+  // Create audit log with changes
+  const changes = computeChanges(oldState, updatedProject!.toObject(), [
+    'name',
+    'description',
+    'status',
+  ])
+
+  if (changes.length > 0) {
+    const ctx = await auditContext(event, {
+      organization: project.organization.toString(),
+      project: id,
+    })
+    await createAuditLog(ctx, {
+      action: 'update',
+      resourceType: 'project',
+      resourceId: id,
+      resourceName: updatedProject!.name,
+      changes,
+    })
+  }
 
   return {
     success: true,

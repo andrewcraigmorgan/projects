@@ -3,6 +3,7 @@ import { Task } from '../../../models/Task'
 import { Project } from '../../../models/Project'
 import { Milestone } from '../../../models/Milestone'
 import { requireOrganizationMember } from '../../../utils/tenant'
+import { auditContext, createAuditLog, computeChanges } from '../../../services/audit'
 
 const updateTaskSchema = z.object({
   title: z.string().min(1).max(500).optional(),
@@ -110,6 +111,9 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Capture old state for audit logging
+  const oldState = task.toObject()
+
   // Prepare update data
   const updateData: Record<string, unknown> = { ...result.data }
 
@@ -132,6 +136,39 @@ export default defineEventHandler(async (event) => {
 
   // Get subtask count
   const subtaskCount = await Task.countDocuments({ parentTask: id })
+
+  // Create audit log with changes
+  const changes = computeChanges(oldState, updatedTask!.toObject(), [
+    'title',
+    'description',
+    'status',
+    'priority',
+    'assignees',
+    'dueDate',
+    'milestone',
+    'order',
+  ])
+
+  if (changes.length > 0) {
+    const ctx = await auditContext(event, {
+      organization: project.organization.toString(),
+      project: task.project.toString(),
+    })
+
+    // Use 'status_change' action if only status changed
+    const action =
+      changes.length === 1 && changes[0].field === 'status'
+        ? 'status_change'
+        : 'update'
+
+    await createAuditLog(ctx, {
+      action,
+      resourceType: 'task',
+      resourceId: id,
+      resourceName: updatedTask!.title,
+      changes,
+    })
+  }
 
   return {
     success: true,

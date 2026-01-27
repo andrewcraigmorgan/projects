@@ -3,6 +3,7 @@ import { Project } from '../../../../models/Project'
 import { User } from '../../../../models/User'
 import { SpecificationApprover } from '../../../../models/SpecificationApprover'
 import { requireOrganizationMember } from '../../../../utils/tenant'
+import { auditContext, createAuditLog } from '../../../../services/audit'
 
 const bodySchema = z.object({
   userId: z.string().min(1, 'User ID is required'),
@@ -89,6 +90,19 @@ export default defineEventHandler(async (event) => {
     user: userId,
     addedBy: currentUser._id,
     addedAt: new Date(),
+  })
+
+  // Create audit log
+  const ctx = await auditContext(event, {
+    organization: project.organization.toString(),
+    project: projectId,
+  })
+  await createAuditLog(ctx, {
+    action: 'add_approver',
+    resourceType: 'approver',
+    resourceId: approver._id.toString(),
+    resourceName: user.name || user.email,
+    metadata: { userId },
   })
 
   return {
