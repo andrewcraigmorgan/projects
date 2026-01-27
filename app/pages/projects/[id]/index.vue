@@ -135,6 +135,9 @@ const taskToMove = ref<Task | null>(null)
 // View mode (from URL param, then localStorage, then default to 'list')
 const viewMode = ref<'list' | 'board'>('list')
 
+// Display mode: flat (all tasks) vs hierarchical (nested tree view)
+const displayMode = ref<'flat' | 'hierarchical'>('hierarchical')
+
 // Filters (synced with URL) - now arrays for multi-select
 const searchQuery = ref<string>('')
 const debouncedSearch = ref<string>('')
@@ -262,6 +265,7 @@ onMounted(() => {
   const urlDueDateFrom = route.query.dueDateFrom as string
   const urlDueDateTo = route.query.dueDateTo as string
   const urlPage = route.query.page as string
+  const urlDisplay = route.query.display as string
 
   if (urlView === 'list' || urlView === 'board') {
     viewMode.value = urlView
@@ -270,6 +274,16 @@ onMounted(() => {
     const saved = localStorage.getItem('taskViewMode')
     if (saved === 'list' || saved === 'board') {
       viewMode.value = saved
+    }
+  }
+
+  // Display mode
+  if (urlDisplay === 'flat' || urlDisplay === 'hierarchical') {
+    displayMode.value = urlDisplay
+  } else {
+    const savedDisplay = localStorage.getItem('taskDisplayMode')
+    if (savedDisplay === 'flat' || savedDisplay === 'hierarchical') {
+      displayMode.value = savedDisplay
     }
   }
 
@@ -326,6 +340,12 @@ watch(viewMode, (value) => {
   updateUrlParams()
 })
 
+watch(displayMode, (value) => {
+  localStorage.setItem('taskDisplayMode', value)
+  updateUrlParams()
+  loadTasks()
+})
+
 // Update URL when filters change - reset to page 1
 watch([statusFilter, priorityFilter, milestoneFilter, dueDateFrom, dueDateTo], () => {
   resetTasksPagination()
@@ -349,6 +369,7 @@ function updateUrlParams() {
   }
 
   if (viewMode.value !== 'list') query.view = viewMode.value
+  if (displayMode.value !== 'hierarchical') query.display = displayMode.value
   if (searchQuery.value) query.search = searchQuery.value
   if (statusFilter.value.length > 0) query.status = statusFilter.value.join(',')
   if (priorityFilter.value.length > 0) query.priority = priorityFilter.value.join(',')
@@ -481,6 +502,13 @@ async function loadTasks() {
     dueDateTo: dueDateTo.value || undefined,
   }
 
+  // In flat mode, always show all tasks (ignoring hierarchy)
+  if (displayMode.value === 'flat') {
+    await fetchTasks(filters)
+    return
+  }
+
+  // Hierarchical mode
   if (debouncedSearch.value || milestoneFilter.value.length > 0) {
     // When searching or filtering by milestone, show all matching tasks (not just root)
     await fetchTasks(filters)
@@ -758,6 +786,34 @@ onMounted(async () => {
               class="absolute top-1 right-1 w-2 h-2 bg-primary-500 rounded-full"
             />
           </button>
+
+          <!-- Display mode toggle (flat vs hierarchical) - only show when not drilling into subtasks -->
+          <div v-if="!currentParentId" class="flex border border-gray-200 dark:border-gray-700 overflow-hidden">
+            <button
+              class="p-2 sm:px-3 sm:py-1.5 text-sm font-medium transition-colors"
+              :class="displayMode === 'hierarchical' ? 'bg-primary-50 text-primary-700 dark:bg-primary-900 dark:text-primary-300' : 'bg-white text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'"
+              title="Hierarchical view - Show tasks with nested subtasks"
+              @click="displayMode = 'hierarchical'"
+            >
+              <!-- Tree/hierarchy icon -->
+              <svg class="h-5 w-5 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M3 7h3m0 0v3m0-3l3 3m3-3h3m0 0v3m0-3l3 3M3 17h3m0 0l3-3m-3 3v-3" />
+              </svg>
+              <span class="hidden sm:inline">Hierarchy</span>
+            </button>
+            <button
+              class="p-2 sm:px-3 sm:py-1.5 text-sm font-medium transition-colors"
+              :class="displayMode === 'flat' ? 'bg-primary-50 text-primary-700 dark:bg-primary-900 dark:text-primary-300' : 'bg-white text-gray-600 hover:bg-gray-50 dark:bg-gray-800 dark:text-gray-300 dark:hover:bg-gray-700'"
+              title="Flat view - Show all tasks without nesting"
+              @click="displayMode = 'flat'"
+            >
+              <!-- List icon (flat) -->
+              <svg class="h-5 w-5 sm:hidden" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M4 6h16M4 12h16M4 18h16" />
+              </svg>
+              <span class="hidden sm:inline">Flat</span>
+            </button>
+          </div>
 
           <!-- View toggle - icon only on mobile -->
           <div class="flex border border-gray-200 dark:border-gray-700 overflow-hidden">
@@ -1268,6 +1324,7 @@ onMounted(async () => {
           :parent-task-id="currentParentId"
           :assignee-options="organizationMembers"
           :milestones="milestones"
+          :display-mode="displayMode"
           storage-key="projectTasks"
           @select="handleTaskSelect"
           @update-status="handleUpdateStatus"
@@ -1277,6 +1334,7 @@ onMounted(async () => {
           @task-created="loadTasks"
           @move-task="handleMoveTask"
           @context-menu="handleContextMenu"
+          @load-subtasks="handleLoadSubtasks"
         />
 
         <!-- Pagination -->
