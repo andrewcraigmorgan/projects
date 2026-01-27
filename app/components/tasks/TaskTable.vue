@@ -145,6 +145,14 @@ function handleDragEnd(event: DragEvent) {
   row.classList.remove('opacity-50')
 }
 
+// Check if reordering is allowed in current context
+const canReorder = computed(() => {
+  // Reordering only makes sense when:
+  // 1. In hierarchical mode (flat mode mixes tasks from different parents)
+  // 2. No sorting is active (sorted order overrides manual order)
+  return props.displayMode === 'hierarchical' && !sortColumn.value
+})
+
 function handleDragOver(task: Task, index: number, event: DragEvent) {
   if (!props.enableDragDrop || !draggedTask.value) return
   event.preventDefault()
@@ -159,10 +167,13 @@ function handleDragOver(task: Task, index: number, event: DragEvent) {
   const y = event.clientY - rect.top
   const threshold = rect.height * 0.25
 
-  if (y < threshold) {
+  // Check if dragged task and target are siblings (same parent) for reordering
+  const sameSiblings = draggedTask.value.parentTask === task.parentTask
+
+  if (y < threshold && canReorder.value && sameSiblings) {
     dragDropMode.value = 'reorder'
   } else {
-    // Can't make a task a subtask of itself or its own descendants
+    // Make subtask - but not if dragging onto itself
     dragDropMode.value = 'subtask'
   }
 }
