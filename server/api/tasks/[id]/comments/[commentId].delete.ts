@@ -2,6 +2,7 @@ import { Comment } from '../../../../models/Comment'
 import { Task } from '../../../../models/Task'
 import { Project } from '../../../../models/Project'
 import { requireOrganizationMember } from '../../../../utils/tenant'
+import { auditContext, createAuditLog } from '../../../../services/audit'
 
 /**
  * @group Comments
@@ -88,6 +89,19 @@ export default defineEventHandler(async (event) => {
       message: 'You can only delete your own comments',
     })
   }
+
+  // Create audit log before deletion
+  const ctx = await auditContext(event, {
+    organization: project.organization.toString(),
+    project: task.project.toString(),
+  })
+  await createAuditLog(ctx, {
+    action: 'delete',
+    resourceType: 'comment',
+    resourceId: commentId,
+    resourceName: `Comment on ${task.title}`,
+    metadata: { taskId, taskTitle: task.title },
+  })
 
   // Delete the comment
   await comment.deleteOne()
