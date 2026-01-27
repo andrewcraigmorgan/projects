@@ -35,11 +35,22 @@ const { projects, fetchProjects } = useProjects()
 const viewMode = ref<'list' | 'board'>('list')
 
 // Filters
+const searchQuery = ref<string>('')
+const debouncedSearch = ref<string>('')
 const statusFilter = ref<string[]>([])
 const priorityFilter = ref<string[]>([])
 const projectFilter = ref<string>('')
 const dueDateFrom = ref<string>('')
 const dueDateTo = ref<string>('')
+
+// Debounce search input
+let searchDebounceTimer: ReturnType<typeof setTimeout> | null = null
+watch(searchQuery, (newValue) => {
+  if (searchDebounceTimer) clearTimeout(searchDebounceTimer)
+  searchDebounceTimer = setTimeout(() => {
+    debouncedSearch.value = newValue
+  }, 300)
+})
 
 // Mobile filter drawer state
 const showMobileFilters = ref(false)
@@ -119,12 +130,13 @@ function applyPreset(preset: typeof presets[0]) {
 // Computed: any filters different from "All Open" default
 const hasActiveFilters = computed(() => {
   const isDefault = arraysEqual(statusFilter.value.slice().sort(), defaultOpenStatuses.slice().sort())
-  const hasNoOtherFilters = priorityFilter.value.length === 0 && !projectFilter.value && !dueDateFrom.value && !dueDateTo.value
+  const hasNoOtherFilters = priorityFilter.value.length === 0 && !projectFilter.value && !dueDateFrom.value && !dueDateTo.value && !searchQuery.value
   return !(isDefault && hasNoOtherFilters)
 })
 
 // Clear all filters (reset to "All Open")
 function clearFilters() {
+  searchQuery.value = ''
   statusFilter.value = [...defaultOpenStatuses]
   priorityFilter.value = []
   projectFilter.value = ''
@@ -135,6 +147,7 @@ function clearFilters() {
 // Initialize filters from URL
 onMounted(() => {
   const urlView = route.query.view as string
+  const urlSearch = route.query.search as string
   const urlStatus = route.query.status as string
   const urlPriority = route.query.priority as string
   const urlProject = route.query.project as string
@@ -160,6 +173,11 @@ onMounted(() => {
   }
 
   let hasUrlFilters = false
+  if (urlSearch) {
+    searchQuery.value = urlSearch
+    debouncedSearch.value = urlSearch // Initialize immediately for URL params
+    hasUrlFilters = true
+  }
   if (urlStatus) {
     const statuses = urlStatus.split(',').filter(s => statusOptions.some(o => o.value === s))
     if (statuses.length > 0) {
@@ -205,9 +223,17 @@ watch([statusFilter, priorityFilter, projectFilter, dueDateFrom, dueDateTo], () 
   loadTasks()
 }, { deep: true })
 
+// Watch debounced search separately
+watch(debouncedSearch, () => {
+  resetTasksPagination()
+  updateUrlParams()
+  loadTasks()
+})
+
 function updateUrlParams() {
   const query: Record<string, string> = {}
   if (viewMode.value !== 'list') query.view = viewMode.value
+  if (searchQuery.value) query.search = searchQuery.value
   if (statusFilter.value.length > 0) query.status = statusFilter.value.join(',')
   if (priorityFilter.value.length > 0) query.priority = priorityFilter.value.join(',')
   if (projectFilter.value) query.project = projectFilter.value
@@ -257,6 +283,7 @@ async function handleUpdateAssignees(task: Task, assigneeIds: string[]) {
 // Load tasks
 async function loadTasks() {
   await fetchTasks({
+    search: debouncedSearch.value || undefined,
     status: statusFilter.value.length > 0 ? statusFilter.value : undefined,
     priority: priorityFilter.value.length > 0 ? priorityFilter.value : undefined,
     projectId: projectFilter.value || undefined,
@@ -337,6 +364,32 @@ useHead({
         <div class="flex items-center justify-between gap-4">
           <!-- Left side: Filter controls -->
           <div class="flex items-center gap-3 flex-wrap">
+            <!-- Search input -->
+            <div class="relative">
+              <svg class="absolute left-2.5 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Search tasks..."
+                class="w-48 pl-8 pr-8 py-1.5 text-sm bg-white dark:bg-gray-800 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:outline-none"
+              />
+              <button
+                v-if="searchQuery"
+                type="button"
+                class="absolute right-2 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                title="Clear search"
+                @click="searchQuery = ''"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+
+            <div class="h-4 w-px bg-gray-300 dark:bg-gray-600" />
+
             <span class="text-xs font-medium text-gray-500 dark:text-gray-400 uppercase tracking-wide">Filters</span>
 
             <!-- Preset selector -->
@@ -430,6 +483,33 @@ useHead({
         class="lg:hidden bg-gray-50 dark:bg-gray-800 border-b border-gray-200 dark:border-gray-700 overflow-hidden"
       >
         <div class="p-4 space-y-4">
+          <!-- Search input -->
+          <div>
+            <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Search</label>
+            <div class="relative">
+              <svg class="absolute left-3 top-1/2 -translate-y-1/2 h-4 w-4 text-gray-400" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" />
+              </svg>
+              <input
+                v-model="searchQuery"
+                type="text"
+                placeholder="Search by ID, title, description..."
+                class="w-full pl-9 pr-9 py-2 text-sm bg-white dark:bg-gray-900 border border-gray-200 dark:border-gray-700 text-gray-700 dark:text-gray-300 placeholder-gray-400 focus:ring-1 focus:ring-primary-500 focus:outline-none"
+              />
+              <button
+                v-if="searchQuery"
+                type="button"
+                class="absolute right-2.5 top-1/2 -translate-y-1/2 p-0.5 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300"
+                title="Clear search"
+                @click="searchQuery = ''"
+              >
+                <svg class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor">
+                  <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12" />
+                </svg>
+              </button>
+            </div>
+          </div>
+
           <!-- Preset selector -->
           <div>
             <label class="block text-xs font-medium text-gray-500 dark:text-gray-400 mb-1">Quick Filter</label>

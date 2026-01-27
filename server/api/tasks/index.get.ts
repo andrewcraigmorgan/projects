@@ -9,6 +9,11 @@ const validPriorities = ['low', 'medium', 'high'] as const
 
 const querySchema = z.object({
   projectId: z.string().optional(),
+  // Natural language search (searches taskNumber, title, description)
+  search: z.string().optional().transform((val) => {
+    if (!val) return undefined
+    return val.trim() || undefined
+  }),
   // Accept comma-separated status values for multi-select
   status: z.string().optional().transform((val) => {
     if (!val) return undefined
@@ -66,7 +71,7 @@ export default defineEventHandler(async (event) => {
     })
   }
 
-  const { projectId, status, priority, assignees, dueDateFrom, dueDateTo, milestone, parentTask, rootOnly, page, limit } = result.data
+  const { projectId, search, status, priority, assignees, dueDateFrom, dueDateTo, milestone, parentTask, rootOnly, page, limit } = result.data
 
   const auth = event.context.auth
   if (!auth) {
@@ -132,6 +137,29 @@ export default defineEventHandler(async (event) => {
 
   if (milestone && milestone.length > 0) {
     filter.milestone = milestone.length === 1 ? milestone[0] : { $in: milestone }
+  }
+
+  // Natural language search across taskNumber, title, and description
+  if (search) {
+    // Escape special regex characters in search term
+    const escapedSearch = search.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+
+    // Check if search looks like a task number (e.g., "123", "T123", "CODE-T123")
+    const taskNumberMatch = search.match(/^(?:[A-Z0-9]+-)?T?(\d+)$/i)
+    const searchNumber = taskNumberMatch ? parseInt(taskNumberMatch[1], 10) : null
+
+    // Build $or conditions for search
+    const searchConditions: Record<string, unknown>[] = [
+      { title: { $regex: escapedSearch, $options: 'i' } },
+      { description: { $regex: escapedSearch, $options: 'i' } },
+    ]
+
+    // Add taskNumber match if search contains a number
+    if (searchNumber !== null) {
+      searchConditions.push({ taskNumber: searchNumber })
+    }
+
+    filter.$or = searchConditions
   }
 
   if (parentTask) {

@@ -39,6 +39,7 @@ export function useTasks(projectId: Ref<string>) {
 
   // Store current filter options for pagination
   const currentFilters = ref<{
+    search?: string
     status?: string | string[]
     priority?: string | string[]
     milestone?: string | string[]
@@ -49,6 +50,7 @@ export function useTasks(projectId: Ref<string>) {
   }>({})
 
   async function fetchTasks(options: {
+    search?: string
     status?: string | string[]
     priority?: string | string[]
     milestone?: string | string[]
@@ -70,6 +72,7 @@ export function useTasks(projectId: Ref<string>) {
 
     try {
       let url = `/api/tasks?projectId=${projectId.value}&page=${pageNum}&limit=${limit.value}`
+      if (options.search) url += `&search=${encodeURIComponent(options.search)}`
       if (options.status) {
         const statusStr = Array.isArray(options.status) ? options.status.join(',') : options.status
         if (statusStr) url += `&status=${statusStr}`
