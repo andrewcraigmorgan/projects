@@ -123,6 +123,7 @@ const { isMobile } = useBreakpoints()
 // Drag-and-drop state
 const draggedTask = ref<Task | null>(null)
 const dragOverIndex = ref<number | null>(null)
+const dragDropMode = ref<'reorder' | 'subtask' | null>(null) // What will happen on drop
 
 function handleDragStart(task: Task, event: DragEvent) {
   if (!props.enableDragDrop) return
@@ -139,21 +140,36 @@ function handleDragStart(task: Task, event: DragEvent) {
 function handleDragEnd(event: DragEvent) {
   draggedTask.value = null
   dragOverIndex.value = null
+  dragDropMode.value = null
   const row = event.currentTarget as HTMLElement
   row.classList.remove('opacity-50')
 }
 
-function handleDragOver(index: number, event: DragEvent) {
+function handleDragOver(task: Task, index: number, event: DragEvent) {
   if (!props.enableDragDrop || !draggedTask.value) return
   event.preventDefault()
   if (event.dataTransfer) {
     event.dataTransfer.dropEffect = 'move'
   }
   dragOverIndex.value = index
+
+  // Determine drop mode based on vertical position within the row
+  // Top 25% = reorder (insert before), Bottom 75% = make subtask
+  const rect = (event.currentTarget as HTMLElement).getBoundingClientRect()
+  const y = event.clientY - rect.top
+  const threshold = rect.height * 0.25
+
+  if (y < threshold) {
+    dragDropMode.value = 'reorder'
+  } else {
+    // Can't make a task a subtask of itself or its own descendants
+    dragDropMode.value = 'subtask'
+  }
 }
 
 function handleDragLeave() {
   dragOverIndex.value = null
+  dragDropMode.value = null
 }
 
 function handleDrop(targetTask: Task, index: number, event: DragEvent) {
@@ -161,17 +177,24 @@ function handleDrop(targetTask: Task, index: number, event: DragEvent) {
   if (draggedTask.value.id === targetTask.id) {
     draggedTask.value = null
     dragOverIndex.value = null
+    dragDropMode.value = null
     return
   }
 
   event.preventDefault()
 
-  // Calculate new order - insert before the target task
-  const newOrder = targetTask.order
-  emit('move-task', draggedTask.value.id, null, newOrder)
+  if (dragDropMode.value === 'subtask') {
+    // Make dragged task a subtask of target task
+    emit('move-task', draggedTask.value.id, targetTask.id, 0)
+  } else {
+    // Reorder - insert before the target task
+    const newOrder = targetTask.order
+    emit('move-task', draggedTask.value.id, null, newOrder)
+  }
 
   draggedTask.value = null
   dragOverIndex.value = null
+  dragDropMode.value = null
 }
 
 function handleContextMenu(task: Task, event: MouseEvent) {
@@ -691,14 +714,15 @@ function getCellValue(task: Task, columnId: string): string {
               :key="task.id"
               class="hover:bg-gray-50 dark:hover:bg-gray-700 cursor-pointer transition-all"
               :class="{
-                'border-t-2 border-t-primary-500': dragOverIndex === index && draggedTask?.id !== task.id,
-                'bg-gray-50/50 dark:bg-gray-800/50': depth > 0
+                'border-t-2 border-t-primary-500': dragOverIndex === index && draggedTask?.id !== task.id && dragDropMode === 'reorder',
+                'bg-primary-50 dark:bg-primary-900/30 ring-1 ring-inset ring-primary-500': dragOverIndex === index && draggedTask?.id !== task.id && dragDropMode === 'subtask',
+                'bg-gray-50/50 dark:bg-gray-800/50': depth > 0 && !(dragOverIndex === index && dragDropMode === 'subtask')
               }"
               draggable="true"
               @click="emit('select', task)"
               @dragstart="handleDragStart(task, $event)"
               @dragend="handleDragEnd"
-              @dragover="handleDragOver(index, $event)"
+              @dragover="handleDragOver(task, index, $event)"
               @dragleave="handleDragLeave"
               @drop="handleDrop(task, index, $event)"
               @contextmenu="handleContextMenu(task, $event)"
