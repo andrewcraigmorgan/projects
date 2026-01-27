@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { Organization } from '../../models/Organization'
 import { User } from '../../models/User'
 import { generateSlug } from '../../utils/tenant'
+import { auditContext, createAuditLog } from '../../services/audit'
 
 const createOrgSchema = z.object({
   name: z.string().min(1).max(100),
@@ -61,6 +62,17 @@ export default defineEventHandler(async (event) => {
   // Add org to user's organizations
   await User.findByIdAndUpdate(auth.userId, {
     $push: { organizations: organization._id },
+  })
+
+  // Create audit log
+  const ctx = await auditContext(event, {
+    organization: organization._id.toString(),
+  })
+  await createAuditLog(ctx, {
+    action: 'create',
+    resourceType: 'organization',
+    resourceId: organization._id.toString(),
+    resourceName: organization.name,
   })
 
   setResponseStatus(event, 201)

@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { Organization } from '../../../models/Organization'
 import { User } from '../../../models/User'
 import { requireOrganizationMember } from '../../../utils/tenant'
+import { auditContext, createAuditLog } from '../../../services/audit'
 
 const addMemberSchema = z.object({
   email: z.string().email(),
@@ -78,6 +79,16 @@ export default defineEventHandler(async (event) => {
   // Add org to user's organizations
   await User.findByIdAndUpdate(user._id, {
     $addToSet: { organizations: id },
+  })
+
+  // Create audit log
+  const ctx = await auditContext(event, { organization: id })
+  await createAuditLog(ctx, {
+    action: 'add_member',
+    resourceType: 'member',
+    resourceId: user._id.toString(),
+    resourceName: user.name || user.email,
+    metadata: { email, role },
   })
 
   return {

@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { Tag } from '../../../models/Tag'
 import { Project } from '../../../models/Project'
 import { requireOrganizationMember } from '../../../utils/tenant'
+import { auditContext, createAuditLog, computeChanges } from '../../../services/audit'
 
 const bodySchema = z.object({
   name: z.string().min(1).max(50).optional(),
@@ -70,10 +71,29 @@ export default defineEventHandler(async (event) => {
     }
   }
 
+  // Capture old state for audit logging
+  const oldState = { name: tag.name, color: tag.color }
+
   if (name) tag.name = name
   if (color) tag.color = color
 
   await tag.save()
+
+  // Create audit log with changes
+  const changes = computeChanges(oldState, { name: tag.name, color: tag.color }, ['name', 'color'])
+  if (changes.length > 0) {
+    const ctx = await auditContext(event, {
+      organization: project.organization.toString(),
+      project: tag.project.toString(),
+    })
+    await createAuditLog(ctx, {
+      action: 'update',
+      resourceType: 'tag',
+      resourceId: tagId!,
+      resourceName: tag.name,
+      changes,
+    })
+  }
 
   return {
     success: true,

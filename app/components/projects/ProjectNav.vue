@@ -14,6 +14,7 @@ const currentPage = computed(() => {
   if (path.includes('/milestones')) return 'milestones'
   if (path.includes('/tags')) return 'tags'
   if (path.includes('/members')) return 'members'
+  if (path.includes('/audit')) return 'audit'
   return 'tasks'
 })
 </script>
@@ -59,6 +60,16 @@ const currentPage = computed(() => {
         : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'"
     >
       Specification
+    </NuxtLink>
+    <NuxtLink
+      :to="`/projects/${projectId}/audit`"
+      :aria-current="currentPage === 'audit' ? 'page' : undefined"
+      class="px-3 py-1.5 text-sm font-medium transition-colors"
+      :class="currentPage === 'audit'
+        ? 'text-primary-700 dark:text-primary-300 bg-primary-50 dark:bg-primary-900/30'
+        : 'text-gray-600 hover:text-gray-900 dark:text-gray-300 dark:hover:text-gray-100 hover:bg-gray-100 dark:hover:bg-gray-700'"
+    >
+      Audit Log
     </NuxtLink>
   </nav>
 </template>

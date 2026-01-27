@@ -2,6 +2,7 @@ import { z } from 'zod'
 import { Tag } from '../../models/Tag'
 import { Project } from '../../models/Project'
 import { requireOrganizationMember } from '../../utils/tenant'
+import { auditContext, createAuditLog } from '../../services/audit'
 
 const bodySchema = z.object({
   projectId: z.string(),
@@ -67,6 +68,18 @@ export default defineEventHandler(async (event) => {
     project: projectId,
     name,
     color: tagColor,
+  })
+
+  // Create audit log
+  const ctx = await auditContext(event, {
+    organization: project.organization.toString(),
+    project: projectId,
+  })
+  await createAuditLog(ctx, {
+    action: 'create',
+    resourceType: 'tag',
+    resourceId: tag._id.toString(),
+    resourceName: tag.name,
   })
 
   setResponseStatus(event, 201)

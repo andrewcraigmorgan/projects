@@ -2,6 +2,7 @@ import { Tag } from '../../../models/Tag'
 import { Task } from '../../../models/Task'
 import { Project } from '../../../models/Project'
 import { requireOrganizationMember } from '../../../utils/tenant'
+import { auditContext, createAuditLog } from '../../../services/audit'
 
 /**
  * @group Tags
@@ -33,6 +34,18 @@ export default defineEventHandler(async (event) => {
   }
 
   await requireOrganizationMember(event, project.organization.toString())
+
+  // Create audit log before deletion
+  const ctx = await auditContext(event, {
+    organization: project.organization.toString(),
+    project: tag.project.toString(),
+  })
+  await createAuditLog(ctx, {
+    action: 'delete',
+    resourceType: 'tag',
+    resourceId: tagId!,
+    resourceName: tag.name,
+  })
 
   // Remove tag from all tasks
   await Task.updateMany(

@@ -4,6 +4,7 @@ import { Project } from '../../models/Project'
 import { User } from '../../models/User'
 import { Organization } from '../../models/Organization'
 import { hashPassword, generateToken } from '../../utils/auth'
+import { createAuditLog } from '../../services/audit'
 
 const signupSchema = z.object({
   token: z.string().min(1),
@@ -87,6 +88,27 @@ export default defineEventHandler(async (event) => {
   // Mark invitation as accepted
   invitation.status = 'accepted'
   await invitation.save()
+
+  // Create audit log for invitation acceptance (new user signup)
+  await createAuditLog(
+    {
+      actor: {
+        userId: user._id,
+        email: user.email,
+        name: user.name,
+        authMethod: 'session',
+      },
+      organization: project.organization.toString(),
+      project: project._id.toString(),
+    },
+    {
+      action: 'accept_invite',
+      resourceType: 'invitation',
+      resourceId: invitation._id.toString(),
+      resourceName: user.email,
+      metadata: { role: invitation.role, projectName: project.name, isNewUser: true },
+    }
+  )
 
   // Generate auth token
   const authToken = generateToken(
