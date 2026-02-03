@@ -148,12 +148,11 @@ function formatDate(dateString: string) {
           </div>
 
           <!-- Description -->
-          <p
+          <div
             v-if="milestone.description"
-            class="mt-1 text-sm text-gray-500 dark:text-gray-400"
-          >
-            {{ milestone.description }}
-          </p>
+            class="mt-1 text-sm text-gray-500 dark:text-gray-400 prose prose-sm dark:prose-invert max-w-none"
+            v-html="milestone.description"
+          />
         </div>
 
         <!-- Status dropdown -->

@@ -146,9 +146,7 @@ function formatDate(dateStr: string | null) {
     <!-- Expanded content -->
     <div v-if="expanded" class="border-t border-gray-200 dark:border-gray-700">
       <!-- Description and meta -->
-      <div v-if="milestone.description" class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/30">
-        {{ milestone.description }}
-      </div>
+      <div v-if="milestone.description" class="px-4 py-3 text-sm text-gray-600 dark:text-gray-400 bg-gray-50 dark:bg-gray-700/30 prose prose-sm dark:prose-invert max-w-none" v-html="milestone.description" />
 
       <!-- Sign-off section -->
       <div class="px-4 py-3 bg-gray-50 dark:bg-gray-700/30 border-b border-gray-200 dark:border-gray-700">
