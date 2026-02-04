@@ -16,6 +16,16 @@ export default defineConfig({
       name: 'chromium',
       use: { ...devices['Desktop Chrome'] },
     },
+    {
+      name: 'sizzle-reel',
+      testMatch: 'sizzle-reel.spec.ts',
+      use: {
+        ...devices['Desktop Chrome'],
+        video: 'on',
+        viewport: { width: 1440, height: 900 },
+        launchOptions: { slowMo: 50 },
+      },
+    },
   ],
   webServer: {
     command: 'npm run dev',
