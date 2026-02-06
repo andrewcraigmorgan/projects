@@ -1,7 +1,15 @@
 import { z } from 'zod'
 import { Project } from '../../models/Project'
+import { Tag } from '../../models/Tag'
 import { requireOrganizationMember } from '../../utils/tenant'
 import { auditContext, createAuditLog } from '../../services/audit'
+
+const DEFAULT_TAGS = [
+  { name: 'Frontend', color: '#3B82F6' },
+  { name: 'Developer', color: '#8B5CF6' },
+  { name: 'Design', color: '#EC4899' },
+  { name: 'Client', color: '#F59E0B' },
+]
 
 const createProjectSchema = z.object({
   organizationId: z.string(),
@@ -55,6 +63,11 @@ export default defineEventHandler(async (event) => {
   })
 
   await project.populate('owner', 'name email avatar')
+
+  // Create default tags
+  await Tag.insertMany(
+    DEFAULT_TAGS.map((tag) => ({ project: project._id, ...tag }))
+  )
 
   // Create audit log
   const ctx = await auditContext(event, {

@@ -285,9 +285,9 @@ test.describe('Sizzle Reel — Feature Walkthrough', () => {
     }
   })
 
-  // ─── Scene 8: Tags ────────────────────────────────────────────────
-  test('Scene 8 — Create tags', async () => {
-    // Navigate via project nav links
+  // ─── Scene 8: Default tags ─────────────────────────────────────────
+  test('Scene 8 — View default tags', async () => {
+    // Navigate to tags page — project comes with default tags
     const tagsLink = page.getByRole('link', { name: /^tags$/i })
     if (await tagsLink.isVisible()) {
       await tagsLink.click()
@@ -298,32 +298,11 @@ test.describe('Sizzle Reel — Feature Walkthrough', () => {
     await waitForHydration(page)
     await pause(page, LONG_PAUSE)
 
-    const tags = ['Frontend', 'Backend', 'DevOps', 'Documentation']
-
-    for (const tagName of tags) {
-      const newTagBtn = page.getByRole('button', { name: /new tag/i }).first()
-      await newTagBtn.click()
-      await pause(page)
-
-      const dialog = page.getByRole('dialog')
-      await expect(dialog).toBeVisible()
-
-      await dialog.locator('#tag-name').fill(tagName)
-      await pause(page, 200)
-
-      // Pick a color swatch
-      const swatches = dialog.locator('button.rounded-full')
-      const count = await swatches.count()
-      if (count > 0) {
-        const idx = tags.indexOf(tagName) % count
-        await swatches.nth(idx).click()
-        await pause(page, 200)
-      }
-
-      await dialog.getByRole('button', { name: /create tag/i }).click()
-      await waitForHydration(page)
-      await pause(page, 300)
-    }
+    // Verify default tags are populated
+    await expect(page.getByText('Frontend')).toBeVisible()
+    await expect(page.getByText('Developer')).toBeVisible()
+    await expect(page.getByText('Design')).toBeVisible()
+    await expect(page.getByText('Client')).toBeVisible()
 
     await pause(page, LONG_PAUSE)
   })
@@ -367,8 +346,71 @@ test.describe('Sizzle Reel — Feature Walkthrough', () => {
     await pause(page, LONG_PAUSE)
   })
 
-  // ─── Scene 10: Filters & search ───────────────────────────────────
-  test('Scene 10 — Filter and search tasks', async () => {
+  // ─── Scene 10: Assign tasks to milestone ───────────────────────────
+  test('Scene 10 — Assign tasks to milestone', async () => {
+    // Go to the task list
+    await page.goto(projectUrl)
+    await waitForHydration(page)
+
+    // Switch to All Tasks preset
+    const preset = page.locator('select').filter({ has: page.locator('option[value="all"]') }).first()
+    if (await preset.isVisible()) {
+      await preset.selectOption('all')
+      await waitForHydration(page)
+    }
+
+    await pause(page, LONG_PAUSE)
+
+    // Assign first 3 tasks to the "v1.0 Launch" milestone via the task card dropdown
+    const rows = page.locator('table[aria-label="Tasks list"] tbody tr').filter({ hasNotText: /add a task/i })
+    const taskCount = await rows.count()
+
+    for (let i = 0; i < Math.min(taskCount, 3); i++) {
+      const row = rows.nth(i)
+      const milestoneSelect = row.locator('select[aria-label="Task milestone"]')
+      if (await milestoneSelect.isVisible()) {
+        await milestoneSelect.selectOption({ label: 'v1.0 Launch' })
+        await pause(page, 300)
+      }
+    }
+
+    await pause(page, LONG_PAUSE)
+  })
+
+  // ─── Scene 11: Specification document ─────────────────────────────
+  test('Scene 11 — Specification document', async () => {
+    const specLink = page.getByRole('link', { name: /specification/i })
+    if (await specLink.isVisible()) {
+      await specLink.click()
+    } else {
+      const url = projectUrl.replace(/\/?$/, '/specification')
+      await page.goto(url)
+    }
+    await waitForHydration(page)
+    await pause(page, LONG_PAUSE)
+
+    // The spec page shows the project name and milestones with tasks
+    await expect(page.getByText('Project Specification Document')).toBeVisible({ timeout: 5000 })
+    await pause(page)
+
+    // Scroll through the document to show milestone sections
+    const milestoneHeading = page.getByText('v1.0 Launch').first()
+    if (await milestoneHeading.isVisible()) {
+      await milestoneHeading.scrollIntoViewIfNeeded()
+      await pause(page, LONG_PAUSE)
+    }
+
+    // Scroll to the bottom to show the full document
+    await page.evaluate(() => window.scrollTo({ top: document.body.scrollHeight, behavior: 'smooth' }))
+    await pause(page, LONG_PAUSE)
+
+    // Scroll back to top
+    await page.evaluate(() => window.scrollTo({ top: 0, behavior: 'smooth' }))
+    await pause(page, LONG_PAUSE)
+  })
+
+  // ─── Scene 12: Filters & search ───────────────────────────────────
+  test('Scene 12 — Filter and search tasks', async () => {
     await page.goto(projectUrl)
     await waitForHydration(page)
     await pause(page, LONG_PAUSE)
@@ -397,8 +439,8 @@ test.describe('Sizzle Reel — Feature Walkthrough', () => {
     await pause(page, LONG_PAUSE)
   })
 
-  // ─── Scene 11: My Tasks ──────────────────────────────────────────
-  test('Scene 11 — My Tasks view', async () => {
+  // ─── Scene 13: My Tasks ──────────────────────────────────────────
+  test('Scene 13 — My Tasks view', async () => {
     const myTasksLink = page.locator('nav[aria-label="Main navigation"]').getByRole('link', { name: /my tasks/i })
     await myTasksLink.click()
     await waitForHydration(page)
@@ -422,8 +464,8 @@ test.describe('Sizzle Reel — Feature Walkthrough', () => {
     await pause(page, LONG_PAUSE)
   })
 
-  // ─── Scene 12: Project members ────────────────────────────────────
-  test('Scene 12 — Project members page', async () => {
+  // ─── Scene 14: Project members ────────────────────────────────────
+  test('Scene 14 — Project members page', async () => {
     const url = projectUrl.replace(/\/?$/, '/members')
     await page.goto(url)
     await waitForHydration(page)
@@ -431,8 +473,8 @@ test.describe('Sizzle Reel — Feature Walkthrough', () => {
     await pause(page, LONG_PAUSE)
   })
 
-  // ─── Scene 13: Audit log ──────────────────────────────────────────
-  test('Scene 13 — Audit log', async () => {
+  // ─── Scene 15: Audit log ──────────────────────────────────────────
+  test('Scene 15 — Audit log', async () => {
     const url = projectUrl.replace(/\/?$/, '/audit')
     await page.goto(url)
     await waitForHydration(page)
@@ -440,8 +482,8 @@ test.describe('Sizzle Reel — Feature Walkthrough', () => {
     await pause(page, LONG_PAUSE)
   })
 
-  // ─── Scene 14: Settings ───────────────────────────────────────────
-  test('Scene 14 — Settings page', async () => {
+  // ─── Scene 16: Settings ───────────────────────────────────────────
+  test('Scene 16 — Settings page', async () => {
     const settingsLink = page.locator('nav[aria-label="Main navigation"]').getByRole('link', { name: /settings/i })
     await settingsLink.click()
     await waitForHydration(page)
