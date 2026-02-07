@@ -21,7 +21,6 @@ const navigation = [
 const route = useRoute()
 
 function isActive(href: string) {
-  // Strip query params for comparison
   const path = href.split('?')[0]
   return route.path === path || route.path.startsWith(path + '/')
 }
@@ -31,8 +30,8 @@ function isActive(href: string) {
   <div class="flex h-full w-64 flex-col bg-gradient-to-b from-gray-900 via-gray-900 to-gray-950">
     <!-- Logo & Close Button -->
     <div class="flex h-16 items-center justify-between px-4 sm:px-6">
-      <div class="flex items-center gap-2">
-        <div class="h-8 w-8 rounded-lg bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/20">
+      <div class="flex items-center gap-3">
+        <div class="h-9 w-9 rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center shadow-lg shadow-primary-500/40 animate-pulse-glow">
           <svg class="h-5 w-5 text-white" fill="none" viewBox="0 0 24 24" stroke="currentColor" aria-hidden="true">
             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2m-6 9l2 2 4-4" />
           </svg>
@@ -42,7 +41,7 @@ function isActive(href: string) {
       <!-- Mobile close button -->
       <button
         v-if="isMobile"
-        class="lg:hidden p-2 text-gray-400 hover:text-white hover:bg-gray-800 rounded-lg transition-colors -mr-2"
+        class="lg:hidden p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-200 -mr-2"
         aria-label="Close sidebar"
         @click="emit('close')"
       >
@@ -76,13 +75,13 @@ function isActive(href: string) {
         :aria-current="isActive(item.href) ? 'page' : undefined"
         :class="[
           isActive(item.href)
-            ? 'bg-gradient-to-r from-primary-600/90 to-primary-500/90 text-white shadow-lg shadow-primary-500/20'
+            ? 'bg-gradient-to-r from-primary-600/90 to-primary-500/90 text-white shadow-lg shadow-primary-500/30'
             : 'text-gray-300 hover:bg-white/5 hover:text-white',
-          'group flex items-center px-3 py-3 sm:py-2.5 text-sm font-medium rounded-lg transition-all duration-200 min-h-[44px]',
+          'group flex items-center px-3 py-3 sm:py-2.5 text-sm font-medium rounded-xl transition-all duration-200 min-h-[44px]',
         ]"
       >
         <svg
-          class="mr-3 h-5 w-5 flex-shrink-0"
+          class="mr-3 h-5 w-5 flex-shrink-0 transition-transform duration-200 group-hover:scale-110"
           fill="none"
           viewBox="0 0 24 24"
           stroke="currentColor"
@@ -123,14 +122,14 @@ function isActive(href: string) {
 
     <!-- User -->
     <div class="border-t border-gray-800/50 p-3 sm:p-4">
-      <div class="flex items-center min-h-[44px] p-2 rounded-lg bg-white/5">
+      <div class="flex items-center min-h-[44px] p-2.5 rounded-xl bg-white/5 hover:bg-white/10 transition-colors duration-200">
         <div
-          class="h-9 w-9 rounded-full bg-gradient-to-br from-primary-500 to-primary-600 flex items-center justify-center text-white font-semibold flex-shrink-0 shadow-lg shadow-primary-500/20"
+          class="h-10 w-10 rounded-xl bg-gradient-to-br from-primary-400 to-primary-600 flex items-center justify-center text-white font-semibold flex-shrink-0 shadow-lg shadow-primary-500/30"
         >
           {{ authStore.user?.name?.[0]?.toUpperCase() || '?' }}
         </div>
         <div class="ml-3 flex-1 min-w-0">
-          <p class="text-sm font-medium text-white truncate">
+          <p class="text-sm font-semibold text-white truncate">
             {{ authStore.user?.name }}
           </p>
           <p class="text-xs text-gray-400 truncate">
@@ -138,7 +137,7 @@ function isActive(href: string) {
           </p>
         </div>
         <button
-          class="ml-2 p-2 text-gray-400 hover:text-white hover:bg-white/10 rounded-lg transition-all duration-200 -mr-2"
+          class="ml-2 p-2.5 text-gray-400 hover:text-white hover:bg-white/10 rounded-xl transition-all duration-200 -mr-1"
           title="Logout"
           aria-label="Logout"
           @click="authStore.logout()"

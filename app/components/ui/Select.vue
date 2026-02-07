@@ -371,7 +371,7 @@ function getColorClass(color?: string) {
         <select
           :value="modelValue"
           :aria-label="placeholder"
-          class="appearance-none font-medium cursor-pointer focus:ring-1 focus:ring-primary-500 focus:outline-none transition-colors min-w-[70px]"
+          class="appearance-none font-medium cursor-pointer focus:ring-2 focus:ring-primary-500/50 focus:outline-none transition-all duration-200 min-w-[70px] rounded-lg"
           :class="[
             sizeClasses.trigger,
             coloredBackground ? 'pl-2 pr-5' : sizeClasses.triggerPadding,
@@ -461,7 +461,7 @@ function getColorClass(color?: string) {
         :aria-expanded="isOpen"
         aria-haspopup="listbox"
         :aria-controls="isOpen ? listboxId : undefined"
-        class="relative flex items-center font-medium cursor-pointer focus:ring-1 focus:ring-primary-500 focus:outline-none transition-colors"
+        class="relative flex items-center font-medium cursor-pointer focus:ring-2 focus:ring-primary-500/50 focus:outline-none transition-all duration-200 rounded-lg"
         :class="[
           sizeClasses.trigger,
           coloredBackground ? 'pl-2 pr-5' : sizeClasses.triggerPadding,
@@ -505,7 +505,7 @@ function getColorClass(color?: string) {
         <div
           v-if="isOpen"
           ref="dropdownRef"
-          class="fixed z-[100] shadow-lg"
+          class="fixed z-[100] shadow-elevated rounded-xl"
           :class="variantClasses.dropdown"
           :style="dropdownStyle"
         >
@@ -667,7 +667,7 @@ function getColorClass(color?: string) {
       <!-- Non-teleported dropdown (for inline positioning) -->
       <div
         v-else-if="isOpen"
-        class="absolute z-50 mt-1 min-w-full w-48 shadow-lg"
+        class="absolute z-50 mt-1 min-w-full w-48 shadow-elevated rounded-xl"
         :class="variantClasses.dropdown"
       >
         <!-- Search input -->

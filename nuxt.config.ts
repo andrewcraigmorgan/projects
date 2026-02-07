@@ -8,6 +8,10 @@ export default defineNuxtConfig({
     '@pinia/nuxt',
   ],
 
+  css: [
+    '~/assets/css/main.css',
+  ],
+
   app: {
     head: {
       htmlAttrs: {
@@ -17,6 +21,9 @@ export default defineNuxtConfig({
       link: [
         { rel: 'icon', type: 'image/svg+xml', href: '/favicon.svg?v=2' },
         { rel: 'icon', type: 'image/x-icon', href: '/favicon.ico?v=2' },
+        { rel: 'preconnect', href: 'https://fonts.googleapis.com' },
+        { rel: 'preconnect', href: 'https://fonts.gstatic.com', crossorigin: '' },
+        { rel: 'stylesheet', href: 'https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700;800&display=swap' },
       ],
       style: [
         {

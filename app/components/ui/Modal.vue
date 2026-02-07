@@ -15,36 +15,27 @@ const emit = defineEmits<{
 
 const { isMobile } = useBreakpoints()
 
-// Generate unique IDs for ARIA
 const titleId = useId()
 const contentId = useId()
 
-// Focus trap refs
 const modalRef = ref<HTMLElement | null>(null)
 const previouslyFocusedElement = ref<HTMLElement | null>(null)
 
-// Handle keyboard events
 function handleKeydown(event: KeyboardEvent) {
   if (event.key === 'Escape') {
     emit('close')
   }
 }
 
-// Focus management
 watch(() => props.open, (isOpen) => {
   if (isOpen) {
-    // Store the currently focused element
     previouslyFocusedElement.value = document.activeElement as HTMLElement
-    // Focus the modal after it opens
     nextTick(() => {
       modalRef.value?.focus()
     })
-    // Add keyboard listener
     document.addEventListener('keydown', handleKeydown)
   } else {
-    // Restore focus to previously focused element
     previouslyFocusedElement.value?.focus()
-    // Remove keyboard listener
     document.removeEventListener('keydown', handleKeydown)
   }
 })
@@ -55,7 +46,6 @@ onUnmounted(() => {
 
 const sizeClasses = computed(() => {
   if (isMobile.value) {
-    // On mobile, always use full width bottom sheet
     return 'w-full max-w-full'
   }
 
@@ -97,7 +87,7 @@ function handleBackdropClick(event: MouseEvent) {
         class="fixed inset-0 z-50 overflow-y-auto"
       >
         <div
-          class="flex min-h-full bg-black/50"
+          class="flex min-h-full bg-black/60 backdrop-blur-sm"
           :class="isMobile ? 'items-end' : 'items-center justify-center p-4'"
           @click="handleBackdropClick"
         >
@@ -117,18 +107,17 @@ function handleBackdropClick(event: MouseEvent) {
               :aria-labelledby="title ? titleId : undefined"
               :aria-describedby="contentId"
               tabindex="-1"
-              class="w-full transform overflow-hidden bg-white dark:bg-gray-800 shadow-2xl transition-all flex flex-col border border-gray-200/60 dark:border-gray-700/60 focus:outline-none"
+              class="w-full transform overflow-hidden bg-white dark:bg-gray-800 shadow-elevated transition-all flex flex-col border border-gray-200/60 dark:border-gray-700/60 focus:outline-none animate-scale-in"
               :class="[
                 sizeClasses,
-                isMobile ? 'rounded-t-2xl max-h-[90vh]' : 'rounded-2xl max-h-[85vh]'
+                isMobile ? 'rounded-t-3xl max-h-[90vh]' : 'rounded-2xl max-h-[85vh]'
               ]"
             >
               <!-- Header -->
               <div
                 v-if="title || isMobile"
-                class="flex items-center justify-between border-b border-gray-100 dark:border-gray-700/60 px-4 sm:px-6 py-3 sm:py-4 flex-shrink-0 bg-gray-50/50 dark:bg-gray-800/50"
+                class="flex items-center justify-between border-b border-gray-100 dark:border-gray-700/60 px-5 sm:px-6 py-4 flex-shrink-0 bg-gradient-to-r from-gray-50/80 to-gray-50/40 dark:from-gray-800/80 dark:to-gray-800/40"
               >
-                <!-- Mobile drag handle indicator -->
                 <div v-if="isMobile" class="absolute top-2 left-1/2 -translate-x-1/2 w-12 h-1 bg-gray-300 dark:bg-gray-600 rounded-full" />
 
                 <h3 v-if="title" :id="titleId" class="text-lg font-semibold text-gray-900 dark:text-gray-100">
@@ -136,9 +125,8 @@ function handleBackdropClick(event: MouseEvent) {
                 </h3>
                 <div v-else />
 
-                <!-- Close button (always visible on mobile, optional on desktop) -->
                 <button
-                  class="p-2 -mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-lg transition-all duration-200"
+                  class="p-2 -mr-2 text-gray-400 hover:text-gray-600 dark:hover:text-gray-300 hover:bg-gray-100 dark:hover:bg-gray-700 rounded-xl transition-all duration-200"
                   :class="isMobile ? '' : 'hidden sm:block'"
                   aria-label="Close dialog"
                   @click="emit('close')"
@@ -150,14 +138,14 @@ function handleBackdropClick(event: MouseEvent) {
               </div>
 
               <!-- Content -->
-              <div :id="contentId" class="px-4 sm:px-6 py-4 overflow-y-auto flex-1">
+              <div :id="contentId" class="px-5 sm:px-6 py-5 overflow-y-auto flex-1">
                 <slot />
               </div>
 
               <!-- Footer -->
               <div
                 v-if="$slots.footer"
-                class="border-t border-gray-100 dark:border-gray-700/60 px-4 sm:px-6 py-3 sm:py-4 bg-gray-50/50 dark:bg-gray-900/50 flex-shrink-0"
+                class="border-t border-gray-100 dark:border-gray-700/60 px-5 sm:px-6 py-4 bg-gradient-to-r from-gray-50/80 to-gray-50/40 dark:from-gray-900/80 dark:to-gray-900/40 flex-shrink-0"
               >
                 <slot name="footer" />
               </div>

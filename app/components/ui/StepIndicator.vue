@@ -12,7 +12,6 @@ interface Props {
 
 const props = defineProps<Props>()
 
-// Normalize steps to always have label
 const normalizedSteps = computed(() =>
   props.steps.map((s, idx) =>
     typeof s === 'string' ? { id: String(idx), label: s } : s
@@ -46,10 +45,14 @@ function isCurrent(index: number): boolean {
       class="flex items-center"
     >
       <div
-        class="w-8 h-8 rounded-full flex items-center justify-center text-sm font-medium"
-        :class="isCurrent(idx) || isCompleted(idx)
-          ? 'bg-primary-600 text-white'
-          : 'bg-gray-200 dark:bg-gray-700 text-gray-600 dark:text-gray-400'"
+        class="w-9 h-9 rounded-xl flex items-center justify-center text-sm font-semibold transition-all duration-200"
+        :class="[
+          isCurrent(idx)
+            ? 'bg-gradient-to-br from-primary-500 to-primary-600 text-white shadow-lg shadow-primary-500/40'
+            : isCompleted(idx)
+              ? 'bg-gradient-to-br from-success-500 to-success-600 text-white shadow-lg shadow-success-500/30'
+              : 'bg-gray-200 dark:bg-gray-700 text-gray-500 dark:text-gray-400'
+        ]"
         role="img"
         :aria-label="isCompleted(idx) ? `Step ${idx + 1}: ${step.label} - completed` : `Step ${idx + 1}: ${step.label}`"
       >
@@ -59,16 +62,18 @@ function isCurrent(index: number): boolean {
         <span v-else aria-hidden="true">{{ idx + 1 }}</span>
       </div>
       <span
-        class="ml-2 text-sm"
-        :class="isCurrent(idx) ? 'text-gray-900 dark:text-gray-100 font-medium' : 'text-gray-500 dark:text-gray-400'"
+        class="ml-3 text-sm transition-colors duration-200"
+        :class="isCurrent(idx) ? 'text-gray-900 dark:text-gray-100 font-semibold' : 'text-gray-500 dark:text-gray-400'"
         :aria-current="isCurrent(idx) ? 'step' : undefined"
       >
         {{ step.label }}
       </span>
       <div
         v-if="idx < normalizedSteps.length - 1"
-        class="w-12 h-0.5 mx-4"
-        :class="isCompleted(idx) ? 'bg-primary-600' : 'bg-gray-200 dark:bg-gray-700'"
+        class="w-12 h-1 mx-4 rounded-full transition-colors duration-200"
+        :class="isCompleted(idx)
+          ? 'bg-gradient-to-r from-success-500 to-success-400'
+          : 'bg-gray-200 dark:bg-gray-700'"
       />
     </div>
   </div>
